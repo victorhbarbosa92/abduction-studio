@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 > nul
 
 :: Verificar se ja eh admin
@@ -28,9 +28,9 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 echo [2] Instalando certificado de confianca no nivel de MAQUINA...
 powershell -ExecutionPolicy Bypass -Command ^
-  "$cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object { $_.Subject -like '*NovaDAW Developer*' } | Select-Object -First 1; ^
+  "$cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object { $_.Subject -like '*Kuru*' } | Select-Object -First 1; ^
    if (-not $cert) { ^
-     $cert = New-SelfSignedCertificate -Subject 'CN=NovaDAW Developer,O=AbductionStudio,C=BR' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyUsage DigitalSignature -Type CodeSigningCert -NotAfter (Get-Date).AddYears(10); ^
+     $cert = New-SelfSignedCertificate -Subject 'CN=Kuru,O=AbductionStudio,C=BR' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyUsage DigitalSignature -Type CodeSigningCert -NotAfter (Get-Date).AddYears(10); ^
      Write-Host ('  Certificado criado: ' + $cert.Thumbprint) ^
    }; ^
    $tp = New-Object System.Security.Cryptography.X509Certificates.X509Store('TrustedPublisher','LocalMachine'); ^
@@ -52,7 +52,7 @@ echo [4] Assinando e desbloqueando o executavel...
 powershell -ExecutionPolicy Bypass -Command ^
   "$exe = 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe'; ^
    if (Test-Path $exe) { ^
-     $cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object { $_.Subject -like '*NovaDAW Developer*' } | Select-Object -First 1; ^
+     $cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object { $_.Subject -like '*Kuru*' } | Select-Object -First 1; ^
      Set-AuthenticodeSignature -FilePath $exe -Certificate $cert | Out-Null; ^
      Unblock-File -Path $exe -ErrorAction SilentlyContinue; ^
      Remove-Item ($exe + ':Zone.Identifier') -Force -ErrorAction SilentlyContinue; ^
@@ -84,3 +84,4 @@ echo   REINICIE O PC para garantir o efeito.
 echo ==========================================
 echo.
 pause
+

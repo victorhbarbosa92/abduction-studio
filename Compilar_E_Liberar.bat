@@ -23,7 +23,7 @@ echo.
 echo [3] Assinando digitalmente com certificado confiavel...
 powershell -ExecutionPolicy Bypass -Command ^
   "$exe = 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe'; ^
-   $cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object Subject -match 'NovaDAW Developer' | Sort-Object NotAfter -Descending | Select-Object -First 1; ^
+   $cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object { $_.Subject -like '*Kuru*' } | Sort-Object NotAfter -Descending | Select-Object -First 1; ^
    if ($cert) { ^
      Set-AuthenticodeSignature -FilePath $exe -Certificate $cert | Out-Null; ^
      Write-Host '  OK: Assinado com certificado confiavel' ^
