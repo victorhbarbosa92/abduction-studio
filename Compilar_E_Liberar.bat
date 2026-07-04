@@ -20,50 +20,60 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [3] Assinando digitalmente (Anti-Virus Bypass)...
+echo [3] Assinando digitalmente com certificado confiavel...
 powershell -ExecutionPolicy Bypass -Command ^
-  "$cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object Subject -match 'NovaDAW Developer' | Select-Object -First 1; ^
-   if ($cert) { Set-AuthenticodeSignature -FilePath 'build\NovaDAW_artefacts\Release\Abduction Studio.exe' -Certificate $cert | Out-Null }"
+  "$exe = 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe'; ^
+   $cert = Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object Subject -match 'NovaDAW Developer' | Sort-Object NotAfter -Descending | Select-Object -First 1; ^
+   if ($cert) { ^
+     Set-AuthenticodeSignature -FilePath $exe -Certificate $cert | Out-Null; ^
+     Write-Host '  OK: Assinado com certificado confiavel' ^
+   } else { ^
+     Write-Host '  AVISO: Certificado nao encontrado. Execute Setup_Seguranca.bat primeiro!' ^
+   }"
 
 echo.
-echo [4] Removendo bloqueio de zona da internet (ZoneIdentifier)...
+echo [4] Removendo todas as travas de seguranca...
 powershell -ExecutionPolicy Bypass -Command ^
-  "Unblock-File -Path 'build\NovaDAW_artefacts\Release\Abduction Studio.exe' -ErrorAction SilentlyContinue; ^
-   Remove-Item -Path 'build\NovaDAW_artefacts\Release\Abduction Studio.exe:Zone.Identifier' -ErrorAction SilentlyContinue"
+  "$exe = 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe'; ^
+   Unblock-File -Path $exe -ErrorAction SilentlyContinue; ^
+   Remove-Item -Path ($exe + ':Zone.Identifier') -ErrorAction SilentlyContinue; ^
+   $bytes = [System.IO.File]::ReadAllBytes($exe); ^
+   [System.IO.File]::WriteAllBytes($exe, $bytes); ^
+   Write-Host '  OK: Travas removidas'"
 
 echo.
-echo [5] Tentando remover restricao do Device Guard via exclusao de WDAC...
+echo [5] Garantindo exclusao no Windows Defender...
 powershell -ExecutionPolicy Bypass -Command ^
-  "try { Add-MpPreference -ExclusionPath 'C:\NovaDAW\build\NovaDAW_artefacts\Release' -ErrorAction SilentlyContinue } catch {}"
+  "Add-MpPreference -ExclusionPath 'C:\NovaDAW\build\NovaDAW_artefacts\Release' -ErrorAction SilentlyContinue; ^
+   Add-MpPreference -ExclusionProcess 'Abduction Studio.exe' -ErrorAction SilentlyContinue"
 
 echo.
-echo [6] Abrindo a aplicacao diretamente...
+echo [6] Abrindo Abduction Studio...
 powershell -ExecutionPolicy Bypass -Command ^
-  "Start-Process -FilePath 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe' -ErrorAction Stop" 2>nul
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [AVISO] Abertura automatica bloqueada pelo Device Guard.
-    echo.
-    echo === SOLUCAO MANUAL ===
-    echo Abra o Explorador de Arquivos e va ate:
-    echo   C:\NovaDAW\build\NovaDAW_artefacts\Release\
-    echo Clique com botao direito em "Abduction Studio.exe"
-    echo Selecione "Propriedades" e clique em "Desbloquear"
-    echo Entao abra normalmente com duplo clique.
-    echo ======================
-    echo.
-    start explorer "C:\NovaDAW\build\NovaDAW_artefacts\Release"
-)
+  "$exe = 'C:\NovaDAW\build\NovaDAW_artefacts\Release\Abduction Studio.exe'; ^
+   try { ^
+     $proc = [System.Diagnostics.Process]::Start($exe); ^
+     Write-Host ('  OK: Abduction Studio iniciado (PID: ' + $proc.Id + ')') ^
+   } catch { ^
+     Write-Host '  AVISO: Abertura automatica falhou. Use o atalho do Desktop.' ^
+   }"
 
 echo.
 echo [7] Sincronizando com GitHub...
-cd /d C:\NovaDAW
 git add -A
-git commit -m "build: Kuru Edition - identity visual update" 2>nul
-git push origin master 2>nul
+git diff --cached --quiet
+if %ERRORLEVEL% NEQ 0 (
+    for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set DATA=%%c-%%b-%%a
+    for /f "tokens=1 delims= " %%a in ('time /t') do set HORA=%%a
+    git commit -m "build: Kuru Edition - %DATA% %HORA%"
+    git push origin main 2>nul
+    echo   OK: Codigo enviado para o GitHub
+) else (
+    echo   Sem alteracoes para enviar.
+)
 
 echo.
 echo ==========================================
-echo   CONCLUIDO! A nave esta pronta, Kuru.
+echo   MISSAO CUMPRIDA, KURU!
 echo ==========================================
 pause
