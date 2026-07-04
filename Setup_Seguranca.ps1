@@ -79,6 +79,21 @@ if (Test-Path $exe) {
     Write-Host "  INFO: Exe ainda nao compilado. Rode Compilar_E_Liberar.bat depois." -ForegroundColor Cyan
 }
 
+# [5b] Sincronizar o ico correto gerado pelo JUCE
+$juceIco = "C:\NovaDAW\build\NovaDAW_artefacts\JuceLibraryCode\icon.ico"
+$resourcesIco = "C:\NovaDAW\resources\icon.ico"
+Write-Host ""
+Write-Host "[5b] Sincronizando icon.ico..." -ForegroundColor Yellow
+if (Test-Path $juceIco) {
+    $juceSize = (Get-Item $juceIco).Length
+    if ($juceSize -gt 1000) {
+        Copy-Item $juceIco $resourcesIco -Force
+        Write-Host "  OK: icon.ico sincronizado ($juceSize bytes)" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  INFO: Compile primeiro para gerar o ico via JUCE" -ForegroundColor Cyan
+}
+
 # [6] Criar atalho no Desktop
 Write-Host ""
 Write-Host "[6] Criando atalho no Desktop..." -ForegroundColor Yellow
