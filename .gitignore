@@ -1,0 +1,22 @@
+# Build e Compilados
+build/
+bin/
+obj/
+*.exe
+*.dll
+*.lib
+*.ilk
+*.pdb
+
+# IDEs e Cache
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Dependencias Baixadas e ONNX Runtime
+_deps/
+*.onnx
+
+# MacOS/Linux temp files
+.DS_Store
