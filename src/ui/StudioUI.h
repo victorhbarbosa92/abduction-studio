@@ -868,6 +868,21 @@ namespace KuroUI {
         }
     }
 
+    inline void RenderModulationOverlay(float active_val, float min_val, float max_val) {
+        ImVec2 rect_min = ImGui::GetItemRectMin();
+        ImVec2 rect_max = ImGui::GetItemRectMax();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        
+        float active_normalized = (active_val - min_val) / (max_val - min_val);
+        active_normalized = std::max(0.0f, std::min(active_normalized, 1.0f));
+        
+        float active_x = rect_min.x + active_normalized * (rect_max.x - rect_min.x);
+        
+        // Desenhar indicador neon ciano da modulação ativa
+        draw_list->AddLine(ImVec2(active_x, rect_min.y), ImVec2(active_x, rect_max.y), IM_COL32(0, 255, 255, 200), 2.0f);
+        draw_list->AddCircleFilled(ImVec2(active_x, rect_min.y + 2), 2.5f, IM_COL32(0, 255, 255, 255));
+    }
+
     // FASE 28: Renderizar Janelas Flutuantes e Sincronizar DSP
     static void RenderFloatingPluginWindows() {
         // Usar a declaração global de KuroDSPUI.h
@@ -933,13 +948,17 @@ namespace KuroUI {
                 if (win.plugin_id == 1) {
                     ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.2f, 1.0f), "GOTHIC OVERDRIVE");
                     ImGui::SliderFloat("Drive", &board.param_dark_drive, 1.0f, 10.0f);
+                    RenderModulationOverlay(board.active_dark_drive, 1.0f, 10.0f);
                 } else if (win.plugin_id == 2) {
                     ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "RING MODULATOR");
                     ImGui::SliderFloat("Frequency", &board.param_alien_freq, 20.0f, 1000.0f);
+                    RenderModulationOverlay(board.active_alien_freq, 20.0f, 1000.0f);
                 } else if (win.plugin_id == 3) {
                     ImGui::TextColored(ImVec4(0.8f, 0.2f, 0.8f, 1.0f), "TREMOLO RITUAL");
                     ImGui::SliderFloat("Rate", &board.param_ritual_rate, 0.1f, 5.0f);
+                    RenderModulationOverlay(board.active_ritual_rate, 0.1f, 5.0f);
                     ImGui::SliderFloat("Depth", &board.param_ritual_depth, 0.0f, 1.0f);
+                    RenderModulationOverlay(board.active_ritual_depth, 0.0f, 1.0f);
                 } else if (win.plugin_id == 4) {
                     ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.8f, 1.0f), "PSYCH FLANGER");
                     ImGui::SliderFloat("Speed", &board.param_psych_speed, 0.01f, 2.0f);

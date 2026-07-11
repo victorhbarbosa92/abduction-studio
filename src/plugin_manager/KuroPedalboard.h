@@ -99,6 +99,12 @@ namespace KuroDSP {
         float param_psych_speed = 0.25f; // 0.01 a 2.0 Hz
         float param_psych_depth = 0.7f; // 0.0 a 1.0
         
+        // Parâmetros Ativos de DSP (Base + Offset de LFO)
+        float active_dark_drive = 2.5f;
+        float active_alien_freq = 120.0f;
+        float active_ritual_rate = 1.5f;
+        float active_ritual_depth = 0.5f;
+        
         // Parâmetros do Pitch Shifter Granular
         bool enable_abyss_pitch = false;
         float abyss_pitch_factor = 1.0f;
@@ -122,15 +128,15 @@ namespace KuroDSP {
                 if (preset_dark) {
                     // Soft clipping hiperbólico leve + corte de agudos simulado
                     // Compensação de ganho para não estourar muito quando a sujeira sobe
-                    float gain_comp = 1.2f / (1.0f + param_dark_drive * 0.2f);
-                    l = std::tanh(l * param_dark_drive) * gain_comp;
-                    r = std::tanh(r * param_dark_drive) * gain_comp;
+                    float gain_comp = 1.2f / (1.0f + active_dark_drive * 0.2f);
+                    l = std::tanh(l * active_dark_drive) * gain_comp;
+                    r = std::tanh(r * active_dark_drive) * gain_comp;
                 }
                 
                 // 2. RING MODULATOR (Falas Aliens)
                 if (preset_alien) {
                     float osc = std::sin(osc_phase_ringmod * 2.0f * 3.1415926535f);
-                    osc_phase_ringmod += param_alien_freq / sample_rate;
+                    osc_phase_ringmod += active_alien_freq / sample_rate;
                     if (osc_phase_ringmod > 1.0f) osc_phase_ringmod -= 1.0f;
                     
                     l *= osc;
@@ -140,8 +146,8 @@ namespace KuroDSP {
                 // 3. TREMOLO (Ritualístico)
                 if (preset_ritual) {
                     // range: (1.0 - depth) to 1.0
-                    float lfo = (1.0f - param_ritual_depth) + param_ritual_depth * (0.5f + 0.5f * std::sin(lfo_phase_tremolo * 2.0f * 3.1415926535f));
-                    lfo_phase_tremolo += param_ritual_rate / sample_rate;
+                    float lfo = (1.0f - active_ritual_depth) + active_ritual_depth * (0.5f + 0.5f * std::sin(lfo_phase_tremolo * 2.0f * 3.1415926535f));
+                    lfo_phase_tremolo += active_ritual_rate / sample_rate;
                     if (lfo_phase_tremolo > 1.0f) lfo_phase_tremolo -= 1.0f;
                     
                     l *= lfo;

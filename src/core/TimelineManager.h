@@ -3,6 +3,8 @@
 #include <vector>
 #include <mutex>
 #include <tuple>
+#include <cstdlib>
+#include <cmath>
 #include "KuroConfig.h"
 
 namespace KuroDSP {
@@ -13,10 +15,11 @@ namespace KuroDSP {
         float duration;     // Duration in seconds
         float velocity;     // 0.0 to 1.0
         bool is_playing;
+        float probability;  // Chance: 0.0 to 1.0
         
-        MidiNote() : pitch(60), start_time(0.0f), duration(1.0f), velocity(0.8f), is_playing(false) {}
-        MidiNote(int p, float st, float dur, float vel = 0.8f) 
-            : pitch(p), start_time(st), duration(dur), velocity(vel), is_playing(false) {}
+        MidiNote() : pitch(60), start_time(0.0f), duration(1.0f), velocity(0.8f), is_playing(false), probability(1.0f) {}
+        MidiNote(int p, float st, float dur, float vel = 0.8f, float prob = 1.0f) 
+            : pitch(p), start_time(st), duration(dur), velocity(vel), is_playing(false), probability(prob) {}
     };
 
     class TimelineManager {
@@ -38,6 +41,7 @@ namespace KuroDSP {
         
         // Piano Roll Notes (Uma lista por canal)
         std::vector<MidiNote> track_notes[MAX_TRACKS];
+        int track_steps_limit[MAX_TRACKS];
         std::mutex timeline_mutex;
         
         // FASE 10: AUTOMATION LANES
@@ -69,6 +73,7 @@ namespace KuroDSP {
         
         TimelineManager() {
             for(int i=0; i<16; i++) seq_grid[i] = false;
+            for(int i=0; i<MAX_TRACKS; i++) track_steps_limit[i] = 16;
         }
 
         void setPlaying(bool play) {
@@ -83,10 +88,10 @@ namespace KuroDSP {
         bool getPlaying() const { return is_playing; }
         uint64_t getMasterFrame() const { return master_frame; }
         
-        void addNote(int track_index, int pitch, float start, float duration, float velocity = 0.8f) {
+        void addNote(int track_index, int pitch, float start, float duration, float velocity = 0.8f, float probability = 1.0f) {
             if (track_index < 0 || track_index >= 8) return;
             std::lock_guard<std::mutex> lock(timeline_mutex);
-            track_notes[track_index].push_back(MidiNote(pitch, start, duration, velocity));
+            track_notes[track_index].push_back(MidiNote(pitch, start, duration, velocity, probability));
         }
 
         void clearNotes(int track_index) {
@@ -110,6 +115,7 @@ namespace KuroDSP {
             
             double frames_per_beat = (60.0 / bpm) * sample_rate;
             double frames_per_step = frames_per_beat / 4.0;
+            float snap_step = (60.0f / bpm) / 4.0f;
             
             uint64_t frame_start = master_frame;
             uint64_t frame_end = master_frame + frames;
@@ -139,14 +145,39 @@ namespace KuroDSP {
             
             std::lock_guard<std::mutex> lock(timeline_mutex);
             for (int i = 0; i < MAX_TRACKS; i++) {
-                for (auto& note : track_notes[i]) {
-                    if (!note.is_playing && t_end >= note.start_time && t_start < note.start_time + note.duration) {
-                        note.is_playing = true;
-                        fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                if (i < 4) {
+                    float loop_len = track_steps_limit[i] * snap_step;
+                    float t_start_mod = fmod(t_start, loop_len);
+                    float dt = t_end - t_start;
+                    float t_end_mod = t_start_mod + dt;
+                    
+                    for (auto& note : track_notes[i]) {
+                        bool trigger = false;
+                        if (note.start_time >= t_start_mod && note.start_time < t_end_mod) {
+                            trigger = true;
+                        } else if (t_end_mod >= loop_len) {
+                            float note_start_wrapped = note.start_time + loop_len;
+                            if (note_start_wrapped >= t_start_mod && note_start_wrapped < t_end_mod) {
+                                trigger = true;
+                            }
+                        }
+                        
+                        if (trigger) {
+                            float rand_val = (float)rand() / RAND_MAX;
+                            if (rand_val <= note.probability) {
+                                fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                            }
+                        }
                     }
-                    else if (note.is_playing && t_end >= note.start_time + note.duration) {
-                        note.is_playing = false;
-                        // Não precisamos enviar Note Off, pois a synth engine lida com a duração internamente.
+                } else {
+                    for (auto& note : track_notes[i]) {
+                        if (!note.is_playing && t_end >= note.start_time && t_start < note.start_time + note.duration) {
+                            note.is_playing = true;
+                            fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                        }
+                        else if (note.is_playing && t_end >= note.start_time + note.duration) {
+                            note.is_playing = false;
+                        }
                     }
                 }
             }

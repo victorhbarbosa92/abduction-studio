@@ -150,6 +150,14 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         return 0; // Fica em silêncio se não estiver tocando
     }
 
+    // --- Resetar parâmetros ativos para os valores base ---
+    for (int i = 0; i < 8; i++) {
+        track_pedalboards[i].active_dark_drive = track_pedalboards[i].param_dark_drive;
+        track_pedalboards[i].active_alien_freq = track_pedalboards[i].param_alien_freq;
+        track_pedalboards[i].active_ritual_rate = track_pedalboards[i].param_ritual_rate;
+        track_pedalboards[i].active_ritual_depth = track_pedalboards[i].param_ritual_depth;
+    }
+
     // --- Processar Modulações por LFO (Control-Rate) ---
     float bpm = timeline.getBPM();
     for (int l = 0; l < 4; l++) {
@@ -173,23 +181,23 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         if (mod.target_param == 0) {
             // Dark Drive (range: 1.0 a 10.0)
             float mod_range = 9.0f * mod.depth;
-            float new_val = mod.base_value + lfo_val * mod_range * 0.5f;
-            board.param_dark_drive = std::clamp(new_val, 1.0f, 10.0f);
+            float new_val = board.param_dark_drive + lfo_val * mod_range * 0.5f;
+            board.active_dark_drive = std::clamp(new_val, 1.0f, 10.0f);
         } else if (mod.target_param == 1) {
             // RingMod Alien Freq (range: 20.0 a 1000.0)
             float mod_range = 980.0f * mod.depth;
-            float new_val = mod.base_value + lfo_val * mod_range * 0.5f;
-            board.param_alien_freq = std::clamp(new_val, 20.0f, 1000.0f);
+            float new_val = board.param_alien_freq + lfo_val * mod_range * 0.5f;
+            board.active_alien_freq = std::clamp(new_val, 20.0f, 1000.0f);
         } else if (mod.target_param == 2) {
             // Tremolo Depth (range: 0.0 a 1.0)
             float mod_range = 1.0f * mod.depth;
-            float new_val = mod.base_value + lfo_val * mod_range * 0.5f;
-            board.param_ritual_depth = std::clamp(new_val, 0.0f, 1.0f);
+            float new_val = board.param_ritual_depth + lfo_val * mod_range * 0.5f;
+            board.active_ritual_depth = std::clamp(new_val, 0.0f, 1.0f);
         } else if (mod.target_param == 3) {
             // Tremolo Rate (range: 0.1 a 5.0)
             float mod_range = 4.9f * mod.depth;
-            float new_val = mod.base_value + lfo_val * mod_range * 0.5f;
-            board.param_ritual_rate = std::clamp(new_val, 0.1f, 5.0f);
+            float new_val = board.param_ritual_rate + lfo_val * mod_range * 0.5f;
+            board.active_ritual_rate = std::clamp(new_val, 0.1f, 5.0f);
         }
     }
 

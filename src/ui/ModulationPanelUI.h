@@ -61,15 +61,28 @@ namespace KuroUI {
                         const char* params[] = { "Gothic Overdrive Drive", "RingMod Alien Freq", "Tremolo depth", "Tremolo rate" };
                         ImGui::Combo("Parâmetro Alvo", &mod.target_param, params, IM_ARRAYSIZE(params));
                         
-                        // Set base value range depending on parameter
+                        // Sincronizar Valor Base com os parametros manuais do Pedalboard correspondente
+                        auto& board = ::track_pedalboards[mod.target_track];
                         if (mod.target_param == 0) {
-                            ImGui::SliderFloat("Valor Base (Drive)", &mod.base_value, 1.0f, 10.0f, "%.1f");
+                            mod.base_value = board.param_dark_drive;
+                            if (ImGui::SliderFloat("Valor Base (Drive)", &board.param_dark_drive, 1.0f, 10.0f, "%.1f")) {
+                                mod.base_value = board.param_dark_drive;
+                            }
                         } else if (mod.target_param == 1) {
-                            ImGui::SliderFloat("Valor Base (Freq)", &mod.base_value, 20.0f, 1000.0f, "%.1f Hz");
+                            mod.base_value = board.param_alien_freq;
+                            if (ImGui::SliderFloat("Valor Base (Freq)", &board.param_alien_freq, 20.0f, 1000.0f, "%.1f Hz")) {
+                                mod.base_value = board.param_alien_freq;
+                            }
                         } else if (mod.target_param == 2) {
-                            ImGui::SliderFloat("Valor Base (Depth)", &mod.base_value, 0.0f, 1.0f, "%.2f");
+                            mod.base_value = board.param_ritual_depth;
+                            if (ImGui::SliderFloat("Valor Base (Depth)", &board.param_ritual_depth, 0.0f, 1.0f, "%.2f")) {
+                                mod.base_value = board.param_ritual_depth;
+                            }
                         } else if (mod.target_param == 3) {
-                            ImGui::SliderFloat("Valor Base (Rate)", &mod.base_value, 0.1f, 5.0f, "%.2f Hz");
+                            mod.base_value = board.param_ritual_rate;
+                            if (ImGui::SliderFloat("Valor Base (Rate)", &board.param_ritual_rate, 0.1f, 5.0f, "%.2f Hz")) {
+                                mod.base_value = board.param_ritual_rate;
+                            }
                         }
                     }
 
