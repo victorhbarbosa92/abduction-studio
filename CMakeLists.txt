@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
-project(KuroSeparatorPro VERSION 1.0 LANGUAGES C CXX)
+project(AbductionStudioV2 VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(MSVC)
-    add_compile_options(/arch:AVX2 /O2 /fp:fast)
+    add_compile_options(/arch:AVX2 /fp:fast /FS /MP)
 else()
     add_compile_options(-mavx2 -O3 -ffast-math)
 endif()
@@ -27,7 +27,8 @@ FetchContent_MakeAvailable(glfw)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG master
+    GIT_TAG docking
+    GIT_SHALLOW 1
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -70,23 +71,25 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-add_executable(KuroSeparatorPro WIN32
+add_executable(AbductionStudioV2
     src/main.cpp
+    src/core/miniz.c
     ${IMGUI_SOURCES}
 )
 
 if(MSVC)
-    set_target_properties(KuroSeparatorPro PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+    # console app for debugging
+    # set_target_properties(AbductionStudioV2 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
 
-target_include_directories(KuroSeparatorPro PRIVATE 
+target_include_directories(AbductionStudioV2 PRIVATE 
     src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${onnxruntime_SOURCE_DIR}/include
 )
 
-target_link_libraries(KuroSeparatorPro PRIVATE
+target_link_libraries(AbductionStudioV2 PRIVATE
     glfw
     rtaudio
     opengl32
@@ -94,16 +97,16 @@ target_link_libraries(KuroSeparatorPro PRIVATE
 )
 
 # Sistema Anti-Lock (Mata instâncias antigas antes de compilar)
-add_custom_command(TARGET KuroSeparatorPro PRE_BUILD
-    COMMAND powershell -Command "Stop-Process -Name 'KuroSeparatorPro' -Force -ErrorAction SilentlyContinue; exit 0"
-    COMMENT "Anti-Lock: Encerrando KuroSeparatorPro em background..."
+add_custom_command(TARGET AbductionStudioV2 PRE_BUILD
+    COMMAND powershell -Command "Stop-Process -Name 'AbductionStudioV2' -Force -ErrorAction SilentlyContinue; exit 0"
+    COMMENT "Anti-Lock: Encerrando AbductionStudioV2 em background..."
 )
 
 # Pós-processamento para Assinar Digitalmente o binário em nome de "Kuru" e copiar DLLs
-add_custom_command(TARGET KuroSeparatorPro POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll" "$<TARGET_FILE_DIR:KuroSeparatorPro>/"
-    COMMAND powershell -Command "$cert = Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $_.Subject -eq 'CN=Kuru' } | Select-Object -First 1; if (-not $cert) { $cert = New-SelfSignedCertificate -Subject 'CN=Kuru' -Type CodeSigningCert -CertStoreLocation 'Cert:\\CurrentUser\\My' }; Set-AuthenticodeSignature -FilePath $<TARGET_FILE:KuroSeparatorPro> -Certificate $cert"
-    COMMAND powershell -Command "Unblock-File -Path $<TARGET_FILE:KuroSeparatorPro>"
-    COMMAND powershell -Command "git add .; git commit -m 'Auto-Commit: Compilacao da DAW executada com sucesso.'; git push origin main -ErrorAction SilentlyContinue; exit 0"
-    COMMENT "Copiando IA (ONNX), Assinando, Desbloqueando Windows Security e Sincronizando Git..."
+add_custom_command(TARGET AbductionStudioV2 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
+    COMMAND powershell -Command "$cert = Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $_.Subject -eq 'CN=Kuru' } | Select-Object -First 1; if (-not $cert) { $cert = New-SelfSignedCertificate -Subject 'CN=Kuru' -Type CodeSigningCert -CertStoreLocation 'Cert:\\CurrentUser\\My' }; Set-AuthenticodeSignature -FilePath $<TARGET_FILE:AbductionStudioV2> -Certificate $cert"
+    COMMAND powershell -Command "Unblock-File -Path $<TARGET_FILE:AbductionStudioV2>"
+    COMMAND powershell -Command "git add .; git commit -m 'Auto-Commit: Compilacao da DAW executada com sucesso.'; exit 0"
+    COMMENT "Copiando IA (ONNX), Assinando, Desbloqueando Windows Security e Commit Local..."
 )

@@ -50,7 +50,7 @@ public:
             if (track_offsets[i] > max_offset) max_offset = track_offsets[i];
         }
         
-        float pixels_per_second = 50.0f;
+        float pixels_per_second = 15.0f;
         long long max_offset_samples = (long long)((max_offset / pixels_per_second) * 44100.0f);
         
         unsigned int nFrames = baseFrames + max_offset_samples; 

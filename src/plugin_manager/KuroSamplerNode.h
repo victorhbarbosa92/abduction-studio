@@ -51,6 +51,15 @@ namespace KuroDSP {
             return true;
         }
 
+        void loadFromMemory(const std::vector<float>& data, unsigned int num_channels, unsigned int s_rate) {
+            sample_data = data;
+            channels = num_channels;
+            sample_rate = s_rate;
+            total_frames = data.size() / channels;
+            is_playing = false;
+            std::cout << "[Sampler] Memory loaded: " << total_frames << " frames" << std::endl;
+        }
+
         void noteOn(unsigned int offset_frames = 0) {
             current_frame = 0;
             pending_offset = offset_frames;

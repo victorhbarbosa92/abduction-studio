@@ -1,6 +1,7 @@
 #pragma once
 #include "imgui.h"
 #include "../ai/StemSeparationEngine.h"
+#include "../plugin_manager/KuroSamplerNode.h"
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -42,7 +43,11 @@ namespace KuroUI {
                 
                 // Play Button
                 if (ImGui::Button("PLAY", ImVec2(50, 30))) {
-                    // Todo: Feed slice.data to a preview player
+                    extern std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
+                    if (g_global_sampler) {
+                        g_global_sampler->loadFromMemory(slice.data, 2, engine.getSampleRate());
+                        g_global_sampler->noteOn(0);
+                    }
                 }
                 ImGui::SameLine();
                 

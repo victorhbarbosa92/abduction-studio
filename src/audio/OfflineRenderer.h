@@ -2,6 +2,7 @@
 #include "../plugin_manager/DAG.h"
 #include <string>
 #include <vector>
+#include <map>
 
 namespace KuroAudio {
 
@@ -18,32 +19,39 @@ namespace KuroAudio {
             
             std::cout << "[OfflineRenderer] Iniciando Exportação Multi-Track para " << total_frames << " frames...\n";
             
-            // TODO: Aqui a lógica real percorreria as trilhas separadas.
-            // Para simplificar, faremos um bounce rápido do MASTER para demonstrar o processamento offline.
-            // Numa implementação completa 100%, nós extrairíamos buffers das Tracks isoladamente.
+            auto node_ids = graph.getNodeIds();
+            std::map<std::string, std::vector<float>> stems_l;
+            std::map<std::string, std::vector<float>> stems_r;
             
-            std::vector<float> master_l;
-            std::vector<float> master_r;
-            master_l.reserve(total_frames);
-            master_r.reserve(total_frames);
+            for (const auto& id : node_ids) {
+                stems_l[id].reserve(total_frames);
+                stems_r[id].reserve(total_frames);
+            }
             
             for (unsigned int processed = 0; processed < total_frames; processed += block_size) {
                 unsigned int frames_to_process = std::min(block_size, total_frames - processed);
                 
-                // Zera os buffers temporários
                 for(int i=0; i<2048; i++) { temp_l[i] = 0.0f; temp_r[i] = 0.0f; }
                 
-                // Processa o Grafo inteiro (Offline, supersônico)
                 graph.process(temp_l, temp_r, frames_to_process, 140.0f);
                 
-                for(unsigned int i=0; i<frames_to_process; ++i) {
-                    master_l.push_back(temp_l[i]);
-                    master_r.push_back(temp_r[i]);
+                for (const auto& id : node_ids) {
+                    const auto* buf_l = graph.getNodeBufferL(id);
+                    const auto* buf_r = graph.getNodeBufferR(id);
+                    if (buf_l && buf_r) {
+                        for(unsigned int i=0; i<frames_to_process; ++i) {
+                            stems_l[id].push_back((*buf_l)[i]);
+                            stems_r[id].push_back((*buf_r)[i]);
+                        }
+                    }
                 }
             }
             
-            // Salva o arquivo Master gerado offline
-            saveBufferToWav(output_dir + "\\master_offline.wav", master_l, master_r, sample_rate);
+            for (const auto& id : node_ids) {
+                std::string filepath = output_dir + "\\stem_" + id + ".wav";
+                saveBufferToWav(filepath, stems_l[id], stems_r[id], sample_rate);
+                std::cout << "[OfflineRenderer] Salvo: " << filepath << "\n";
+            }
             
             std::cout << "[OfflineRenderer] Concluído!\n";
         }

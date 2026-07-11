@@ -206,6 +206,22 @@ namespace KuroDSP {
             return nullptr;
         }
 
+        const std::vector<float>* getNodeBufferL(const std::string& id) const {
+            if (nodes.count(id)) return &nodes.at(id).buffer_l;
+            return nullptr;
+        }
+
+        const std::vector<float>* getNodeBufferR(const std::string& id) const {
+            if (nodes.count(id)) return &nodes.at(id).buffer_r;
+            return nullptr;
+        }
+
+        std::vector<std::string> getNodeIds() const {
+            std::vector<std::string> ids;
+            for (const auto& pair : nodes) ids.push_back(pair.first);
+            return ids;
+        }
+
         // --- API DA MATRIZ DE MODULAÇÃO ---
         int addLFO() {
             lfos.push_back(LFOEngine());
