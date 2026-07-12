@@ -620,23 +620,8 @@ namespace KuroUI {
         ImGui::PopStyleColor();
         
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.6f, 0.3f, 1.0f));
-        if (ImGui::Button("🥁 STEP SEQ", ImVec2(100, 30))) show_step_sequencer = true;
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.7f, 1.0f));
-        if (ImGui::Button("🌀 LFO MATRIX", ImVec2(120, 30))) show_modulation_panel = true;
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.8f, 1.0f));
         if (ImGui::Button("☁️ CLOUD DOWN", ImVec2(120, 30))) show_cloud_downloader = true;
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
-        if (ImGui::Button("⏱️ GROSS BEAT", ImVec2(120, 30))) show_gross_beat = true;
         ImGui::PopStyleColor();
         
         ImGui::Separator();
@@ -652,6 +637,21 @@ namespace KuroUI {
             if (ImGui::BeginTabItem("SAMPLER")) {
                 ImGui::Spacing();
                 KuroUI::RenderKuroSampler(g_global_sampler);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("STEP SEQUENCER")) {
+                ImGui::Spacing();
+                KuroUI::RenderStepSequencer(nullptr, ::timeline, timeline.getBPM());
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("LFO MATRIX")) {
+                ImGui::Spacing();
+                KuroUI::RenderModulationPanel(nullptr);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("GROSS BEAT")) {
+                ImGui::Spacing();
+                KuroUI::GrossBeatUI::Render(::g_gross_beat, nullptr);
                 ImGui::EndTabItem();
             }
             // Aba PIANO ROLL removida a pedido do usuario (virou botao no topo e janela flutuante)
@@ -837,7 +837,11 @@ namespace KuroUI {
         
         static bool show_export_modal = false;
         if (!show_piano_roll && show_piano_roll_prev) {
-            show_export_modal = true;
+            if (!::timeline.scratchpad_notes.empty()) {
+                show_export_modal = true;
+            } else {
+                ::timeline.is_scratchpad_active = false;
+            }
         }
         show_piano_roll_prev = show_piano_roll;
         

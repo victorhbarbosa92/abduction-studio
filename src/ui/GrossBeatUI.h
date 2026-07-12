@@ -8,10 +8,7 @@ namespace KuroUI {
 class GrossBeatUI {
 public:
     static void Render(KuroDSP::GrossBeatNode& node, bool* p_open) {
-        ImGui::SetNextWindowSize(ImVec2(800, 500), ImGuiCond_FirstUseEver);
-        
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
-        if (ImGui::Begin("Kuro Gross Beat (Master Bus)", p_open, flags)) {
+        if (ImGui::BeginChild("Kuro Gross Beat (Master Bus)")) {
             
             ImGui::Checkbox("ATIVADO", &node.enabled);
             ImGui::SameLine();
@@ -59,7 +56,7 @@ public:
             
             // Ponto flutuante do cursor de reprodução poderia ser renderizado aqui
             
-            ImGui::End();
+            ImGui::EndChild();
         }
     }
     

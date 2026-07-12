@@ -9,11 +9,8 @@
 namespace KuroUI {
 
     inline void RenderStepSequencer(bool* open, KuroDSP::TimelineManager& timeline_mgr, float bpm) {
-        if (!*open) return;
-
-        ImGui::SetNextWindowSize(ImVec2(780, 420), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin("Step Sequencer (FL Style)", open)) {
-            ImGui::End();
+        if (!ImGui::BeginChild("Step Sequencer (FL Style)")) {
+            ImGui::EndChild();
             return;
         }
 
@@ -192,7 +189,6 @@ namespace KuroUI {
                 timeline_mgr.clearNotes(inst);
             }
         }
-
-        ImGui::End();
+        ImGui::EndChild();
     }
 }

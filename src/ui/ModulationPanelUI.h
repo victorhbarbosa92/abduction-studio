@@ -6,11 +6,8 @@
 namespace KuroUI {
 
     inline void RenderModulationPanel(bool* open) {
-        if (!*open) return;
-
-        ImGui::SetNextWindowSize(ImVec2(800, 280), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin("Ableton LFO Modulators Matrix", open)) {
-            ImGui::End();
+        if (!ImGui::BeginChild("Ableton LFO Modulators Matrix")) {
+            ImGui::EndChild();
             return;
         }
 
@@ -93,6 +90,6 @@ namespace KuroUI {
             ImGui::EndTabBar();
         }
 
-        ImGui::End();
+        ImGui::EndChild();
     }
 }
