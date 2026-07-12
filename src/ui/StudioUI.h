@@ -206,7 +206,7 @@ namespace KuroUI {
         ImGui::PopStyleColor(2);
 
         // Botão Limpar
-        ImGui::SameLine(ImGui::GetWindowWidth() - 120);
+        ImGui::SameLine();
         if (ImGui::Button("Limpar Tudo", ImVec2(100, 30))) {
             ai_engine.reset();
             g_clip_manager.reset();

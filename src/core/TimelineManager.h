@@ -149,7 +149,7 @@ namespace KuroDSP {
                 // Determine which notes list to use for this track (scratchpad overrides if active for this track)
                 auto& notes_list = (is_scratchpad_active && scratchpad_target_track == i) ? scratchpad_notes : track_notes[i];
                 
-                if (i < 4) {
+                if (i < 4 && !(is_scratchpad_active && scratchpad_target_track == i)) {
                     float loop_len = track_steps_limit[i] * snap_step;
                     float t_start_mod = fmod(t_start, loop_len);
                     float dt = t_end - t_start;
