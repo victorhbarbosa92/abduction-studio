@@ -610,14 +610,10 @@ namespace KuroUI {
         ImGui::BeginChild("BottomPanel", ImVec2(0, 0), true);
         
         // Header do Device View
-        // Header do Device View
         ImGui::TextColored(ImVec4(0.22f, 1.0f, 0.08f, 1.0f), "DEVICE RACK: %s", track_names[selected_track_idx].c_str());
         
-        float buttons_start_x = ImGui::GetWindowWidth() - 600.0f;
-        if (buttons_start_x < ImGui::GetCursorPosX() + 10.0f) {
-            buttons_start_x = ImGui::GetCursorPosX() + 10.0f;
-        }
-        ImGui::SameLine(buttons_start_x);
+        // Quebra de linha (sem SameLine) para os botões caberem perfeitamente
+        ImGui::Spacing();
         
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
         if (ImGui::Button("🎹 PIANO ROLL", ImVec2(120, 30))) show_piano_roll = true;
