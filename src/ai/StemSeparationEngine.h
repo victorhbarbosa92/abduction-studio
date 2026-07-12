@@ -185,20 +185,26 @@ private:
         session_options.SetIntraOpNumThreads(4);
         session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
         
-        std::unique_ptr<Ort::Session> session = nullptr;
+        std::unique_ptr<Ort::Session> sessions[4] = {nullptr, nullptr, nullptr, nullptr};
         bool model_loaded = false;
         
         try {
-            // Tenta carregar o modelo real
+            // Tenta carregar os 4 modelos especialistas reais do Demucs v4 (StemSplitio release)
 #ifdef _WIN32
-            session = std::make_unique<Ort::Session>(env, L"demucs_kuro.onnx", session_options);
+            sessions[0] = std::make_unique<Ort::Session>(env, L"htdemucs_ft_drums.onnx", session_options);
+            sessions[1] = std::make_unique<Ort::Session>(env, L"htdemucs_ft_bass.onnx", session_options);
+            sessions[2] = std::make_unique<Ort::Session>(env, L"htdemucs_ft_other.onnx", session_options);
+            sessions[3] = std::make_unique<Ort::Session>(env, L"htdemucs_ft_vocals.onnx", session_options);
 #else
-            session = std::make_unique<Ort::Session>(env, "demucs_kuro.onnx", session_options);
+            sessions[0] = std::make_unique<Ort::Session>(env, "htdemucs_ft_drums.onnx", session_options);
+            sessions[1] = std::make_unique<Ort::Session>(env, "htdemucs_ft_bass.onnx", session_options);
+            sessions[2] = std::make_unique<Ort::Session>(env, "htdemucs_ft_other.onnx", session_options);
+            sessions[3] = std::make_unique<Ort::Session>(env, "htdemucs_ft_vocals.onnx", session_options);
 #endif
             model_loaded = true;
-            current_status = "Modelo neural 'demucs_kuro.onnx' carregado na memoria!";
+            current_status = "4 Modelos especialistas do Demucs carregados na memoria!";
         } catch(const std::exception& e) {
-            current_status = "AVISO: demucs_kuro.onnx ausente! Rodando Fallback Mode...";
+            current_status = "AVISO: Modelos htdemucs_ft_*.onnx ausentes! Rodando Fallback Mode...";
             model_loaded = false;
         }
         
@@ -228,7 +234,7 @@ private:
                 framesToProcess = totalPCMFrameCount - (i * chunkSizeFrames);
             }
             
-            if (model_loaded && session) {
+            if (model_loaded) {
                 // ALOCAÇÃO REAL DO TENSOR DE ENTRADA (Batch=1, Channels=2, Time=framesToProcess)
                 std::vector<int64_t> input_shape = {1, 2, static_cast<int64_t>(framesToProcess)};
                 size_t input_tensor_size = 1 * 2 * framesToProcess;
@@ -251,34 +257,34 @@ private:
                 const char* output_names[] = {"output"};
                 
                 try {
-                    // CEREBRO EM AÇÃO: session->Run()
-                    auto output_tensors = session->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+                    // CEREBRO EM AÇÃO: Executando as 4 sessões (Drums, Bass, Other, Vocals)
+                    auto out_drums  = sessions[0]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+                    auto out_bass   = sessions[1]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+                    auto out_other  = sessions[2]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+                    auto out_vocals = sessions[3]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
                     
-                    // Extrai as STEMS separadas do Tensor (Batch=1, Stems=4, Channels=2, Time=framesToProcess)
-                    float* output_arr = output_tensors.front().GetTensorMutableData<float>();
-                    
-                    // O Demucs HT tipicamente gera 4 fontes na ordem: Drums, Bass, Other, Vocals
-                    // Nosso mixer tem: 0=KICK/BASS, 1=LEADS(Other/Drums), 2=VOX(Vocals), 3=FX
+                    // Extraindo tensores (Shape de cada: [1, 2, framesToProcess])
+                    float* arr_drums  = out_drums.front().GetTensorMutableData<float>();
+                    float* arr_bass   = out_bass.front().GetTensorMutableData<float>();
+                    float* arr_other  = out_other.front().GetTensorMutableData<float>();
+                    float* arr_vocals = out_vocals.front().GetTensorMutableData<float>();
                     
                     for (size_t s = 0; s < framesToProcess; s++) {
-                        // Tensor shape: [1, 4, 2, framesToProcess]
-                        // Endereço = (source * 2 * framesToProcess) + (channel * framesToProcess) + s
+                        // Endereço no tensor planar = (channel * framesToProcess) + s
                         
                         // KICK/BASS (Source 1 - Bass)
-                        float bassL = output_arr[(1 * 2 * framesToProcess) + (0 * framesToProcess) + s];
-                        float bassR = output_arr[(1 * 2 * framesToProcess) + (1 * framesToProcess) + s];
+                        float bassL = arr_bass[(0 * framesToProcess) + s];
+                        float bassR = arr_bass[(1 * framesToProcess) + s];
                         stems_buffers[0].push_back(bassL); stems_buffers[0].push_back(bassR);
                         
                         // LEADS (Source 0 - Drums + Source 2 - Other)
-                        float leadsL = output_arr[(0 * 2 * framesToProcess) + (0 * framesToProcess) + s] + 
-                                       output_arr[(2 * 2 * framesToProcess) + (0 * framesToProcess) + s];
-                        float leadsR = output_arr[(0 * 2 * framesToProcess) + (1 * framesToProcess) + s] + 
-                                       output_arr[(2 * 2 * framesToProcess) + (1 * framesToProcess) + s];
+                        float leadsL = arr_drums[(0 * framesToProcess) + s] + arr_other[(0 * framesToProcess) + s];
+                        float leadsR = arr_drums[(1 * framesToProcess) + s] + arr_other[(1 * framesToProcess) + s];
                         stems_buffers[1].push_back(leadsL); stems_buffers[1].push_back(leadsR);
                         
                         // VOX (Source 3 - Vocals)
-                        float voxL = output_arr[(3 * 2 * framesToProcess) + (0 * framesToProcess) + s];
-                        float voxR = output_arr[(3 * 2 * framesToProcess) + (1 * framesToProcess) + s];
+                        float voxL = arr_vocals[(0 * framesToProcess) + s];
+                        float voxR = arr_vocals[(1 * framesToProcess) + s];
                         stems_buffers[2].push_back(voxL); stems_buffers[2].push_back(voxR);
                         
                         // FX (Deixamos mudo inicialmente)
