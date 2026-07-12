@@ -219,7 +219,7 @@ private:
         total_stem_frames = totalPCMFrameCount;
         
         // 3. CHUNKING & INFERÊNCIA
-        const size_t chunkSizeFrames = sampleRate * 10; // Janelas de 10 segundos para economizar RAM
+        const size_t chunkSizeFrames = 343980; // Shape rígido exigido pelo modelo Demucs ONNX [1, 2, 343980]
         const size_t totalChunks = (totalPCMFrameCount / chunkSizeFrames) + 1;
         
         Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -235,17 +235,17 @@ private:
             }
             
             if (model_loaded) {
-                // ALOCAÇÃO REAL DO TENSOR DE ENTRADA (Batch=1, Channels=2, Time=framesToProcess)
-                std::vector<int64_t> input_shape = {1, 2, static_cast<int64_t>(framesToProcess)};
-                size_t input_tensor_size = 1 * 2 * framesToProcess;
+                // ALOCAÇÃO REAL DO TENSOR DE ENTRADA FIXO (Batch=1, Channels=2, Time=343980)
+                std::vector<int64_t> input_shape = {1, 2, 343980};
+                size_t input_tensor_size = 1 * 2 * 343980;
                 
-                std::vector<float> input_tensor_values(input_tensor_size);
+                std::vector<float> input_tensor_values(input_tensor_size, 0.0f); // Zero-padded by default
                 
                 // Preenchendo o buffer planar com os frames do dr_wav
                 size_t offset = i * chunkSizeFrames * channels;
                 for(size_t c = 0; c < 2; c++) {
                     for(size_t s = 0; s < framesToProcess; s++) {
-                        input_tensor_values[c * framesToProcess + s] = pSampleData[offset + (s * channels) + c];
+                        input_tensor_values[c * 343980 + s] = pSampleData[offset + (s * channels) + c];
                     }
                 }
                 
@@ -253,8 +253,8 @@ private:
                     memory_info, input_tensor_values.data(), input_tensor_values.size(), input_shape.data(), input_shape.size()
                 );
                 
-                const char* input_names[] = {"input"};
-                const char* output_names[] = {"output"};
+                const char* input_names[] = {"mix"};
+                const char* output_names[] = {"stems"};
                 
                 try {
                     // CEREBRO EM AÇÃO: Executando as 4 sessões (Drums, Bass, Other, Vocals)
@@ -263,28 +263,33 @@ private:
                     auto out_other  = sessions[2]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
                     auto out_vocals = sessions[3]->Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
                     
-                    // Extraindo tensores (Shape de cada: [1, 2, framesToProcess])
+                    // Extraindo tensores (Shape de cada saída do modelo Demucs v4: [1, 4, 2, 'dynamic' (343980)])
                     float* arr_drums  = out_drums.front().GetTensorMutableData<float>();
                     float* arr_bass   = out_bass.front().GetTensorMutableData<float>();
                     float* arr_other  = out_other.front().GetTensorMutableData<float>();
                     float* arr_vocals = out_vocals.front().GetTensorMutableData<float>();
                     
-                    for (size_t s = 0; s < framesToProcess; s++) {
-                        // Endereço no tensor planar = (channel * framesToProcess) + s
+                    size_t T = 343980; // Tempo total do tensor
+                    
+                    for (size_t s = 0; s < framesToProcess; s++) { // Extrai apenas os frames válidos
+                        // Endereço no tensor 4D = (source * 2 * T) + (channel * T) + s
+                        // Onde Sources: 0=Drums, 1=Bass, 2=Other, 3=Vocals
                         
-                        // KICK/BASS (Source 1 - Bass)
-                        float bassL = arr_bass[(0 * framesToProcess) + s];
-                        float bassR = arr_bass[(1 * framesToProcess) + s];
+                        // KICK/BASS (Source 1 - Bass) extraído do modelo arr_bass
+                        float bassL = arr_bass[(1 * 2 * T) + (0 * T) + s];
+                        float bassR = arr_bass[(1 * 2 * T) + (1 * T) + s];
                         stems_buffers[0].push_back(bassL); stems_buffers[0].push_back(bassR);
                         
-                        // LEADS (Source 0 - Drums + Source 2 - Other)
-                        float leadsL = arr_drums[(0 * framesToProcess) + s] + arr_other[(0 * framesToProcess) + s];
-                        float leadsR = arr_drums[(1 * framesToProcess) + s] + arr_other[(1 * framesToProcess) + s];
-                        stems_buffers[1].push_back(leadsL); stems_buffers[1].push_back(leadsR);
+                        // LEADS (Source 0 - Drums extraído de arr_drums) + (Source 2 - Other extraído de arr_other)
+                        float drumsL = arr_drums[(0 * 2 * T) + (0 * T) + s];
+                        float drumsR = arr_drums[(0 * 2 * T) + (1 * T) + s];
+                        float otherL = arr_other[(2 * 2 * T) + (0 * T) + s];
+                        float otherR = arr_other[(2 * 2 * T) + (1 * T) + s];
+                        stems_buffers[1].push_back(drumsL + otherL); stems_buffers[1].push_back(drumsR + otherR);
                         
-                        // VOX (Source 3 - Vocals)
-                        float voxL = arr_vocals[(0 * framesToProcess) + s];
-                        float voxR = arr_vocals[(1 * framesToProcess) + s];
+                        // VOX (Source 3 - Vocals extraído de arr_vocals)
+                        float voxL = arr_vocals[(3 * 2 * T) + (0 * T) + s];
+                        float voxR = arr_vocals[(3 * 2 * T) + (1 * T) + s];
                         stems_buffers[2].push_back(voxL); stems_buffers[2].push_back(voxR);
                         
                         // FX (Deixamos mudo inicialmente)
