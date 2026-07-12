@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <mutex>
+#include "MidiNote.h"
 
 struct AudioClip {
     int id;
@@ -10,9 +11,18 @@ struct AudioClip {
     bool is_selected;
 };
 
+struct MidiClip {
+    int id;
+    float start_time_sec;
+    float length_sec;
+    std::vector<KuroDSP::MidiNote> notes;
+    bool is_selected;
+};
+
 class ClipManager {
 public:
     std::vector<AudioClip> track_clips[8];
+    std::vector<MidiClip> track_midi_clips[8];
     std::mutex clip_mutex;
     int next_id = 1;
 
@@ -33,7 +43,10 @@ public:
 
     void reset() {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        for(int i=0; i<8; i++) track_clips[i].clear();
+        for(int i=0; i<8; i++) {
+            track_clips[i].clear();
+            track_midi_clips[i].clear();
+        }
         next_id = 1;
     }
     
@@ -70,5 +83,23 @@ public:
         std::lock_guard<std::mutex> lock(clip_mutex);
         if (track_index < 0 || track_index >= 8) return std::vector<AudioClip>();
         return track_clips[track_index];
+    }
+    
+    void addMidiClip(int track_index, float start_time_sec, float length_sec, const std::vector<KuroDSP::MidiNote>& notes) {
+        std::lock_guard<std::mutex> lock(clip_mutex);
+        if (track_index < 0 || track_index >= 8) return;
+        MidiClip clip;
+        clip.id = next_id++;
+        clip.start_time_sec = start_time_sec;
+        clip.length_sec = length_sec;
+        clip.notes = notes;
+        clip.is_selected = false;
+        track_midi_clips[track_index].push_back(clip);
+    }
+    
+    std::vector<MidiClip> getMidiClips(int track_index) {
+        std::lock_guard<std::mutex> lock(clip_mutex);
+        if (track_index < 0 || track_index >= 8) return std::vector<MidiClip>();
+        return track_midi_clips[track_index];
     }
 };

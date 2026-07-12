@@ -6,21 +6,9 @@
 #include <cstdlib>
 #include <cmath>
 #include "KuroConfig.h"
+#include "MidiNote.h"
 
 namespace KuroDSP {
-
-    struct MidiNote {
-        int pitch;          // MIDI pitch (0-127)
-        float start_time;   // Start time in seconds
-        float duration;     // Duration in seconds
-        float velocity;     // 0.0 to 1.0
-        bool is_playing;
-        float probability;  // Chance: 0.0 to 1.0
-        
-        MidiNote() : pitch(60), start_time(0.0f), duration(1.0f), velocity(0.8f), is_playing(false), probability(1.0f) {}
-        MidiNote(int p, float st, float dur, float vel = 0.8f, float prob = 1.0f) 
-            : pitch(p), start_time(st), duration(dur), velocity(vel), is_playing(false), probability(prob) {}
-    };
 
     class TimelineManager {
     private:
@@ -39,10 +27,15 @@ namespace KuroDSP {
         std::atomic<bool> seq_grid[16];
         std::atomic<int> current_step = {0};
         
-        // Piano Roll Notes (Uma lista por canal)
+        // Piano Roll Notes (Uma lista por canal) - Agora é a linha do tempo Flattened
         std::vector<MidiNote> track_notes[MAX_TRACKS];
         int track_steps_limit[MAX_TRACKS];
         std::mutex timeline_mutex;
+
+        // Scratchpad para o Piano Roll
+        std::vector<MidiNote> scratchpad_notes;
+        bool is_scratchpad_active = false;
+        int scratchpad_target_track = 5; // Track 5 by default (Synth)
         
         // FASE 10: AUTOMATION LANES
         struct AutoPoint {
@@ -89,15 +82,23 @@ namespace KuroDSP {
         uint64_t getMasterFrame() const { return master_frame; }
         
         void addNote(int track_index, int pitch, float start, float duration, float velocity = 0.8f, float probability = 1.0f) {
-            if (track_index < 0 || track_index >= 8) return;
             std::lock_guard<std::mutex> lock(timeline_mutex);
-            track_notes[track_index].push_back(MidiNote(pitch, start, duration, velocity, probability));
+            if (is_scratchpad_active) {
+                scratchpad_notes.push_back(MidiNote(pitch, start, duration, velocity, probability));
+            } else {
+                if (track_index < 0 || track_index >= 8) return;
+                track_notes[track_index].push_back(MidiNote(pitch, start, duration, velocity, probability));
+            }
         }
 
         void clearNotes(int track_index) {
-            if (track_index < 0 || track_index >= 8) return;
             std::lock_guard<std::mutex> lock(timeline_mutex);
-            track_notes[track_index].clear();
+            if (is_scratchpad_active) {
+                scratchpad_notes.clear();
+            } else {
+                if (track_index < 0 || track_index >= 8) return;
+                track_notes[track_index].clear();
+            }
         }
 
         struct AutomationEvent {
@@ -145,20 +146,25 @@ namespace KuroDSP {
             
             std::lock_guard<std::mutex> lock(timeline_mutex);
             for (int i = 0; i < MAX_TRACKS; i++) {
+                // Determine which notes list to use for this track (scratchpad overrides if active for this track)
+                auto& notes_list = (is_scratchpad_active && scratchpad_target_track == i) ? scratchpad_notes : track_notes[i];
+                
                 if (i < 4) {
                     float loop_len = track_steps_limit[i] * snap_step;
                     float t_start_mod = fmod(t_start, loop_len);
                     float dt = t_end - t_start;
                     float t_end_mod = t_start_mod + dt;
                     
-                    for (auto& note : track_notes[i]) {
+                    for (auto& note : notes_list) {
                         bool trigger = false;
-                        if (note.start_time >= t_start_mod && note.start_time < t_end_mod) {
-                            trigger = true;
-                        } else if (t_end_mod >= loop_len) {
-                            float note_start_wrapped = note.start_time + loop_len;
-                            if (note_start_wrapped >= t_start_mod && note_start_wrapped < t_end_mod) {
+                        if (!note.is_muted) {
+                            if (note.start_time >= t_start_mod && note.start_time < t_end_mod) {
                                 trigger = true;
+                            } else if (t_end_mod >= loop_len) {
+                                float note_start_wrapped = note.start_time + loop_len;
+                                if (note_start_wrapped >= t_start_mod && note_start_wrapped < t_end_mod) {
+                                    trigger = true;
+                                }
                             }
                         }
                         
@@ -170,7 +176,8 @@ namespace KuroDSP {
                         }
                     }
                 } else {
-                    for (auto& note : track_notes[i]) {
+                    for (auto& note : notes_list) {
+                        if (note.is_muted) continue;
                         if (!note.is_playing && t_end >= note.start_time && t_start < note.start_time + note.duration) {
                             note.is_playing = true;
                             fired_events.push_back({i, note.pitch, note.duration, note.velocity});

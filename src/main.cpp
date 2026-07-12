@@ -34,6 +34,7 @@ HWND main_hwnd = nullptr;
 #include "plugin_manager/DAG.h"
 #include "core/DJEngine.h"
 #include "core/StemExtractorEngine.h"
+#include "audio/GrossBeatNode.h"
 
 // Globais para o StudioUI
 bool is_playing = false;
@@ -45,6 +46,8 @@ KuroAudio::RecordManager g_record_manager;
 KuroDSP::AudioGraph master_graph;
 #include "audio/AudioEvent.h"
 KuroDSP::TimelineManager timeline;
+
+KuroDSP::GrossBeatNode g_gross_beat;
 std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
 std::unique_ptr<StemSeparationEngine> g_ai_engine;
 std::unique_ptr<KuroAudio::DJEngine> g_dj_engine;
@@ -144,11 +147,15 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         out[i] = 0.0f;
     }
 
-    if (!is_playing) {
+    bool currently_playing = is_playing;
+    static bool was_playing = false;
+    
+    // Se a reprodução foi parada neste exato instante, limpa as notas presas da timeline
+    if (was_playing && !currently_playing) {
         g_piano_synth.clearNotes();
         g_kurowave.clearNotes();
-        return 0; // Fica em silêncio se não estiver tocando
     }
+    was_playing = currently_playing;
 
     // --- Resetar parâmetros ativos para os valores base ---
     for (int i = 0; i < 8; i++) {
@@ -234,6 +241,10 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
     std::fill_n(global_synth_l, nFrames, 0.0f);
     std::fill_n(global_synth_r, nFrames, 0.0f);
     g_kurowave.process(global_synth_l, global_synth_r, nFrames, global_time_sec);
+
+    // Aplica Kuro Gross Beat APENAS nos sintetizadores (antes do Master Bus)
+    extern KuroDSP::GrossBeatNode g_gross_beat;
+    g_gross_beat.processBlock(global_synth_l, global_synth_r, nFrames);
 
     // Mute / Solo logic para o Synth (Track 5)
     bool any_solo = false;
@@ -470,11 +481,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-
+    glfwSwapInterval(1); // Enable vsync
+    
     // FASE 21: Drag & Drop Callback
     glfwSetDropCallback(window, drop_callback);
-    glfwMakeContextCurrent(window);
     main_hwnd = glfwGetWin32Window(window);
     glfwSwapInterval(1); // Enable vsync (60 FPS)
 

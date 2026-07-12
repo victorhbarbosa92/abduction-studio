@@ -3,81 +3,92 @@
 #include "../plugin_manager/KuroSamplerNode.h"
 #include <memory>
 #include <vector>
-#include <algorithm>
 
 namespace KuroUI {
 
-    static void RenderKuroSampler(std::shared_ptr<KuroDSP::KuroSamplerNode> sampler) {
+    inline void RenderKuroSampler(std::shared_ptr<KuroDSP::KuroSamplerNode> sampler) {
         if (!sampler) {
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Sampler pointer is null!");
+            ImGui::TextDisabled("Global Sampler Instance Not Found.");
             return;
         }
 
-        ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "🎛️ KURO SAMPLER (Drag & Drop WAV here)");
+        ImGui::Text("Kuro Sampler Engine - V4.0");
         ImGui::Separator();
 
-        const auto& data = sampler->getSampleData();
+        const auto& sample_data = sampler->getSampleData();
         uint64_t total_frames = sampler->getTotalFrames();
         unsigned int channels = sampler->getChannels();
 
-        if (data.empty() || total_frames == 0) {
-            ImGui::Dummy(ImVec2(0, 50));
-            ImGui::TextDisabled("Nenhum sample carregado. Arraste um arquivo .wav para a janela.");
-            ImGui::Dummy(ImVec2(0, 50));
+        if (sample_data.empty() || total_frames == 0) {
+            ImGui::TextDisabled("Nenhum arquivo carregado no Sampler. (Arraste e solte um arquivo .wav aqui)");
             return;
         }
 
-        ImGui::Text("Sample Status: %llu frames | %d channels", total_frames, channels);
+        ImGui::Text("Frames: %llu | Canais: %u | Status: %s", 
+                    total_frames, channels, 
+                    sampler->isPlaying() ? "Tocando" : "Parado");
+
+        // Desenhar a forma de onda
+        ImVec2 p_min = ImGui::GetCursorScreenPos();
+        float width = ImGui::GetContentRegionAvail().x;
+        float height = 150.0f; // Altura fixa para o gráfico da onda
+        ImVec2 p_max = ImVec2(p_min.x + width, p_min.y + height);
         
-        // Controles simples de teste
-        if (ImGui::Button("PLAY / RETRIGGER", ImVec2(150, 30))) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        
+        // Fundo do gráfico
+        draw_list->AddRectFilled(p_min, p_max, IM_COL32(20, 20, 25, 255), 5.0f);
+        draw_list->AddRect(p_min, p_max, IM_COL32(80, 80, 90, 255), 5.0f);
+        
+        // Linha do zero (centro)
+        float mid_y = p_min.y + (height * 0.5f);
+        draw_list->AddLine(ImVec2(p_min.x, mid_y), ImVec2(p_max.x, mid_y), IM_COL32(50, 50, 60, 255));
+
+        // Desenhar os picos pulando amostras (Otimização para arquivos grandes)
+        if (width > 0) {
+            float samples_per_pixel = (float)total_frames / width;
+            if (samples_per_pixel < 1.0f) samples_per_pixel = 1.0f;
+            
+            unsigned int step = (unsigned int)samples_per_pixel;
+            if (step == 0) step = 1;
+
+            ImVec2 last_pos(p_min.x, mid_y);
+            
+            for (float x = 0; x < width; x++) {
+                uint64_t idx = (uint64_t)(x * samples_per_pixel) * channels;
+                if (idx >= sample_data.size()) break;
+
+                // Para uma onda bonita, podemos procurar o pico no intervalo do pixel atual
+                float peak = 0.0f;
+                uint64_t max_idx = std::min((uint64_t)sample_data.size(), (uint64_t)((x + 1) * samples_per_pixel * channels));
+                for(uint64_t i = idx; i < max_idx; i += channels) {
+                    float val = std::abs(sample_data[i]);
+                    if (val > peak) peak = val;
+                }
+
+                float sample_val = peak;
+                
+                // Desenhar barra ou linha do envelope
+                float y_top = mid_y - (sample_val * (height * 0.45f));
+                float y_bottom = mid_y + (sample_val * (height * 0.45f));
+                
+                draw_list->AddLine(ImVec2(p_min.x + x, y_top), ImVec2(p_min.x + x, y_bottom), IM_COL32(57, 255, 20, 200));
+            }
+        }
+        
+        // Indicador de Reprodução (Playhead interno do Sampler)
+        if (sampler->isPlaying()) {
+            uint64_t current = sampler->getCurrentFrame();
+            float playhead_x = p_min.x + ((float)current / total_frames) * width;
+            draw_list->AddLine(ImVec2(playhead_x, p_min.y), ImVec2(playhead_x, p_max.y), IM_COL32(255, 50, 50, 255), 2.0f);
+        }
+
+        // Espaçador para o próximo componente de UI
+        ImGui::Dummy(ImVec2(width, height + 10.0f));
+        
+        if (ImGui::Button("Preview Play", ImVec2(120, 30))) {
             sampler->noteOn(0);
         }
-
-        ImGui::Spacing();
-
-        // Waveform Viewer
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        ImVec2 p_min = ImGui::GetCursorScreenPos();
-        ImVec2 p_max = ImVec2(p_min.x + ImGui::GetContentRegionAvail().x, p_min.y + 150);
-        
-        draw_list->AddRectFilled(p_min, p_max, IM_COL32(20, 20, 25, 255));
-        draw_list->AddRect(p_min, p_max, IM_COL32(100, 100, 100, 255));
-
-        float width = p_max.x - p_min.x;
-        float mid_y = p_min.y + 75.0f;
-        
-        // Decimate data for drawing
-        size_t samples_per_pixel = std::max<size_t>(1, total_frames / (size_t)width);
-        
-        for (float px = 0; px < width; ++px) {
-            size_t start_idx = (size_t)(px * samples_per_pixel);
-            if (start_idx >= total_frames) break;
-            
-            float min_val = 0.0f;
-            float max_val = 0.0f;
-            
-            size_t end_idx = std::min<size_t>(total_frames, start_idx + samples_per_pixel);
-            for (size_t i = start_idx; i < end_idx; ++i) {
-                float v = data[i * channels]; // Usa o canal esquerdo pra desenhar
-                if (v < min_val) min_val = v;
-                if (v > max_val) max_val = v;
-            }
-            
-            float amp_min = min_val * 70.0f;
-            float amp_max = max_val * 70.0f;
-            
-            draw_list->AddLine(ImVec2(p_min.x + px, mid_y - amp_max), 
-                               ImVec2(p_min.x + px, mid_y - amp_min), 
-                               IM_COL32(0, 200, 255, 255));
-        }
-
-        // Desenhar agulha de playback se estiver tocando
-        if (sampler->isPlaying()) {
-            float playhead_x = p_min.x + ((float)sampler->getCurrentFrame() / (float)total_frames) * width;
-            draw_list->AddLine(ImVec2(playhead_x, p_min.y), ImVec2(playhead_x, p_max.y), IM_COL32(255, 255, 255, 200), 2.0f);
-        }
-
-        ImGui::Dummy(ImVec2(0, 160));
     }
+
 }

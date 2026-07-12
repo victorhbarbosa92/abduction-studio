@@ -93,6 +93,7 @@ target_link_libraries(AbductionStudioV2 PRIVATE
     glfw
     rtaudio
     opengl32
+    winmm
     ${onnxruntime_SOURCE_DIR}/lib/onnxruntime.lib
 )
 

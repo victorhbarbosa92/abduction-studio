@@ -9,9 +9,15 @@
 #include "PianoRollUI.h"
 #include "StepSequencerUI.h"
 #include "ModulationPanelUI.h"
+#include "GrossBeatUI.h"
 #include "KuroDSPUI.h"
 #include "KuroWaveUI.h"
 #include "KuroSamplerUI.h"
+#include <thread>
+#include <cstdlib>
+#include <atomic>
+#include <fstream>
+#include <windows.h> // For PlaySoundA
 
 extern void setupAbductionTheme(); // FASE 23
 
@@ -50,6 +56,17 @@ namespace KuroUI {
     static bool show_piano_roll = false;
     static bool show_step_sequencer = false;
     static bool show_modulation_panel = false;
+    static bool show_cloud_downloader = false;
+    static bool show_gross_beat = false;
+    static char cloud_search_query[512] = "";
+    static std::string cloud_status = "Pronto. Cole um link ou pesquise...";
+    
+    // Novas variáveis para Notification Toast & Modal de Download
+    static std::atomic<bool> cloud_download_finished{false};
+    static std::string cloud_last_downloaded_file = "";
+    static bool show_download_toast = false;
+    static bool show_download_action_modal = false;
+    static float toast_timer = 0.0f;
 
     // FASE 28: Estado Global de Efeitos Flutuantes e Cadeias por Faixa
     struct FloatingPluginWindow {
@@ -149,14 +166,28 @@ namespace KuroUI {
         }
         ImGui::PopStyleColor();
         
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.8f, 1.0f));
+        if (ImGui::Button("☁️ CLOUD DOWN", ImVec2(120, 30))) {
+            show_cloud_downloader = true;
+        }
+        ImGui::PopStyleColor();
+        
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
+        if (ImGui::Button("⏱️ GROSS BEAT", ImVec2(120, 30))) {
+            show_gross_beat = true;
+        }
+        ImGui::PopStyleColor();
+        
         ImGui::PopStyleColor();
 
         // Display de Tempo (Alien HUD Style)
         size_t sample_rate = ai_engine.getSampleRate();
         if (sample_rate == 0) sample_rate = 44100;
         size_t total_sec = ai_engine.getTotalFrames() > 0 ? (ai_engine.getTotalFrames() / sample_rate) : 0;
-        size_t curr_sec = global_sample_count / sample_rate;
-        size_t ms = ((global_sample_count % sample_rate) * 10 / sample_rate); 
+        size_t curr_sec = timeline.getMasterFrame() / sample_rate;
+        size_t ms = ((timeline.getMasterFrame() % sample_rate) * 10 / sample_rate); 
         
         char time_str[64];
         snprintf(time_str, sizeof(time_str), "%02d:%02d.%1d / %02d:%02d", 
@@ -179,9 +210,9 @@ namespace KuroUI {
         if (ImGui::Button("Limpar Tudo", ImVec2(100, 30))) {
             ai_engine.reset();
             g_clip_manager.reset();
-            global_sample_count = 0;
             is_playing = false;
             timeline.setPlaying(false);
+            timeline.setMasterFrame(0);
         }
         
         ImGui::EndChild();
@@ -253,7 +284,7 @@ namespace KuroUI {
         int num_tracks = 8;
         float track_height = 55.0f; // Um pouco mais alto para ficar espaçoso
         
-        float playhead_x_offset = ((float)global_sample_count / 44100.0f) * pixels_per_second;
+        float playhead_x_offset = ((float)timeline.getMasterFrame() / 44100.0f) * pixels_per_second;
 
         // Calcular a largura total da linha do tempo com base nos clipes e na agulha
         float total_timeline_width = ImGui::GetWindowWidth();
@@ -262,6 +293,12 @@ namespace KuroUI {
         }
         for (int i = 0; i < MAX_TRACKS; i++) {
             for (const auto& clip : g_clip_manager.getClips(i)) {
+                float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
+                if (clip_end + header_width + 500.0f > total_timeline_width) {
+                    total_timeline_width = clip_end + header_width + 500.0f;
+                }
+            }
+            for (const auto& clip : g_clip_manager.getMidiClips(i)) {
                 float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
                 if (clip_end + header_width + 500.0f > total_timeline_width) {
                     total_timeline_width = clip_end + header_width + 500.0f;
@@ -516,6 +553,39 @@ namespace KuroUI {
                     ImGui::InvisibleButton("##clip_btn", ImVec2(draw_end - draw_start, track_height));
                 }
             }
+            
+            auto mclips = g_clip_manager.getMidiClips(i);
+            for (size_t c_idx = 0; c_idx < mclips.size(); c_idx++) {
+                const auto& clip = mclips[c_idx];
+                float clip_start_x = start_x + (clip.start_time_sec * pixels_per_second);
+                float clip_width = clip.length_sec * pixels_per_second;
+                float clip_end_x = clip_start_x + clip_width;
+                
+                if (clip_end_x > screen_view_min_x && clip_start_x < screen_view_max_x) {
+                    float draw_start = std::max(clip_start_x, screen_view_min_x);
+                    float draw_end = std::min(clip_end_x, screen_view_max_x);
+                    
+                    ImU32 fill_col = ImColor(track_colors[i].x * 0.8f, track_colors[i].y * 0.8f, track_colors[i].z * 0.8f, clip.is_selected ? 0.6f : 0.25f);
+                    ImU32 outline_col = ImColor(track_colors[i].x, track_colors[i].y, track_colors[i].z, 1.0f);
+                    
+                    draw_list->AddRectFilled(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), fill_col, 4.0f);
+                    draw_list->AddRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), outline_col, 4.0f);
+                    
+                    draw_list->PushClipRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), true);
+                    for (const auto& n : clip.notes) {
+                        float n_x = clip_start_x + (n.start_time * pixels_per_second);
+                        float n_w = n.duration * pixels_per_second;
+                        float n_y = p_min.y + track_height - 6.0f - ((n.pitch / 127.0f) * (track_height - 12.0f));
+                        draw_list->AddRectFilled(ImVec2(n_x, n_y - 2), ImVec2(n_x + n_w, n_y + 2), IM_COL32(255, 255, 255, 200));
+                    }
+                    draw_list->PopClipRect();
+                    
+                    ImGui::SetCursorScreenPos(ImVec2(draw_start, p_min.y));
+                    ImGui::PushID(clip.id);
+                    ImGui::InvisibleButton("##mclip_btn", ImVec2(draw_end - draw_start, track_height));
+                    ImGui::PopID();
+                }
+            }
 
             ImGui::SetCursorScreenPos(ImVec2(p_min.x, p_min.y)); 
             ImGui::Dummy(ImVec2(total_timeline_width, track_height));
@@ -531,18 +601,22 @@ namespace KuroUI {
         }
         
         // Interação de Clique/Arraste na Timeline
-        ImVec2 timeline_min = ImGui::GetWindowPos();
-        ImVec2 timeline_max = ImVec2(timeline_min.x + ImGui::GetWindowSize().x, timeline_min.y + ImGui::GetWindowSize().y);
-        bool is_timeline_hovered = ImGui::IsMouseHoveringRect(timeline_min, timeline_max, true);
+        static bool is_dragging_playhead = false;
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            is_dragging_playhead = true;
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            is_dragging_playhead = false;
+        }
 
-        if (is_timeline_hovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        if (is_dragging_playhead) {
             ImVec2 mouse_pos = ImGui::GetMousePos();
             if (mouse_pos.x > ImGui::GetWindowPos().x + header_width) { // Clicou depois do cabeçalho
                 float click_x_in_timeline = mouse_pos.x - (ImGui::GetWindowPos().x + header_width + 10 - ImGui::GetScrollX());
                 if (click_x_in_timeline < 0) click_x_in_timeline = 0;
-                float clicked_time_sec = click_x_in_timeline / pixels_per_second;
-                global_sample_count = (unsigned long long)(clicked_time_sec * 44100.0f);
-                timeline.setMasterFrame(global_sample_count);
+                float grid_start_x = ImGui::GetWindowPos().x + header_width + 10;
+                float clicked_time_sec = (io.MousePos.x - grid_start_x + ImGui::GetScrollX()) / pixels_per_second;
+                timeline.setMasterFrame((uint64_t)(clicked_time_sec * 44100.0f));
                 playhead_x_offset = click_x_in_timeline; // Update instantâneo visual
             }
         }
@@ -642,16 +716,187 @@ namespace KuroUI {
         }
     }
 
+    inline void syncTimelineFromClips() {
+        for (int t = 0; t < 8; t++) {
+            ::timeline.clearNotes(t); // Clears track_notes since is_scratchpad_active is false
+            auto mclips = g_clip_manager.getMidiClips(t);
+            for (const auto& c : mclips) {
+                for (const auto& n : c.notes) {
+                    ::timeline.addNote(t, n.pitch, c.start_time_sec + n.start_time, n.duration, n.velocity, n.probability);
+                }
+            }
+        }
+    }
+
     // FASE 28: Renderiza Janelas Flutuantes (Fora da Janela Principal)
     inline void RenderFloatingWindows() {
+        if (show_cloud_downloader) {
+            ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("☁️ Cloud Downloader (Psycore Project)", &show_cloud_downloader)) {
+                ImGui::Text("Pesquisar (Nome da musica / Link Spotify ou YouTube):");
+                ImGui::InputText("##CloudQuery", cloud_search_query, IM_ARRAYSIZE(cloud_search_query));
+                
+                if (ImGui::Button("BAIXAR (.WAV)", ImVec2(-1, 40))) {
+                    std::string query = cloud_search_query;
+                    if (!query.empty()) {
+                        cloud_status = "Baixando: " + query + "... (Aguarde)";
+                        std::thread([query]() {
+                            std::string cmd = "python \"C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\.agents\\scripts\\download_track.py\" \"" + query + "\"";
+                            int ret = std::system(cmd.c_str());
+                            if (ret == 0) {
+                                cloud_status = "Sucesso! Aguardando ação...";
+                                cloud_download_finished = true;
+                            } else {
+                                cloud_status = "Erro no download. Verifique o console.";
+                            }
+                        }).detach();
+                    }
+                }
+                ImGui::Separator();
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Status: %s", cloud_status.c_str());
+            }
+            ImGui::End();
+        }
+
+        static bool show_piano_roll_prev = false;
+        
+        if (show_piano_roll && !show_piano_roll_prev) {
+            ::timeline.is_scratchpad_active = true;
+            ::timeline.scratchpad_target_track = selected_track_idx;
+        }
+
+        // --- CLOUD DOWNLOAD TOAST E MODAL ---
+        if (cloud_download_finished) {
+            cloud_download_finished = false;
+            
+            // Lê o caminho salvo pelo python
+            std::ifstream file("C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\last_download.txt");
+            if (file.is_open()) {
+                std::getline(file, cloud_last_downloaded_file);
+                file.close();
+            }
+            
+            // Toca a notificação divina
+            PlaySoundA("C:\\NovaDAW\\assets\\divine.wav", NULL, SND_FILENAME | SND_ASYNC);
+            
+            show_download_toast = true;
+            toast_timer = 10.0f; // Duração do toast em segundos (aproximado se usássemos delta_time, mas vamos decrementar no frame de forma simples)
+        }
+        
+        if (show_download_toast) {
+            // Posiciona no canto inferior direito
+            ImGuiIO& io = ImGui::GetIO();
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 320, io.DisplaySize.y - 120), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_Always);
+            
+            ImGuiWindowFlags toastFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+            
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.3f, 0.6f, 0.9f));
+            if (ImGui::Begin("DownloadToast", nullptr, toastFlags)) {
+                ImGui::TextColored(ImVec4(1,1,1,1), "☁️ MENSAGEM DIVINA");
+                ImGui::Separator();
+                ImGui::TextWrapped("Download concluído com sucesso!");
+                
+                if (ImGui::Button("TOMAR UMA AÇÃO", ImVec2(-1, 30))) {
+                    show_download_toast = false;
+                    show_download_action_modal = true;
+                }
+            }
+            ImGui::End();
+            ImGui::PopStyleColor();
+        }
+        
+        if (show_download_action_modal) {
+            ImGui::OpenPopup("Download Action");
+            show_download_action_modal = false; // OpenPopup cuida do estado
+        }
+        
+        // Modal no centro
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_Appearing);
+        if (ImGui::BeginPopupModal("Download Action", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Arquivo: %s", cloud_last_downloaded_file.c_str());
+            ImGui::Separator();
+            
+            if (ImGui::Button("Importar para o Sampler", ImVec2(-1, 40))) {
+                // Adiciona no sampler global
+                if (g_global_sampler) {
+                    g_global_sampler->loadSample(cloud_last_downloaded_file);
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            
+            if (ImGui::Button("Abrir Local do Arquivo", ImVec2(-1, 40))) {
+                std::string cmd = "explorer /select,\"" + cloud_last_downloaded_file + "\"";
+                std::system(cmd.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+            
+            if (ImGui::Button("Fechar", ImVec2(-1, 30))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
         if (show_piano_roll) {
-            KuroUI::RenderPianoRoll(&show_piano_roll, ::timeline, selected_track_idx, timeline.getBPM(), &::global_sample_count, ::is_playing, nullptr);
+            unsigned long long curr_frame = timeline.getMasterFrame();
+            KuroUI::RenderPianoRoll(&show_piano_roll, ::timeline, selected_track_idx, timeline.getBPM(), &curr_frame, ::is_playing, nullptr);
+        }
+        
+        static bool show_export_modal = false;
+        if (!show_piano_roll && show_piano_roll_prev) {
+            show_export_modal = true;
+        }
+        show_piano_roll_prev = show_piano_roll;
+        
+        if (show_export_modal) {
+            ImGui::OpenPopup("Exportar Piano Roll");
+            show_export_modal = false;
+        }
+        
+        if (ImGui::BeginPopupModal("Exportar Piano Roll", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Deseja exportar o padrao atual para a Timeline como um MidiClip?\nIsso limpará o rascunho do Piano Roll.");
+            ImGui::Separator();
+            
+            if (ImGui::Button("Exportar como Clipe", ImVec2(150, 0))) {
+                float max_end_time = 0.0f;
+                for (const auto& n : ::timeline.scratchpad_notes) {
+                    if (n.start_time + n.duration > max_end_time) max_end_time = n.start_time + n.duration;
+                }
+                if (max_end_time > 0.0f) {
+                    g_clip_manager.addMidiClip(::timeline.scratchpad_target_track, 
+                                               (float)::timeline.getMasterFrame() / 44100.0f, 
+                                               max_end_time, 
+                                               ::timeline.scratchpad_notes);
+                }
+                ::timeline.is_scratchpad_active = false;
+                syncTimelineFromClips();
+                ::timeline.scratchpad_notes.clear();
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Descartar", ImVec2(120, 0))) {
+                ::timeline.is_scratchpad_active = false;
+                syncTimelineFromClips();
+                ::timeline.scratchpad_notes.clear();
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancelar", ImVec2(120, 0))) {
+                show_piano_roll = true;
+                show_piano_roll_prev = true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
         }
         if (show_step_sequencer) {
             KuroUI::RenderStepSequencer(&show_step_sequencer, ::timeline, timeline.getBPM());
         }
         if (show_modulation_panel) {
             KuroUI::RenderModulationPanel(&show_modulation_panel);
+        }
+        
+        if (show_gross_beat) {
+            KuroUI::GrossBeatUI::Render(::g_gross_beat, &show_gross_beat);
         }
     }
 
@@ -754,10 +999,10 @@ namespace KuroUI {
             }
 
             if (ImGui::BeginMenu("Arquivo")) {
-                if (ImGui::MenuItem("Novo Projeto")) {
+                if (ImGui::Button("NEW PROJECT (Reset)", ImVec2(150, 30))) {
                     ai_engine.reset();
                     g_clip_manager.reset();
-                    global_sample_count = 0;
+                    timeline.setMasterFrame(0);
                     timeline.setPlaying(false);
                 }
                 if (ImGui::MenuItem("Abrir Projeto...")) {

@@ -14,9 +14,13 @@ extern KuroAudio::SynthEngine g_piano_synth;
 namespace KuroUI {
     extern CommandManager g_command_manager;
 
+    enum class PianoRollTool { Draw, Paint, Erase, Mute, Slice, Select };
+
     inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
         if (!*open) return;
         static int current_snap_option = 0; // Default to 4/4 (1/4 note)
+        static PianoRollTool current_tool = PianoRollTool::Draw;
+        static int current_stamp_idx = 0;
 
         ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
         ImGuiWindowFlags pr_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoFocusOnAppearing;
@@ -66,14 +70,48 @@ namespace KuroUI {
             ImGui::EndMenuBar();
         }
 
+        // --- Barra de Ferramentas (Toolbar FL Studio) ---
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.4f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.5f, 1.0f));
+        
+        auto draw_tool_btn = [](const char* label, PianoRollTool tool, PianoRollTool& current) {
+            bool selected = (current == tool);
+            if (selected) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.6f, 0.2f, 1.0f)); // Amarelo ativo
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+            }
+            if (ImGui::Button(label)) current = tool;
+            if (selected) ImGui::PopStyleColor(2);
+        };
+
+        draw_tool_btn("[ Pencil ]", PianoRollTool::Draw, current_tool); ImGui::SameLine();
+        draw_tool_btn("[ Brush ]", PianoRollTool::Paint, current_tool); ImGui::SameLine();
+        draw_tool_btn("[ Erase ]", PianoRollTool::Erase, current_tool); ImGui::SameLine();
+        draw_tool_btn("[ Mute ]", PianoRollTool::Mute, current_tool); ImGui::SameLine();
+        draw_tool_btn("[ Cut ]", PianoRollTool::Slice, current_tool); ImGui::SameLine();
+        draw_tool_btn("[ Select ]", PianoRollTool::Select, current_tool); ImGui::SameLine();
+        
+        ImGui::Text(" | Stamp:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(100);
+        const char* stamp_options[] = { "None", "Major", "Minor", "7th", "Maj7", "Min7" };
+        ImGui::Combo("##stamp_select", &current_stamp_idx, stamp_options, IM_ARRAYSIZE(stamp_options));
+        ImGui::PopStyleColor(3);
+        
+        ImGui::Separator();
+
         // --- Estado do Piano Roll ---
         static float pan_x = 0.0f;
-        static float pan_y = 1100.0f;
-        static float zoom_x = 15.0f; // pixels por segundo
-        static float zoom_y = 20.0f;  // pixels por tecla
+        static float pan_y = 1765.0f; // Centrado na Oitava 4 (Middle C)
+        static float zoom_x = 100.0f; // 100 pixels por segundo (zoom musical ideal)
+        static float zoom_y = 35.0f;  // pixels por tecla
         
         static int interacting_note_idx = -1; // Índice da nota sendo modificada
-        static int interaction_mode = 0;      // 0=nenhum, 1=movendo, 2=redimensionando, 3=movendo agulha
+        static int interaction_mode = 0;      // 0=nenhum, 1=movendo, 2=redimensionando, 3=agulha, 4=painting, 5=erasing, 6=slicing, 7=selecting
+        static float last_painted_time = -1.0f;
+        static float slice_start_x = 0.0f;
+        static ImVec2 select_start_pos;
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();
@@ -123,16 +161,35 @@ namespace KuroUI {
         if (pan_y > total_height - canvas_sz.y) pan_y = total_height - canvas_sz.y;
         if (pan_y < 0.0f) pan_y = 0.0f;
 
-        // --- Desenhar Grade Vertical (Tempo) ---
+        // --- Desenhar Grade de Fundo (Horizontal e Vertical) ---
         draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), canvas_p1, true);
+        
+        // 1. Horizontal (Faixas das Teclas - Branco/Preto)
+        for (int i = 0; i < num_keys; i++) {
+            int pitch = start_pitch + (num_keys - 1 - i);
+            float y = canvas_p0.y - pan_y + i * zoom_y;
+            if (y + zoom_y < canvas_p0.y || y > canvas_p1.y) continue; // Culling
+            
+            int note_in_octave = pitch % 12;
+            bool is_black = (note_in_octave == 1 || note_in_octave == 3 || note_in_octave == 6 || note_in_octave == 8 || note_in_octave == 10);
+            
+            ImU32 bg_col = is_black ? IM_COL32(22, 22, 26, 255) : IM_COL32(32, 32, 38, 255);
+            draw_list->AddRectFilled(ImVec2(grid_start_x, y), ImVec2(canvas_p1.x, y + zoom_y), bg_col);
+            draw_list->AddLine(ImVec2(grid_start_x, y + zoom_y), ImVec2(canvas_p1.x, y + zoom_y), IM_COL32(15, 15, 18, 255), 1.0f);
+        }
+
+        // 2. Vertical (Time Grid - Compassos e Batidas)
+        float bar_duration = beat_duration * 4.0f;
         for (float t = 0.0f; (grid_start_x - pan_x) + t * zoom_x < canvas_p1.x + 1000.0f; t += snap_step) {
             float x = (grid_start_x - pan_x) + t * zoom_x;
             if (x < grid_start_x) continue;
             
-            // Desenha linha mais forte no beat inteiro
+            bool is_bar = std::fmod(t, bar_duration) < 0.01f;
             bool is_beat = std::fmod(t, beat_duration) < 0.01f;
-            ImU32 col = is_beat ? IM_COL32(255,255,255,60) : IM_COL32(255,255,255,20);
-            draw_list->AddLine(ImVec2(x, canvas_p0.y), ImVec2(x, canvas_p1.y), col);
+            
+            ImU32 col = is_bar ? IM_COL32(255,255,255,100) : (is_beat ? IM_COL32(255,255,255,50) : IM_COL32(255,255,255,15));
+            float thickness = is_bar ? 2.0f : 1.0f;
+            draw_list->AddLine(ImVec2(x, canvas_p0.y), ImVec2(x, canvas_p1.y), col, thickness);
         }
         draw_list->PopClipRect();
 
@@ -142,7 +199,7 @@ namespace KuroUI {
         bool is_grid_hovered = ImGui::IsItemHovered();
 
         std::lock_guard<std::mutex> lock(timeline_mgr.timeline_mutex);
-        auto& notes = timeline_mgr.track_notes[track_idx];
+        auto& notes = timeline_mgr.is_scratchpad_active ? timeline_mgr.scratchpad_notes : timeline_mgr.track_notes[track_idx];
 
         // --- Interação do Mouse com Notas (Estilo FL Studio) ---
         if (is_grid_hovered) {
@@ -181,27 +238,71 @@ namespace KuroUI {
                     *current_sample_ptr = (unsigned long long)(target_time * 44100.0f);
                     timeline_mgr.setMasterFrame(*current_sample_ptr);
                     interaction_mode = 3; // Movendo agulha
-                } else if (hovered_note_idx != -1) {
-                    interacting_note_idx = hovered_note_idx;
-                    interaction_mode = hovering_right_edge ? 2 : 1; // 2=Resize, 1=Move
                 } else {
-                    // Adicionar nova nota
-                    KuroDSP::MidiNote note;
-                    note.pitch = pitch;
-                    note.start_time = time_snapped;
-                    note.duration = snap_step; // Default duration
-                    note.velocity = 0.8f;
-                    notes.push_back(note);
-                    
-                    interacting_note_idx = (int)notes.size() - 1;
-                    interaction_mode = 2; // Ao criar, entra em modo resize automático se arrastar
-                    
-                    // Toca a previnha em tempo real
-                    g_piano_synth.triggerNote(pitch, 0.5f, 0.8f);
+                    if (current_tool == PianoRollTool::Draw || current_tool == PianoRollTool::Paint) {
+                        if (hovered_note_idx != -1 && current_tool == PianoRollTool::Draw) {
+                            interacting_note_idx = hovered_note_idx;
+                            interaction_mode = hovering_right_edge ? 2 : 1; // 2=Resize, 1=Move
+                            notes[hovered_note_idx].is_selected = true; // Select on click
+                        } else {
+                            // Adicionar nova nota (e acordes se selecionado)
+                            KuroDSP::MidiNote note;
+                            note.pitch = pitch;
+                            note.start_time = time_snapped;
+                            note.duration = snap_step;
+                            note.velocity = 0.8f;
+                            notes.push_back(note);
+                            interacting_note_idx = (int)notes.size() - 1;
+                            
+                            // Adicionar notas extras para Acordes (Stamp)
+                            if (current_stamp_idx == 1) { // Major (0, 4, 7)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 2) { // Minor (0, 3, 7)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 3) { // 7th (0, 4, 7, 10)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 10, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 4) { // Maj7 (0, 4, 7, 11)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 11, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 5) { // Min7 (0, 3, 7, 10)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 10, time_snapped, snap_step));
+                            }
+                            
+                            interaction_mode = (current_tool == PianoRollTool::Paint) ? 4 : 2; 
+                            last_painted_time = time_snapped;
+                            g_piano_synth.triggerNote(pitch, 0.5f, 0.8f); // Preview
+                        }
+                    } else if (current_tool == PianoRollTool::Erase) {
+                        if (hovered_note_idx != -1) {
+                            notes.erase(notes.begin() + hovered_note_idx);
+                        }
+                        interaction_mode = 5;
+                    } else if (current_tool == PianoRollTool::Mute) {
+                        if (hovered_note_idx != -1) {
+                            notes[hovered_note_idx].is_muted = !notes[hovered_note_idx].is_muted;
+                        }
+                    } else if (current_tool == PianoRollTool::Slice) {
+                        interaction_mode = 6;
+                        slice_start_x = mouse_pos.x;
+                    } else if (current_tool == PianoRollTool::Select) {
+                        interaction_mode = 7;
+                        select_start_pos = mouse_pos;
+                        // Deselect all se clicar fora
+                        if (hovered_note_idx == -1) {
+                            for (auto& n : notes) n.is_selected = false;
+                        }
+                    }
                 }
             }
             
-            // Right Click - Delete (Brush)
+            // Right Click - Delete global
             if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
                 for (auto it = notes.begin(); it != notes.end(); ) {
                     if (it->pitch == pitch && time_sec >= it->start_time && time_sec <= it->start_time + it->duration) {
@@ -216,6 +317,10 @@ namespace KuroUI {
         // Dragging Logic
         if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
             ImVec2 mouse_pos = ImGui::GetMousePos();
+            float time_sec = (mouse_pos.x - grid_start_x + pan_x) / zoom_x;
+            float time_snapped = std::round(time_sec / snap_step) * snap_step;
+            int row = (int)((mouse_pos.y - canvas_p0.y + pan_y) / zoom_y);
+            int pitch = start_pitch + (num_keys - 1 - row);
             
             if (interaction_mode == 3) {
                 float target_time = (mouse_pos.x - grid_start_x + pan_x) / zoom_x;
@@ -223,27 +328,72 @@ namespace KuroUI {
                 *current_sample_ptr = (unsigned long long)(target_time * 44100.0f);
                 timeline_mgr.setMasterFrame(*current_sample_ptr);
             } 
-            else if (interacting_note_idx != -1 && interacting_note_idx < notes.size()) {
-                float time_sec = (mouse_pos.x - grid_start_x + pan_x) / zoom_x;
-                float time_snapped = std::round(time_sec / snap_step) * snap_step;
-                int row = (int)((mouse_pos.y - canvas_p0.y + pan_y) / zoom_y);
-                int pitch = start_pitch + (num_keys - 1 - row);
-                
-                auto& n = notes[interacting_note_idx];
-                
-                if (interaction_mode == 1) { // Move
-                    n.pitch = pitch;
-                    n.start_time = time_snapped;
-                    if (n.start_time < 0.0f) n.start_time = 0.0f;
-                } else if (interaction_mode == 2) { // Resize
-                    float new_duration = time_snapped - n.start_time;
-                    if (new_duration < snap_step) new_duration = snap_step;
-                    n.duration = new_duration;
+            else if (interaction_mode == 1 || interaction_mode == 2) {
+                if (interacting_note_idx != -1 && interacting_note_idx < notes.size()) {
+                    auto& n = notes[interacting_note_idx];
+                    if (interaction_mode == 1) { // Move
+                        n.pitch = pitch;
+                        n.start_time = time_snapped;
+                        if (n.start_time < 0.0f) n.start_time = 0.0f;
+                    } else if (interaction_mode == 2) { // Resize
+                        float new_duration = time_snapped - n.start_time;
+                        if (new_duration < snap_step) new_duration = snap_step;
+                        n.duration = new_duration;
+                    }
+                }
+            } else if (interaction_mode == 4) { // Painting
+                if (time_snapped != last_painted_time) {
+                    KuroDSP::MidiNote note;
+                    note.pitch = pitch;
+                    note.start_time = time_snapped;
+                    note.duration = snap_step;
+                    note.velocity = 0.8f;
+                    notes.push_back(note);
+                    last_painted_time = time_snapped;
+                    g_piano_synth.triggerNote(pitch, 0.5f, 0.8f);
+                }
+            } else if (interaction_mode == 5) { // Erasing
+                for (auto it = notes.begin(); it != notes.end(); ) {
+                    if (it->pitch == pitch && time_sec >= it->start_time && time_sec <= it->start_time + it->duration) {
+                        it = notes.erase(it);
+                    } else {
+                        ++it;
+                    }
                 }
             }
         }
         
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+            if (interaction_mode == 6) { // Finaliza o Slice
+                float slice_time = (ImGui::GetMousePos().x - grid_start_x + pan_x) / zoom_x;
+                float slice_snapped = std::round(slice_time / snap_step) * snap_step;
+                
+                std::vector<KuroDSP::MidiNote> new_notes;
+                for (auto& n : notes) {
+                    if (slice_snapped > n.start_time && slice_snapped < n.start_time + n.duration) {
+                        float old_dur = n.duration;
+                        n.duration = slice_snapped - n.start_time; // Corta a nota original
+                        
+                        KuroDSP::MidiNote split_note = n; // Cria a metade direita
+                        split_note.start_time = slice_snapped;
+                        split_note.duration = old_dur - n.duration;
+                        new_notes.push_back(split_note);
+                    }
+                }
+                for (const auto& nn : new_notes) notes.push_back(nn);
+            } else if (interaction_mode == 7) { // Finaliza a Seleção
+                ImVec2 p0 = ImVec2(std::min(select_start_pos.x, ImGui::GetMousePos().x), std::min(select_start_pos.y, ImGui::GetMousePos().y));
+                ImVec2 p1 = ImVec2(std::max(select_start_pos.x, ImGui::GetMousePos().x), std::max(select_start_pos.y, ImGui::GetMousePos().y));
+                
+                for (auto& n : notes) {
+                    float n_x = grid_start_x - pan_x + n.start_time * zoom_x;
+                    float n_y = canvas_p0.y - pan_y + ((num_keys - 1) - (n.pitch - start_pitch)) * zoom_y;
+                    
+                    if (n_x >= p0.x && n_x <= p1.x && n_y >= p0.y && n_y <= p1.y) {
+                        n.is_selected = true;
+                    }
+                }
+            }
             interacting_note_idx = -1;
             interaction_mode = 0;
         }
@@ -273,33 +423,49 @@ namespace KuroUI {
             
             if (y1 > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
                 ImU32 color = note.is_playing ? IM_COL32(255, 255, 0, 255) : IM_COL32(0, 200, 255, 200);
+                if (note.is_muted) color = IM_COL32(100, 100, 100, 150);
+                ImU32 border_col = note.is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(0, 100, 200, 255);
+                float border_thickness = note.is_selected ? 3.0f : 2.0f;
+                
                 draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y1 - 1), color, 3.0f);
-                draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y1 - 1), IM_COL32(0, 100, 200, 255), 3.0f);
+                draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y1 - 1), border_col, 3.0f, 0, border_thickness);
             }
+        }
+        
+        // Desenha ferramentas visuais ativas por cima das notas
+        if (interaction_mode == 6) { // Slice Tool Line
+            ImVec2 m_pos = ImGui::GetMousePos();
+            draw_list->AddLine(ImVec2(m_pos.x, canvas_p0.y), ImVec2(m_pos.x, canvas_p1.y), IM_COL32(255, 50, 50, 200), 2.0f);
+        } else if (interaction_mode == 7) { // Marquee Selection
+            ImVec2 m_pos = ImGui::GetMousePos();
+            ImVec2 p0 = ImVec2(std::min(select_start_pos.x, m_pos.x), std::min(select_start_pos.y, m_pos.y));
+            ImVec2 p1 = ImVec2(std::max(select_start_pos.x, m_pos.x), std::max(select_start_pos.y, m_pos.y));
+            draw_list->AddRectFilled(p0, p1, IM_COL32(255, 255, 255, 30));
+            draw_list->AddRect(p0, p1, IM_COL32(255, 255, 255, 150), 0.0f, 0, 1.0f);
         }
 
         // --- Régua do Tempo e Agulha (Playhead) ---
         draw_list->AddRectFilled(canvas_p0, ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), IM_COL32(40, 40, 45, 255));
         draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + 20.0f), ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), IM_COL32(60, 60, 70, 255), 1.0f);
         
-        // Desenhar os ticks da régua do Piano Roll
-        float pr_tick_spacing = 6.0f * zoom_x;
-        
+        // Desenhar os ticks da régua do Piano Roll (Musical)
         draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), true);
-        int pr_max_ticks = (int)((canvas_sz.x) / pr_tick_spacing) + 5;
-        for (int t = 0; t < pr_max_ticks; t++) {
-            float tx = grid_start_x - pan_x + t * pr_tick_spacing;
+        
+        float ruler_bar_duration = beat_duration * 4.0f;
+        for (float t = 0.0f; (grid_start_x - pan_x) + t * zoom_x < canvas_p1.x + 1000.0f; t += beat_duration) {
+            float tx = grid_start_x - pan_x + t * zoom_x;
             if (tx < grid_start_x) continue;
             
-            if (t % 5 == 0) {
-                // Major tick: maior, com número
+            bool is_bar = std::fmod(t, ruler_bar_duration) < 0.01f;
+            if (is_bar) {
+                // Major tick: Compasso (Bar)
                 draw_list->AddLine(ImVec2(tx, canvas_p0.y + 4.0f), ImVec2(tx, canvas_p0.y + 20.0f), IM_COL32(200, 200, 200, 255), 1.5f);
-                
                 char label[16];
-                snprintf(label, sizeof(label), "%d", t);
+                int bar_num = (int)(std::round(t / ruler_bar_duration)) + 1;
+                snprintf(label, sizeof(label), "%d", bar_num);
                 draw_list->AddText(ImVec2(tx + 4, canvas_p0.y + 2), IM_COL32(200, 200, 200, 255), label);
             } else {
-                // Minor tick
+                // Minor tick: Batida (Beat)
                 draw_list->AddLine(ImVec2(tx, canvas_p0.y + 12.0f), ImVec2(tx, canvas_p0.y + 20.0f), IM_COL32(120, 120, 120, 255), 1.0f);
             }
         }
