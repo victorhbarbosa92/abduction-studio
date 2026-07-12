@@ -145,41 +145,6 @@ namespace KuroUI {
             KuroAudio::OfflineRenderer::RenderStems(master_graph, 10.0f, ".");
         }
         
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
-        if (ImGui::Button("🎹 PIANO ROLL", ImVec2(120, 30))) {
-            show_piano_roll = true;
-        }
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.6f, 0.3f, 1.0f));
-        if (ImGui::Button("🥁 STEP SEQ", ImVec2(100, 30))) {
-            show_step_sequencer = true;
-        }
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.7f, 1.0f));
-        if (ImGui::Button("🌀 LFO MATRIX", ImVec2(120, 30))) {
-            show_modulation_panel = true;
-        }
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.8f, 1.0f));
-        if (ImGui::Button("☁️ CLOUD DOWN", ImVec2(120, 30))) {
-            show_cloud_downloader = true;
-        }
-        ImGui::PopStyleColor();
-        
-        ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
-        if (ImGui::Button("⏱️ GROSS BEAT", ImVec2(120, 30))) {
-            show_gross_beat = true;
-        }
-        ImGui::PopStyleColor();
-        
         ImGui::PopStyleColor();
 
         // Display de Tempo (Alien HUD Style)
@@ -645,7 +610,39 @@ namespace KuroUI {
         ImGui::BeginChild("BottomPanel", ImVec2(0, 0), true);
         
         // Header do Device View
+        // Header do Device View
         ImGui::TextColored(ImVec4(0.22f, 1.0f, 0.08f, 1.0f), "DEVICE RACK: %s", track_names[selected_track_idx].c_str());
+        
+        float buttons_start_x = ImGui::GetWindowWidth() - 600.0f;
+        if (buttons_start_x < ImGui::GetCursorPosX() + 10.0f) {
+            buttons_start_x = ImGui::GetCursorPosX() + 10.0f;
+        }
+        ImGui::SameLine(buttons_start_x);
+        
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
+        if (ImGui::Button("🎹 PIANO ROLL", ImVec2(120, 30))) show_piano_roll = true;
+        ImGui::PopStyleColor();
+        
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.6f, 0.3f, 1.0f));
+        if (ImGui::Button("🥁 STEP SEQ", ImVec2(100, 30))) show_step_sequencer = true;
+        ImGui::PopStyleColor();
+        
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.2f, 0.7f, 1.0f));
+        if (ImGui::Button("🌀 LFO MATRIX", ImVec2(120, 30))) show_modulation_panel = true;
+        ImGui::PopStyleColor();
+        
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.8f, 1.0f));
+        if (ImGui::Button("☁️ CLOUD DOWN", ImVec2(120, 30))) show_cloud_downloader = true;
+        ImGui::PopStyleColor();
+        
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
+        if (ImGui::Button("⏱️ GROSS BEAT", ImVec2(120, 30))) show_gross_beat = true;
+        ImGui::PopStyleColor();
+        
         ImGui::Separator();
         ImGui::Spacing();
 
