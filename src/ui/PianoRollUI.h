@@ -11,12 +11,14 @@
 
 extern KuroAudio::SynthEngine g_piano_synth;
 
+#include "../core/ClipManager.h"
+
 namespace KuroUI {
     extern CommandManager g_command_manager;
 
     enum class PianoRollTool { Draw, Paint, Erase, Mute, Slice, Select };
 
-    inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
+    inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, ClipManager& clip_manager, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
         if (!*open) return;
         static int current_snap_option = 0; // Default to 4/4 (1/4 note)
         static PianoRollTool current_tool = PianoRollTool::Draw;
@@ -30,8 +32,11 @@ namespace KuroUI {
         }
 
         if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("Ações")) {
-                if (ImGui::MenuItem("Limpar Todas as Notas")) timeline_mgr.clearNotes(track_idx);
+            if (ImGui::BeginMenu("Acoes")) {
+                if (ImGui::MenuItem("Limpar Todas as Notas")) {
+                    auto& current_pattern_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].notes;
+                    current_pattern_notes.clear();
+                }
                 ImGui::EndMenu();
             }
             
@@ -105,7 +110,7 @@ namespace KuroUI {
         static float pan_x = 0.0f;
         static float pan_y = 1765.0f; // Centrado na Oitava 4 (Middle C)
         static float zoom_x = 100.0f; // 100 pixels por segundo (zoom musical ideal)
-        static float zoom_y = 35.0f;  // pixels por tecla
+        static float zoom_y = 45.0f;  // pixels por tecla (aumentado para melhor legibilidade)
         
         static int interacting_note_idx = -1; // Índice da nota sendo modificada
         static int interaction_mode = 0;      // 0=nenhum, 1=movendo, 2=redimensionando, 3=agulha, 4=painting, 5=erasing, 6=slicing, 7=selecting
@@ -147,7 +152,7 @@ namespace KuroUI {
             }
         }
 
-        float key_width = 60.0f;
+        float key_width = 90.0f;
         int num_keys = 120; // Expanded to 10 octaves
         int start_pitch = 0;
         
@@ -199,7 +204,7 @@ namespace KuroUI {
         bool is_grid_hovered = ImGui::IsItemHovered();
 
         std::lock_guard<std::mutex> lock(timeline_mgr.timeline_mutex);
-        auto& notes = timeline_mgr.is_scratchpad_active ? timeline_mgr.scratchpad_notes : timeline_mgr.track_notes[track_idx];
+        auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].notes;
 
         // --- Interação do Mouse com Notas (Estilo FL Studio) ---
         if (is_grid_hovered) {
@@ -499,22 +504,76 @@ namespace KuroUI {
             int note_in_octave = pitch % 12;
             bool is_black = (note_in_octave == 1 || note_in_octave == 3 || note_in_octave == 6 || note_in_octave == 8 || note_in_octave == 10);
             
-            ImU32 key_color = is_black ? IM_COL32(20, 20, 20, 255) : IM_COL32(200, 200, 200, 255);
-            ImU32 text_color = is_black ? IM_COL32(200, 200, 200, 255) : IM_COL32(20, 20, 20, 255);
+            // Desenho Realista de Teclado de Piano
+            if (is_black) {
+                // Teclas pretas são mais curtas, então desenhamos a extensão branca no fundo primeiro
+                draw_list->AddRectFilled(
+                    ImVec2(canvas_p0.x + key_width * 0.62f, y), 
+                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
+                    IM_COL32(245, 245, 240, 255)
+                );
+                // Linha de divisão para o fundo branco
+                draw_list->AddLine(
+                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y), 
+                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
+                    IM_COL32(180, 180, 180, 255)
+                );
+                
+                // Tecla preta em cima
+                draw_list->AddRectFilled(
+                    ImVec2(canvas_p0.x, y), 
+                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y - 1.0f), 
+                    IM_COL32(25, 25, 27, 255),
+                    2.0f, ImDrawFlags_RoundCornersRight
+                );
+                draw_list->AddRect(
+                    ImVec2(canvas_p0.x, y), 
+                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y - 1.0f), 
+                    IM_COL32(45, 45, 50, 255),
+                    2.0f, ImDrawFlags_RoundCornersRight
+                );
+            } else {
+                // Tecla branca completa (marfim)
+                draw_list->AddRectFilled(
+                    ImVec2(canvas_p0.x, y), 
+                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
+                    IM_COL32(253, 253, 250, 255)
+                );
+                // Sombra de relevo na tecla branca
+                draw_list->AddRectFilled(
+                    ImVec2(canvas_p0.x, y + zoom_y - 2.0f), 
+                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
+                    IM_COL32(215, 215, 210, 255)
+                );
+                // Linha fina de divisão cinza
+                draw_list->AddLine(
+                    ImVec2(canvas_p0.x, y + zoom_y), 
+                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
+                    IM_COL32(140, 140, 140, 255)
+                );
+            }
             
-            draw_list->AddRectFilled(ImVec2(canvas_p0.x, y), ImVec2(canvas_p0.x + key_width, y + zoom_y), key_color);
-            draw_list->AddRect(ImVec2(canvas_p0.x, y), ImVec2(canvas_p0.x + key_width, y + zoom_y), IM_COL32(50, 50, 50, 255));
-            
-            // Mostra o nome de TODAS as notas no teclado
-            if (zoom_y > 10.0f) {
+            // Nomes das notas e oitavas
+            if (zoom_y > 12.0f) {
                 const char* note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
                 int octave = (pitch / 12) - 1;
                 char buf[16];
                 snprintf(buf, sizeof(buf), "%s%d", note_names[note_in_octave], octave);
-                draw_list->AddText(ImVec2(canvas_p0.x + 3, y + 2), text_color, buf);
+                
+                ImU32 text_color = is_black ? IM_COL32(180, 180, 180, 255) : IM_COL32(40, 40, 45, 255);
+                
+                if (is_black) {
+                    draw_list->AddText(ImVec2(canvas_p0.x + 5, y + (zoom_y - 15.0f) * 0.5f), text_color, buf);
+                } else {
+                    if (note_in_octave == 0) {
+                        draw_list->AddText(ImVec2(canvas_p0.x + key_width - 32, y + (zoom_y - 15.0f) * 0.5f), IM_COL32(230, 100, 20, 255), buf);
+                    } else {
+                        draw_list->AddText(ImVec2(canvas_p0.x + key_width - 25, y + (zoom_y - 15.0f) * 0.5f), text_color, buf);
+                    }
+                }
             }
             
-            // Desenha a linha da grade horizontal estendendo para a direita
+            // Grade horizontal estendendo para a direita
             ImU32 line_col = is_black ? IM_COL32(255,255,255,10) : IM_COL32(255,255,255,20);
             if (note_in_octave == 0) line_col = IM_COL32(255,255,255,40); // Highlight C
             draw_list->AddLine(ImVec2(grid_start_x, y), ImVec2(canvas_p1.x, y), line_col);

@@ -2,6 +2,7 @@
 #include <vector>
 #include <mutex>
 #include "MidiNote.h"
+#include "KuroConfig.h"
 
 struct AudioClip {
     int id;
@@ -11,30 +12,52 @@ struct AudioClip {
     bool is_selected;
 };
 
+struct Pattern {
+    int id;
+    std::string name;
+    unsigned int color;
+    std::vector<KuroDSP::MidiNote> notes;
+    float default_length_sec = 4.0f;
+};
+
 struct MidiClip {
     int id;
     float start_time_sec;
     float length_sec;
-    std::vector<KuroDSP::MidiNote> notes;
+    int pattern_id; // Refers to the Pattern.id
     bool is_selected;
 };
 
 class ClipManager {
 public:
-    std::vector<AudioClip> track_clips[8];
-    std::vector<MidiClip> track_midi_clips[8];
+    std::vector<AudioClip> track_clips[MAX_TRACKS];
+    std::vector<MidiClip> track_midi_clips[MAX_TRACKS];
+    std::vector<Pattern> global_patterns;
+    int current_pattern_idx = 0;
     std::mutex clip_mutex;
     int next_id = 1;
 
-    ClipManager() {}
+    ClipManager() {
+        // Inicializa com 1 pattern vazio
+        Pattern p;
+        p.id = next_id++;
+        p.name = "Pattern 1";
+        p.color = 0xFF5050AA; // Laranja/Vermelho base
+        global_patterns.push_back(p);
+    }
 
     void initTrack(int track_index, float total_length_sec) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return;
-        track_clips[track_index].clear();
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
+        
+        float start_t = 0.0f;
+        if (!track_clips[track_index].empty()) {
+            start_t = track_clips[track_index].back().start_time_sec + track_clips[track_index].back().length_sec;
+        }
+        
         AudioClip clip;
         clip.id = next_id++;
-        clip.start_time_sec = 0.0f;
+        clip.start_time_sec = start_t;
         clip.length_sec = total_length_sec;
         clip.source_offset_sec = 0.0f;
         clip.is_selected = false;
@@ -43,7 +66,7 @@ public:
 
     void reset() {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        for(int i=0; i<8; i++) {
+        for(int i=0; i<MAX_TRACKS; i++) {
             track_clips[i].clear();
             track_midi_clips[i].clear();
         }
@@ -52,7 +75,7 @@ public:
     
     void splitClip(int track_index, int clip_index, float split_time_sec) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return;
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
         if (clip_index < 0 || clip_index >= track_clips[track_index].size()) return;
         
         AudioClip& c = track_clips[track_index][clip_index];
@@ -74,32 +97,51 @@ public:
     
     void updateClipStart(int track_index, int clip_index, float new_start_sec) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return;
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
         if (clip_index < 0 || clip_index >= track_clips[track_index].size()) return;
         track_clips[track_index][clip_index].start_time_sec = new_start_sec;
     }
 
+    void deleteClip(int track_index, int clip_index) {
+        std::lock_guard<std::mutex> lock(clip_mutex);
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
+        if (clip_index < 0 || clip_index >= track_clips[track_index].size()) return;
+        track_clips[track_index].erase(track_clips[track_index].begin() + clip_index);
+    }
+
     std::vector<AudioClip> getClips(int track_index) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return std::vector<AudioClip>();
+        if (track_index < 0 || track_index >= MAX_TRACKS) return std::vector<AudioClip>();
         return track_clips[track_index];
     }
     
-    void addMidiClip(int track_index, float start_time_sec, float length_sec, const std::vector<KuroDSP::MidiNote>& notes) {
+    void addPatternClip(int track_index, float start_time_sec, float length_sec, int pattern_id) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return;
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
         MidiClip clip;
         clip.id = next_id++;
         clip.start_time_sec = start_time_sec;
         clip.length_sec = length_sec;
-        clip.notes = notes;
+        clip.pattern_id = pattern_id;
         clip.is_selected = false;
         track_midi_clips[track_index].push_back(clip);
     }
     
     std::vector<MidiClip> getMidiClips(int track_index) {
         std::lock_guard<std::mutex> lock(clip_mutex);
-        if (track_index < 0 || track_index >= 8) return std::vector<MidiClip>();
+        if (track_index < 0 || track_index >= MAX_TRACKS) return std::vector<MidiClip>();
         return track_midi_clips[track_index];
+    }
+
+    void removeMidiClipAt(int track_index, float time_sec) {
+        std::lock_guard<std::mutex> lock(clip_mutex);
+        if (track_index < 0 || track_index >= MAX_TRACKS) return;
+        auto& clips = track_midi_clips[track_index];
+        for (auto it = clips.begin(); it != clips.end(); ++it) {
+            if (time_sec >= it->start_time_sec && time_sec <= it->start_time_sec + it->length_sec) {
+                clips.erase(it);
+                break;
+            }
+        }
     }
 };

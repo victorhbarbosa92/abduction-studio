@@ -39,12 +39,17 @@ namespace KuroDSP {
     class RackNode : public PluginNode {
     public:
         Pedalboard rack;
+        Pedalboard* rack_ptr = nullptr;
         
-        RackNode(const std::string& id, const std::string& name) 
-            : PluginNode(id, name) {}
+        RackNode(const std::string& id, const std::string& name, Pedalboard* ptr = nullptr) 
+            : PluginNode(id, name), rack_ptr(ptr) {}
         
         void process(float* left, float* right, unsigned int frames) override {
-            rack.process(left, right, frames);
+            if (rack_ptr) {
+                rack_ptr->process(left, right, frames);
+            } else {
+                rack.process(left, right, frames);
+            }
         }
         
         void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {
@@ -52,13 +57,65 @@ namespace KuroDSP {
         }
     };
 
+    // Nó de junção (Bus) para roteamento passivo (ex: saídas de track)
+    class BusNode : public PluginNode {
+    public:
+        float* volume_ptr = nullptr;
+        
+        BusNode(const std::string& id, const std::string& name, float* vol_ptr = nullptr) 
+            : PluginNode(id, name), volume_ptr(vol_ptr) {}
+        
+        void process(float* left, float* right, unsigned int frames) override {
+            // Pass-through
+        }
+        
+        void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {
+            if (param_index == 0 && volume_ptr) {
+                *volume_ptr = target_value; // Updates UI and audio engine smooth target
+            }
+        }
+    };
+
+    class ReverbNode : public PluginNode {
+    public:
+        KuroReverb reverb;
+        ReverbNode(const std::string& id, const std::string& name) : PluginNode(id, name) {}
+        void process(float* left, float* right, unsigned int frames) override {
+            reverb.process(left, right, frames);
+        }
+        void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {}
+    };
+
+    class DelayNode : public PluginNode {
+    public:
+        KuroDelay delay;
+        DelayNode(const std::string& id, const std::string& name) : PluginNode(id, name) {}
+        void process(float* left, float* right, unsigned int frames) override {
+            delay.process(left, right, frames);
+        }
+        void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {}
+    };
+
+    class DummyNativeNode : public PluginNode {
+    public:
+        DummyNativeNode(const std::string& id, const std::string& name) : PluginNode(id, name) {}
+        void process(float* left, float* right, unsigned int frames) override {}
+        void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {}
+    };
+
     // Estrutura DAG para roteamento flexível
     class AudioGraph {
     private:
+        struct Edge {
+            std::string to_id;
+            float weight = 1.0f;
+            float* dynamic_weight_ptr = nullptr;
+        };
+
         struct NodeEntry {
             std::shared_ptr<PluginNode> plugin;
             std::vector<std::string> inputs;
-            std::vector<std::string> outputs;
+            std::vector<Edge> outputs;
             
             // Buffers temporários alinhados (lock-free safe) para somatório do DAG
             std::vector<float> buffer_l;
@@ -100,9 +157,9 @@ namespace KuroDSP {
             nodes[id] = entry;
         }
         
-        void connect(const std::string& from_id, const std::string& to_id) {
+        void connect(const std::string& from_id, const std::string& to_id, float* dynamic_weight_ptr = nullptr) {
             if (nodes.count(from_id) && nodes.count(to_id)) {
-                nodes[from_id].outputs.push_back(to_id);
+                nodes[from_id].outputs.push_back({to_id, 1.0f, dynamic_weight_ptr});
                 nodes[to_id].inputs.push_back(from_id);
             }
             recalculateExecutionOrder();
@@ -111,8 +168,8 @@ namespace KuroDSP {
         void disconnectAllOutputs(const std::string& node_id) {
             if (nodes.count(node_id)) {
                 // Remove this node from the inputs list of its target nodes
-                for (const auto& target_id : nodes[node_id].outputs) {
-                    auto& target_inputs = nodes[target_id].inputs;
+                for (const auto& edge : nodes[node_id].outputs) {
+                    auto& target_inputs = nodes[edge.to_id].inputs;
                     target_inputs.erase(std::remove(target_inputs.begin(), target_inputs.end(), node_id), target_inputs.end());
                 }
                 nodes[node_id].outputs.clear();
@@ -139,10 +196,10 @@ namespace KuroDSP {
                 queue.pop_back();
                 execution_order.push_back(current);
                 
-                for (const auto& next : nodes[current].outputs) {
-                    in_degree[next]--;
-                    if (in_degree[next] == 0) {
-                        queue.push_back(next);
+                for (const auto& edge : nodes[current].outputs) {
+                    in_degree[edge.to_id]--;
+                    if (in_degree[edge.to_id] == 0) {
+                        queue.push_back(edge.to_id);
                     }
                 }
             }
@@ -182,11 +239,13 @@ namespace KuroDSP {
                 }
                 
                 // 3. Acumula o output deste nó nas entradas dos nós de destino
-                for (const auto& dest_id : entry.outputs) {
-                    auto& dest = nodes[dest_id];
+                for (const auto& edge : entry.outputs) {
+                    auto& dest = nodes[edge.to_id];
+                    float gain = edge.dynamic_weight_ptr ? *(edge.dynamic_weight_ptr) : edge.weight;
+                    
                     for (unsigned int i = 0; i < frames; ++i) {
-                        dest.buffer_l[i] += entry.buffer_l[i];
-                        dest.buffer_r[i] += entry.buffer_r[i];
+                        dest.buffer_l[i] += entry.buffer_l[i] * gain;
+                        dest.buffer_r[i] += entry.buffer_r[i] * gain;
                     }
                 }
             }

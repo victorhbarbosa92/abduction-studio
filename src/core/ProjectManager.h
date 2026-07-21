@@ -21,7 +21,7 @@ extern KuroAudio::KuroWave g_kurowave;
 extern KuroAudio::SynthEngine g_piano_synth;
 
 namespace KuroUI {
-    extern std::vector<int> track_fx_chain[MAX_TRACKS];
+    // track_fx_chain is now static in StudioUI.h, no longer externed here.
 }
 
 class ProjectManager {
@@ -53,7 +53,8 @@ public:
         }
         ss << "],\n";
 
-        // Track FX chains
+        // Track FX chains (Temporarily disabled for dynamic plugin system)
+        /*
         ss << "  \"track_fx_chains\": [\n";
         for (int i = 0; i < MAX_TRACKS; i++) {
             ss << "    [";
@@ -64,25 +65,11 @@ public:
             ss << "]" << (i < MAX_TRACKS - 1 ? ",\n" : "\n");
         }
         ss << "  ],\n";
+        */
 
         // MIDI Notes per track
-        ss << "  \"track_midi_notes\": [\n";
-        for (int i = 0; i < MAX_TRACKS; i++) {
-            ss << "    [\n";
-            std::lock_guard<std::mutex> lock(::timeline.timeline_mutex);
-            const auto& notes = ::timeline.track_notes[i];
-            for (size_t j = 0; j < notes.size(); j++) {
-                const auto& n = notes[j];
-                ss << "      {\n";
-                ss << "        " << JSON::format("pitch", n.pitch) << ",\n";
-                ss << "        " << JSON::format("start_time", n.start_time) << ",\n";
-                ss << "        " << JSON::format("duration", n.duration) << ",\n";
-                ss << "        " << JSON::format("velocity", n.velocity) << "\n";
-                ss << "      }" << (j < notes.size() - 1 ? ",\n" : "\n");
-            }
-            ss << "    ]" << (i < MAX_TRACKS - 1 ? ",\n" : "\n");
-        }
-        ss << "  ],\n";
+        // MIDI Notes per track (Deprecated, to be replaced by ClipManager serialization)
+        ss << "  \"track_midi_notes\": [],\n";
 
         // KuroWave synth settings
         ss << "  \"kurowave\": {\n";
@@ -184,7 +171,8 @@ public:
             }
         }
 
-        // 5. Track FX chains
+        // 5. Track FX chains (Temporarily disabled for dynamic plugin system)
+        /*
         std::string fx_chains_obj = JSON::getSubObject(json, "track_fx_chains");
         if (!fx_chains_obj.empty()) {
             size_t start = fx_chains_obj.find("[");
@@ -205,13 +193,14 @@ public:
                     KuroUI::track_fx_chain[idx].clear();
                     int fx_id;
                     while (ss >> fx_id) {
-                        KuroUI::track_fx_chain[idx].push_back(fx_id);
+                        // KuroUI::track_fx_chain[idx].push_back(fx_id);
                     }
                     idx++;
                     sub_start = sub_close + 1;
                 }
             }
         }
+        */
 
         // 6. MIDI Notes per track
         std::string notes_obj = JSON::getSubObject(json, "track_midi_notes");
@@ -240,15 +229,8 @@ public:
                     std::string list_str = inner.substr(sub_open, sub_close - sub_open + 1);
                     std::vector<std::string> objs = JSON::splitArrayObjects(list_str);
                     
-                    std::lock_guard<std::mutex> lock(::timeline.timeline_mutex);
-                    ::timeline.track_notes[idx].clear();
-                    for (const auto& obj : objs) {
-                        int pitch = JSON::parseInt(obj, "pitch");
-                        float start_time = JSON::parseFloat(obj, "start_time");
-                        float duration = JSON::parseFloat(obj, "duration");
-                        float velocity = JSON::parseFloat(obj, "velocity");
-                        ::timeline.track_notes[idx].push_back(KuroDSP::MidiNote(pitch, start_time, duration, velocity));
-                    }
+                    // Deprecated: track_notes loading
+                    // (To be replaced by ClipManager pattern/clip loading)
                     idx++;
                     sub_start = sub_close + 1;
                 }

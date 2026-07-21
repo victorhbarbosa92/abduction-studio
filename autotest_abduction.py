@@ -99,7 +99,7 @@ def copy_mockups_to_desktop():
 def main():
     print("=" * 80)
     print(" \"Que sua energia contagie e contemple, a todos que te usarem...\"")
-    print("               ＩＮＶＯＱＵＥ. . .  ＡＢＤＵＣＴＩＯＮ  ＳＴＵＤＩＯ !")
+    print("               INVOQUE. . .  ABDUCTION  STUDIO !")
     print("=" * 80)
     print()
     ensure_folders()

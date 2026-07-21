@@ -1,0 +1,2262 @@
+=== LOG DE EXTRAÇÃO E WEB SCRAPING - ABLETON & FL STUDIO ===
+Destino da Integração: Abduction Studio V2
+
+--- FL STUDIO (MIDI SCRIPTING API - SCRAPED) ---
+[1] Módulo: mixer | Função: afterRoutingChanged
+    Assinatura: afterRoutingChanged() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Notify FL Studio that channel routings have changed.*
+
+[2] Módulo: mixer | Função: armTrack
+    Assinatura: armTrack(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Toggles whether the track at index is armed for recording.*
+
+[3] Módulo: mixer | Função: automateEvent
+    Assinatura: automateEvent(index: int, value: int, flags: int, speed: int = 0, isIncrement: int = 0, res: float = midi.EKRes,) -> int
+    Parâmetros: ['index', 'value', 'flags', 'speed', 'isIncrement', 'res']
+    Retorno: int
+    Descrição: *Automate event.*
+
+[4] Módulo: mixer | Função: deselectAll
+    Assinatura: deselectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Deselects all tracks.*
+
+[5] Módulo: mixer | Função: enableTrack
+    Assinatura: enableTrack(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Toggles whether the track at `index` is enabled.*
+
+[6] Módulo: mixer | Função: enableTrackSlots
+    Assinatura: enableTrackSlots(index: int, value: bool = False) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Toggle whether all effects are enabled on a track.*
+
+[7] Módulo: mixer | Função: focusEditor
+    Assinatura: focusEditor(index: int, plugIndex: int) -> None
+    Parâmetros: ['index', 'plugIndex']
+    Retorno: None
+    Descrição: *Focus the editor the effect plugin at the given location.*
+
+[8] Módulo: mixer | Função: getActiveEffectIndex
+    Assinatura: getActiveEffectIndex() -> tuple[int, int] | None
+    Parâmetros: []
+    Retorno: tuple[int
+    Descrição: *Returns the index of the active effects plugin, or None if there isn't one.*
+
+[9] Módulo: mixer | Função: getAutoSmoothEventValue
+    Assinatura: getAutoSmoothEventValue(index: int, locked: int = 1) -> int
+    Parâmetros: ['index', 'locked']
+    Retorno: int
+    Descrição: *Returns auto smooth event value.*
+
+[10] Módulo: mixer | Função: getCurrentTempo
+    Assinatura: getCurrentTempo(asInt: Literal[True]) -> int: ... @overload def getCurrentTempo(asInt: Literal[False] = False) -> float: ... def getCurrentTempo(asInt: bool = False) -> 'int | float'
+    Parâmetros: ['asInt']
+    Retorno: int
+    Descrição: *Returns the current tempo of the song.*
+
+[11] Módulo: mixer | Função: getEqBandCount
+    Assinatura: getEqBandCount() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the number of bands in the built-in EQ.*
+
+[12] Módulo: mixer | Função: getEqBandwidth
+    Assinatura: getEqBandwidth(index: int, band: int) -> float
+    Parâmetros: ['index', 'band']
+    Retorno: float
+    Descrição: *Returns the bandwidth of the given band on the given track for the built-in*
+
+[13] Módulo: mixer | Função: getEqFrequency
+    Assinatura: getEqFrequency(index: int, band: int, mode: int = 0) -> float
+    Parâmetros: ['index', 'band', 'mode']
+    Retorno: float
+    Descrição: *Returns the frequency of the given band on the given track for the built-in*
+
+[14] Módulo: mixer | Função: getEqGain
+    Assinatura: getEqGain(index: int, band: int, mode: int = 0) -> float
+    Parâmetros: ['index', 'band', 'mode']
+    Retorno: float
+    Descrição: *Returns the gain of the given band on the given track for the built-in EQ.*
+
+[15] Módulo: mixer | Função: getEventIDName
+    Assinatura: getEventIDName(index: int, shortname: int = 0) -> str
+    Parâmetros: ['index', 'shortname']
+    Retorno: str
+    Descrição: *Returns event name for event at `index`.*
+
+[16] Módulo: mixer | Função: getEventIDValueString
+    Assinatura: getEventIDValueString(index: int, value: int) -> str
+    Parâmetros: ['index', 'value']
+    Retorno: str
+    Descrição: *Returns event value as a string.*
+
+[17] Módulo: mixer | Função: getEventValue
+    Assinatura: getEventValue(index: int, value: int = midi.MaxInt, smoothTarget: int = 1,) -> int
+    Parâmetros: ['index', 'value', 'smoothTarget']
+    Retorno: int
+    Descrição: *Returns event value from MIDI.*
+
+[18] Módulo: mixer | Função: getLastPeakVol
+    Assinatura: getLastPeakVol(section: int) -> float
+    Parâmetros: ['section']
+    Retorno: float
+    Descrição: *Returns last peak volume.*
+
+[19] Módulo: mixer | Função: getRecPPS
+    Assinatura: getRecPPS() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the recording PPS.*
+
+[20] Módulo: mixer | Função: getRouteSendActive
+    Assinatura: getRouteSendActive(index: int, destIndex: int) -> bool
+    Parâmetros: ['index', 'destIndex']
+    Retorno: bool
+    Descrição: *Return whether the track at `index` is routed to the track at `destIndex`*
+
+[21] Módulo: mixer | Função: getRouteToLevel
+    Assinatura: getRouteToLevel(index: int, destIndex: int) -> float
+    Parâmetros: ['index', 'destIndex']
+    Retorno: float
+    Descrição: *Get the send level for the route between `index` and `destIndex`.*
+
+[22] Módulo: mixer | Função: getSlotColor
+    Assinatura: getSlotColor(index: int, slot: int) -> int
+    Parâmetros: ['index', 'slot']
+    Retorno: int
+    Descrição: *Returns the color of a mixer track FX slot.*
+
+[23] Módulo: mixer | Função: getSongStepPos
+    Assinatura: getSongStepPos() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the current position in the song, measured in steps.*
+
+[24] Módulo: mixer | Função: getSongTickPos
+    Assinatura: getSongTickPos(mode: Literal[0] = 0) -> int: ... @overload def getSongTickPos(mode: Literal[1, 2]) -> float: ... def getSongTickPos(mode: int = midi.ST_Int) -> 'int | float'
+    Parâmetros: ['mode']
+    Retorno: int
+    Descrição: *Returns the current position in the song, measured in ticks.*
+
+[25] Módulo: mixer | Função: getTrackColor
+    Assinatura: getTrackColor(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Returns the color of the track at `index`.*
+
+[26] Módulo: mixer | Função: getTrackDockSide
+    Assinatura: getTrackDockSide(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Returns the dock side of the mixer for track at `index`.*
+
+[27] Módulo: mixer | Função: getTrackInfo
+    Assinatura: getTrackInfo(mode: int) -> int
+    Parâmetros: ['mode']
+    Retorno: int
+    Descrição: *Returns the index of a special mixer track depending on `mode`.*
+
+[28] Módulo: mixer | Função: getTrackName
+    Assinatura: getTrackName(index: int) -> str
+    Parâmetros: ['index']
+    Retorno: str
+    Descrição: *Returns the name of the track at `index`.*
+
+[29] Módulo: mixer | Função: getTrackPan
+    Assinatura: getTrackPan(index: int) -> float
+    Parâmetros: ['index']
+    Retorno: float
+    Descrição: *Returns the pan of the track at `index`. Pan lies within the range*
+
+[30] Módulo: mixer | Função: getTrackPeaks
+    Assinatura: getTrackPeaks(index: int, mode: int) -> float
+    Parâmetros: ['index', 'mode']
+    Retorno: float
+    Descrição: *Returns the current audio peak value for the track at `index`.*
+
+[31] Módulo: mixer | Função: getTrackPluginId
+    Assinatura: getTrackPluginId(index: int, plugIndex: int) -> int
+    Parâmetros: ['index', 'plugIndex']
+    Retorno: int
+    Descrição: *Returns the plugin ID of the plugin on track `index` in slot `plugIndex`.*
+
+[32] Módulo: mixer | Função: getTrackRecordingFileName
+    Assinatura: getTrackRecordingFileName(index: int) -> str
+    Parâmetros: ['index']
+    Retorno: str
+    Descrição: *Returns the file name for audio being recorded on the track at `index`.*
+
+[33] Módulo: mixer | Função: getTrackStereoSep
+    Assinatura: getTrackStereoSep(index: int) -> float
+    Parâmetros: ['index']
+    Retorno: float
+    Descrição: *Returns the stereo separation of the track at `index`. Stereo separation*
+
+[34] Módulo: mixer | Função: getTrackVolume
+    Assinatura: getTrackVolume(index: int, mode: int = 0) -> float
+    Parâmetros: ['index', 'mode']
+    Retorno: float
+    Descrição: *Returns the volume of the track at `index`. Volume lies within the range*
+
+[35] Módulo: mixer | Função: isTrackArmed
+    Assinatura: isTrackArmed(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is armed for recording.*
+
+[36] Módulo: mixer | Função: isTrackAutomationEnabled
+    Assinatura: isTrackAutomationEnabled(index: int, plugIndex: int) -> bool
+    Parâmetros: ['index', 'plugIndex']
+    Retorno: bool
+    Descrição: *Returns whether the plugin at `plugIndex` on track at `index` has*
+
+[37] Módulo: mixer | Função: isTrackEnabled
+    Assinatura: isTrackEnabled(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is enabled*
+
+[38] Módulo: mixer | Função: isTrackMuteLock
+    Assinatura: isTrackMuteLock(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the mute state of the track at `index` is locked.*
+
+[39] Módulo: mixer | Função: isTrackMuted
+    Assinatura: isTrackMuted(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is muted.*
+
+[40] Módulo: mixer | Função: isTrackPluginValid
+    Assinatura: isTrackPluginValid(index: int, plugIndex: int) -> bool
+    Parâmetros: ['index', 'plugIndex']
+    Retorno: bool
+    Descrição: *Returns whether a plugin on track `index` in slot `plugIndex` is valid*
+
+[41] Módulo: mixer | Função: isTrackRevPolarity
+    Assinatura: isTrackRevPolarity(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the polarity is reversed for the track at `index`.*
+
+[42] Módulo: mixer | Função: isTrackSelected
+    Assinatura: isTrackSelected(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is selected.*
+
+[43] Módulo: mixer | Função: isTrackSlotsEnabled
+    Assinatura: isTrackSlotsEnabled(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether effects are enabled for a particular track, using the*
+
+[44] Módulo: mixer | Função: isTrackSolo
+    Assinatura: isTrackSolo(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is solo.*
+
+[45] Módulo: mixer | Função: isTrackSwapChannels
+    Assinatura: isTrackSwapChannels(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether left and right channels are inverted for a particular*
+
+[46] Módulo: mixer | Função: linkChannelToTrack
+    Assinatura: linkChannelToTrack(channel: int, track: int, select: bool = False,) -> None
+    Parâmetros: ['channel', 'track', 'select']
+    Retorno: None
+    Descrição: *Link the given channel to the given mixer track.*
+
+[47] Módulo: mixer | Função: linkTrackToChannel
+    Assinatura: linkTrackToChannel(mode: int) -> None
+    Parâmetros: ['mode']
+    Retorno: None
+    Descrição: *Link a mixer track to a channel.*
+
+[48] Módulo: mixer | Função: muteTrack
+    Assinatura: muteTrack(index: int, value: int = -1) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Toggles whether the track at index is muted.*
+
+[49] Módulo: mixer | Função: remoteFindEventValue
+    Assinatura: remoteFindEventValue(index: int, flags: int = 0, /) -> float
+    Parâmetros: ['index', 'flags', '/']
+    Retorno: float
+    Descrição: *Returns event value.*
+
+[50] Módulo: mixer | Função: revTrackPolarity
+    Assinatura: revTrackPolarity(index: int, value: bool = False) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Inverts the polarity for a particular track.*
+
+[51] Módulo: mixer | Função: selectAll
+    Assinatura: selectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Selects all tracks.*
+
+[52] Módulo: mixer | Função: selectTrack
+    Assinatura: selectTrack(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Toggles whether the track at `index` is selected.*
+
+[53] Módulo: mixer | Função: setActiveTrack
+    Assinatura: setActiveTrack(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Exclusively selects the mixer track at index.*
+
+[54] Módulo: mixer | Função: setEqBandwidth
+    Assinatura: setEqBandwidth(index: int, band: int, value: float) -> None
+    Parâmetros: ['index', 'band', 'value']
+    Retorno: None
+    Descrição: *Sets the bandwidth of the given band on the given track for the built-in*
+
+[55] Módulo: mixer | Função: setEqFrequency
+    Assinatura: setEqFrequency(index: int, band: int, value: float) -> None
+    Parâmetros: ['index', 'band', 'value']
+    Retorno: None
+    Descrição: *Sets the frequency of the given band on the given track for the built-in*
+
+[56] Módulo: mixer | Função: setEqGain
+    Assinatura: setEqGain(index: int, band: int, value: float) -> None
+    Parâmetros: ['index', 'band', 'value']
+    Retorno: None
+    Descrição: *Sets the gain of the given band on the given track for the built-in EQ.*
+
+[57] Módulo: mixer | Função: setRouteTo
+    Assinatura: setRouteTo(index: int, destIndex: int, value: bool, updateUI: bool = False,) -> None
+    Parâmetros: ['index', 'destIndex', 'value', 'updateUI']
+    Retorno: None
+    Descrição: *Route the track at `index` to the track at `destIndex`.*
+
+[58] Módulo: mixer | Função: setRouteToLevel
+    Assinatura: setRouteToLevel(index: int, destIndex: int, level: float) -> None
+    Parâmetros: ['index', 'destIndex', 'level']
+    Retorno: None
+    Descrição: *Route the track at `index` to the track at `destIndex`, with the level*
+
+[59] Módulo: mixer | Função: setSlotColor
+    Assinatura: setSlotColor(index: int, slot: int, color: int) -> None
+    Parâmetros: ['index', 'slot', 'color']
+    Retorno: None
+    Descrição: *Sets the color of a mixer track FX slot.*
+
+[60] Módulo: mixer | Função: setTrackColor
+    Assinatura: setTrackColor(index: int, color: int) -> None
+    Parâmetros: ['index', 'color']
+    Retorno: None
+    Descrição: *Sets the color of the track at `index`.*
+
+[61] Módulo: mixer | Função: setTrackName
+    Assinatura: setTrackName(index: int, name: str) -> None
+    Parâmetros: ['index', 'name']
+    Retorno: None
+    Descrição: *Sets the name of track at `index`*
+
+[62] Módulo: mixer | Função: setTrackNumber
+    Assinatura: setTrackNumber(trackNumber: int, flags: int = 0) -> None
+    Parâmetros: ['trackNumber', 'flags']
+    Retorno: None
+    Descrição: *Selects the mixer track at `trackNumber`.*
+
+[63] Módulo: mixer | Função: setTrackPan
+    Assinatura: setTrackPan(index: int, pan: float, pickupMode: int = midi.PIM_None,) -> None
+    Parâmetros: ['index', 'pan', 'pickupMode']
+    Retorno: None
+    Descrição: *Sets the pan of the track at `index`. Pan lies within the range*
+
+[64] Módulo: mixer | Função: setTrackStereoSep
+    Assinatura: setTrackStereoSep(index: int, pan: float, pickupMode: int = midi.PIM_None,) -> None
+    Parâmetros: ['index', 'pan', 'pickupMode']
+    Retorno: None
+    Descrição: *Sets the stereo separation of the track at `index`. Stereo separation*
+
+[65] Módulo: mixer | Função: setTrackVolume
+    Assinatura: setTrackVolume(index: int, volume: float, pickupMode: int = midi.PIM_None,) -> None
+    Parâmetros: ['index', 'volume', 'pickupMode']
+    Retorno: None
+    Descrição: *Sets the volume of the track at `index`. Volume lies within the range*
+
+[66] Módulo: mixer | Função: soloTrack
+    Assinatura: soloTrack(index: int, value: int = -1, mode: int = -1) -> None
+    Parâmetros: ['index', 'value', 'mode']
+    Retorno: None
+    Descrição: *Toggles whether the track at index is solo.*
+
+[67] Módulo: mixer | Função: swapTrackChannels
+    Assinatura: swapTrackChannels(index: int, value: bool = False) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Toggle whether left and right channels are swapped for the mixer track at*
+
+[68] Módulo: mixer | Função: trackCount
+    Assinatura: trackCount() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the number of tracks available on the mixer.*
+
+[69] Módulo: mixer | Função: trackNumber
+    Assinatura: trackNumber() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the index of the first currently selected mixer track.*
+
+[70] Módulo: transport | Função: continuousMove
+    Assinatura: continuousMove(speed: int, startStop: int) -> None
+    Parâmetros: ['speed', 'startStop']
+    Retorno: None
+    Descrição: *Sets playback speed, allowing a scrub-like functionality.*
+
+[71] Módulo: transport | Função: continuousMovePos
+    Assinatura: continuousMovePos(speed: int, startStop: int) -> None
+    Parâmetros: ['speed', 'startStop']
+    Retorno: None
+    Descrição: *Sets playback speed, allowing a scrub-like functionality.*
+
+[72] Módulo: transport | Função: fastForward
+    Assinatura: fastForward(startStop: int, flags: int = midi.GT_All) -> None
+    Parâmetros: ['startStop', 'flags']
+    Retorno: None
+    Descrição: *Fast-forwards the playback position.*
+
+[73] Módulo: transport | Função: getHWBeatLEDState
+    Assinatura: getHWBeatLEDState() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the state of the beat indicator.*
+
+[74] Módulo: transport | Função: getLoopMode
+    Assinatura: getLoopMode() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the current looping mode.*
+
+[75] Módulo: transport | Função: getSongLength
+    Assinatura: getSongLength(mode: int) -> int
+    Parâmetros: ['mode']
+    Retorno: int
+    Descrição: *Returns the total length of the song.*
+
+[76] Módulo: transport | Função: getSongPos
+    Assinatura: getSongPos(mode: Literal[-1] = -1) -> float: ... @overload def getSongPos(mode: Literal[0, 1, 2, 3, 4, 5]) -> int: ... def getSongPos(mode: int = -1) -> 'float | int'
+    Parâmetros: ['mode']
+    Retorno: float
+    Descrição: *Returns the playback position.*
+
+[77] Módulo: transport | Função: getSongPosHint
+    Assinatura: getSongPosHint() -> str
+    Parâmetros: []
+    Retorno: str
+    Descrição: *Returns a hint for the current playback position in .*
+
+[78] Módulo: transport | Função: globalTransport
+    Assinatura: globalTransport(command: int, value: int, pmeflags: int = midi.PME_System, flags=midi.GT_All,) -> int
+    Parâmetros: ['command', 'value', 'pmeflags', 'flags']
+    Retorno: int
+    Descrição: *Used as a generic way to run transport commands if a specific function*
+
+[79] Módulo: transport | Função: isPlaying
+    Assinatura: isPlaying() -> bool
+    Parâmetros: []
+    Retorno: bool
+    Descrição: *Returns `True` if playback is currently occurring.*
+
+[80] Módulo: transport | Função: isRecording
+    Assinatura: isRecording() -> bool
+    Parâmetros: []
+    Retorno: bool
+    Descrição: *Returns whether recording is enabled.*
+
+[81] Módulo: transport | Função: markerJumpJog
+    Assinatura: markerJumpJog(value: int, flags: int = midi.GT_All) -> None
+    Parâmetros: ['value', 'flags']
+    Retorno: None
+    Descrição: *Jump to a marker position, where `value` is an delta (increment) value.*
+
+[82] Módulo: transport | Função: markerSelJog
+    Assinatura: markerSelJog(value: int, flags: int = midi.GT_All) -> None
+    Parâmetros: ['value', 'flags']
+    Retorno: None
+    Descrição: *Select a marker, where `value` is an delta (increment) value.*
+
+[83] Módulo: transport | Função: record
+    Assinatura: record() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Toggles recording.*
+
+[84] Módulo: transport | Função: rewind
+    Assinatura: rewind(startStop: int, flags: int = midi.GT_All) -> None
+    Parâmetros: ['startStop', 'flags']
+    Retorno: None
+    Descrição: *Rewinds the playback position.*
+
+[85] Módulo: transport | Função: setLoopMode
+    Assinatura: setLoopMode() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Toggles the looping mode between pattern and song.*
+
+[86] Módulo: transport | Função: setPlaybackSpeed
+    Assinatura: setPlaybackSpeed(speedMultiplier: float) -> None
+    Parâmetros: ['speedMultiplier']
+    Retorno: None
+    Descrição: *Sets a playback speed multiplier.*
+
+[87] Módulo: transport | Função: setSongPos
+    Assinatura: setSongPos(position: float, mode: Literal[-1] = -1) -> None: ... @overload def setSongPos(position: int, mode: Literal[0, 1, 2, 3, 4, 5]) -> None: ... def setSongPos(position: 'float | int', mode: int = -1) -> None
+    Parâmetros: ['position', 'mode']
+    Retorno: None
+    Descrição: *Sets the playback position.*
+
+[88] Módulo: transport | Função: start
+    Assinatura: start() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Start or pause playback (play/pause).*
+
+[89] Módulo: transport | Função: stop
+    Assinatura: stop() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Stop playback.*
+
+[90] Módulo: channels | Função: channelCount
+    Assinatura: channelCount(globalCount: bool = False) -> int
+    Parâmetros: ['globalCount']
+    Retorno: int
+    Descrição: *Returns the number of channels on the channel rack. Respect for groups is*
+
+[91] Módulo: channels | Função: channelNumber
+    Assinatura: channelNumber(canBeNone: bool = False, offset: int = 0) -> int
+    Parâmetros: ['canBeNone', 'offset']
+    Retorno: int
+    Descrição: *Returns the global index of the first selected channel, otherwise the nth*
+
+[92] Módulo: channels | Função: closeGraphEditor
+    Assinatura: closeGraphEditor(index: int, /) -> None
+    Parâmetros: ['index', '/']
+    Retorno: None
+    Descrição: *???*
+
+[93] Módulo: channels | Função: deselectAll
+    Assinatura: deselectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Deselects all channels in the current channel group.*
+
+[94] Módulo: channels | Função: getGridBit
+    Assinatura: def getGridBit( index: int, position: int, useGlobalIndex: bool = False, ) -> bool
+    Parâmetros: ['index', 'position', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Returns whether the grid bit on channel at `index` in `position` is set.*
+
+[95] Módulo: channels | Função: focusEditor
+    Assinatura: focusEditor(index: int, useGlobalIndex: bool = False) -> None
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Focus the plugin window for the channel at `index`.*
+
+[96] Módulo: channels | Função: getActivityLevel
+    Assinatura: getActivityLevel(index: int, useGlobalIndex: bool = False) -> float
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: float
+    Descrição: *Return the note activity level for channel at `index`. Activity level*
+
+[97] Módulo: channels | Função: getChannelColor
+    Assinatura: getChannelColor(index: int, useGlobalIndex: bool = False) -> int
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Returns the color of the channel at `index`.*
+
+[98] Módulo: channels | Função: getChannelIndex
+    Assinatura: getChannelIndex(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Returns the global index of a channel given the group `index`.*
+
+[99] Módulo: channels | Função: getChannelMidiInPort
+    Assinatura: getChannelMidiInPort(index: int, useGlobalIndex: bool = False) -> int
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Returns the MIDI-in port associated with the channel at `index`.*
+
+[100] Módulo: channels | Função: getChannelName
+    Assinatura: getChannelName(index: int, useGlobalIndex: bool = False) -> str
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: str
+    Descrição: *Returns the name of the channel at `index`.*
+
+[101] Módulo: channels | Função: getChannelPan
+    Assinatura: getChannelPan(index: int, useGlobalIndex: bool = False) -> float
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: float
+    Descrição: *Returns the normalized pan of the channel at `index`, where `-1.0` is 100%*
+
+[102] Módulo: channels | Função: getChannelPitch
+    Assinatura: getChannelPitch(index: int, mode: Literal[1, 2], useGlobalIndex: bool = False, ) -> int: ... @overload def getChannelPitch( index: int, mode: Literal[0] = 0, useGlobalIndex: bool = False, ) -> float: ... def getChannelPitch( index: int, mode: int = 0, useGlobalIndex: bool = False,) -> 'float | int'
+    Parâmetros: ['index', 'mode', '2]', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Returns the current pitch bend (or range) of the channel at `index`. The*
+
+[103] Módulo: channels | Função: getChannelType
+    Assinatura: getChannelType(index: int, useGlobalIndex: bool = False) -> int
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Returns the type of instrument loaded into the channel rack at `index`.*
+
+[104] Módulo: channels | Função: getChannelVolume
+    Assinatura: getChannelVolume(index: int, mode: bool = False, useGlobalIndex: bool = False,) -> float
+    Parâmetros: ['index', 'mode', 'useGlobalIndex']
+    Retorno: float
+    Descrição: *Returns the normalized volume of the channel at `index`, where `0.0` is the*
+
+[105] Módulo: channels | Função: getCurrentStepParam
+    Assinatura: getCurrentStepParam(index: int, step: int, param: int, useGlobalIndex: bool = False,) -> int
+    Parâmetros: ['index', 'step', 'param', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Get current step parameter for channel at `index` and for step at `step`.*
+
+[106] Módulo: channels | Função: getGridBitWithLoop
+    Assinatura: getGridBitWithLoop(index: int, position: int, useGlobalIndex: bool = False,) -> bool
+    Parâmetros: ['index', 'position', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Get value of grid bit on channel `index` in `position` accounting for*
+
+[107] Módulo: channels | Função: getRecEventId
+    Assinatura: getRecEventId(index: int, useGlobalIndex: bool = False) -> int
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Return the starting point of REC event IDs for the channel at `index`.*
+
+[108] Módulo: channels | Função: getStepParam
+    Assinatura: getStepParam(step: int, param: int, index: int, startPos: int, padsStride: int = 16, useGlobalIndex: bool = False,) -> int
+    Parâmetros: ['step', 'param', 'index', 'startPos', 'padsStride', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Get the values of properties associated with a step in the step sequencer.*
+
+[109] Módulo: channels | Função: getTargetFxTrack
+    Assinatura: getTargetFxTrack(index: int, useGlobalIndex: bool = False) -> int
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: int
+    Descrição: *Returns the mixer track that the channel at `index` is linked to.*
+
+[110] Módulo: channels | Função: incEventValue
+    Assinatura: incEventValue(eventId: int, step: int, res: float = 1 / 24) -> int
+    Parâmetros: ['eventId', 'step', 'res']
+    Retorno: int
+    Descrição: *Get event value increased by step.*
+
+[111] Módulo: channels | Função: isChannelMuted
+    Assinatura: isChannelMuted(index: int, useGlobalIndex: bool = False) -> bool
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Returns whether channel is muted (`True`) or not (`False`).*
+
+[112] Módulo: channels | Função: isChannelSelected
+    Assinatura: isChannelSelected(index: int, useGlobalIndex: bool = False) -> bool
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Returns whether the channel at `index` is selected.*
+
+[113] Módulo: channels | Função: isChannelSolo
+    Assinatura: isChannelSolo(index: int, useGlobalIndex: bool = False) -> bool
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Returns whether channel is solo (`True`) or not (`False`).*
+
+[114] Módulo: channels | Função: isGraphEditorVisible
+    Assinatura: isGraphEditorVisible() -> bool
+    Parâmetros: []
+    Retorno: bool
+    Descrição: *Returns whether the graph editor is currently visible.*
+
+[115] Módulo: channels | Função: isGridBitAssigned
+    Assinatura: isGridBitAssigned(index: int, useGlobalIndex: bool = False) -> bool
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: bool
+    Descrição: *Returns `True` when the grid bit at `index` is assigned.*
+
+[116] Módulo: channels | Função: isHighLighted
+    Assinatura: isHighLighted() -> bool
+    Parâmetros: []
+    Retorno: bool
+    Descrição: *Returns `True` when a red highlight rectangle is displayed on the channel*
+
+[117] Módulo: channels | Função: midiNoteOn
+    Assinatura: midiNoteOn(indexGlobal: int, note: int, velocity: int, channel: int = -1,) -> None
+    Parâmetros: ['indexGlobal', 'note', 'velocity', 'channel']
+    Retorno: None
+    Descrição: *Set a MIDI Note for the channel at `indexGlobal` (not respecting groups).*
+
+[118] Módulo: channels | Função: muteChannel
+    Assinatura: muteChannel(index: int, value: int = -1, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'value', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Toggles the mute state of the channel at `index`.*
+
+[119] Módulo: channels | Função: processRECEvent
+    Assinatura: processRECEvent(eventId: int, value: int, flags: int, /) -> int
+    Parâmetros: ['eventId', 'value', 'flags', '/']
+    Retorno: int
+    Descrição: *Processes a recording event.*
+
+[120] Módulo: channels | Função: quickQuantize
+    Assinatura: quickQuantize(index: int, startOnly: int = 1, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'startOnly', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Perform a quick quantize operation on the channel at index*
+
+[121] Módulo: channels | Função: selectAll
+    Assinatura: selectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Selects all channels in the current channel group.*
+
+[122] Módulo: channels | Função: selectChannel
+    Assinatura: selectChannel(index: int, value: int = -1, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'value', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Select the channel at `index` (respecting groups).*
+
+[123] Módulo: channels | Função: selectOneChannel
+    Assinatura: selectOneChannel(index: int, useGlobalIndex: bool = False) -> None
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Exclusively select the channel at `index` (deselecting any other selected*
+
+[124] Módulo: channels | Função: selectedChannel
+    Assinatura: selectedChannel(canBeNone: bool = False, offset: int = 0, indexGlobal: bool = False,) -> int
+    Parâmetros: ['canBeNone', 'offset', 'indexGlobal']
+    Retorno: int
+    Descrição: *Returns the index of the first selected channel, otherwise the nth selected*
+
+[125] Módulo: channels | Função: setChannelColor
+    Assinatura: setChannelColor(index: int, color: int, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'color', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the color of the channel at `index`.*
+
+[126] Módulo: channels | Função: setChannelName
+    Assinatura: setChannelName(index: int, name: str, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'name', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the name of the channel at `index`.*
+
+[127] Módulo: channels | Função: setChannelPan
+    Assinatura: setChannelPan(index: int, pan: float, pickupMode: int = midi.PIM_None, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'pan', 'pickupMode', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the normalized pan of the channel at `index`, where `-1.0` is 100%*
+
+[128] Módulo: channels | Função: setChannelPitch
+    Assinatura: setChannelPitch(index: int, value: float, mode: int = 0, pickupMode: int = midi.PIM_None, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'value', 'mode', 'pickupMode', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the pitch of the channel at `index` to value. The `mode` parameter is*
+
+[129] Módulo: channels | Função: setChannelVolume
+    Assinatura: setChannelVolume(index: int, volume: float, pickupMode: int = midi.PIM_None, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'volume', 'pickupMode', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the normalized volume of the channel at `index`, where `0.0` is the*
+
+[130] Módulo: channels | Função: setGridBit
+    Assinatura: setGridBit(index: int, position: int, value: bool, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'position', 'value', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the value of the grid bit on channel at `index` in `position`.*
+
+[131] Módulo: channels | Função: setStepParameterByIndex
+    Assinatura: setStepParameterByIndex(index: int, patNum: int, step: int, param: int, value: int, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'patNum', 'step', 'param', 'value', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Set the value of a step parameter at the given location.*
+
+[132] Módulo: channels | Função: setTargetFxTrack
+    Assinatura: setTargetFxTrack(channelIndex: int, mixerIndex: int, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['channelIndex', 'mixerIndex', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Sets the mixer track that the channel at `index` is linked to.*
+
+[133] Módulo: channels | Função: showCSForm
+    Assinatura: showCSForm(index: int, state: int = 1, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'state', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Show the channel settings window (or plugin window for plugins) for channel*
+
+[134] Módulo: channels | Função: showEditor
+    Assinatura: showEditor(index: int, value: int = -1, useGlobalIndex: bool = False,) -> None
+    Parâmetros: ['index', 'value', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Toggle whether the plugin window for the channel at `index` is shown. The*
+
+[135] Módulo: channels | Função: showGraphEditor
+    Assinatura: showGraphEditor(temporary: bool, param: int, step: int, index: int, useGlobalIndex: bool = True,) -> None
+    Parâmetros: ['temporary', 'param', 'step', 'index', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Show the graph editor for a step parameter on the channel at `index`.*
+
+[136] Módulo: channels | Função: soloChannel
+    Assinatura: soloChannel(index: int, useGlobalIndex: bool = False) -> None
+    Parâmetros: ['index', 'useGlobalIndex']
+    Retorno: None
+    Descrição: *Toggles the solo state of the channel at `index`.*
+
+[137] Módulo: channels | Função: updateGraphEditor
+    Assinatura: updateGraphEditor() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *???*
+
+[138] Módulo: playlist | Função: trackCount
+    Assinatura: trackCount() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the number of tracks on the playlist.*
+
+[139] Módulo: playlist | Função: getTrackName
+    Assinatura: getTrackName(index: int) -> str
+    Parâmetros: ['index']
+    Retorno: str
+    Descrição: *Returns the name of the track at `index`*
+
+[140] Módulo: playlist | Função: setTrackName
+    Assinatura: setTrackName(index: int, name: str) -> None
+    Parâmetros: ['index', 'name']
+    Retorno: None
+    Descrição: *Sets the name of the track at `index`*
+
+[141] Módulo: playlist | Função: getTrackColor
+    Assinatura: getTrackColor(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Returns the color of the track at `index`*
+
+[142] Módulo: playlist | Função: setTrackColor
+    Assinatura: setTrackColor(index: int, color: int) -> None
+    Parâmetros: ['index', 'color']
+    Retorno: None
+    Descrição: *Sets the color of the track at `index`* ## Selection
+
+[143] Módulo: playlist | Função: selectAll
+    Assinatura: selectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Select all tracks on the playlist*
+
+[144] Módulo: playlist | Função: deselectAll
+    Assinatura: deselectAll() -> None
+    Parâmetros: []
+    Retorno: None
+    Descrição: *Deselect all tracks on the playlist*
+
+[145] Módulo: playlist | Função: selectTrack
+    Assinatura: selectTrack(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Toggle whether the track at `index` is selected. A deselected track will*
+
+[146] Módulo: playlist | Função: isTrackSelected
+    Assinatura: isTrackSelected(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is selected* ## Mute/Solo
+
+[147] Módulo: playlist | Função: muteTrack
+    Assinatura: muteTrack(index: int, value: int = -1) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Toggle whether the track at `index` is muted. An unmuted track will become*
+
+[148] Módulo: playlist | Função: isTrackMuted
+    Assinatura: isTrackMuted(index: int,) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is muted*
+
+[149] Módulo: playlist | Função: soloTrack
+    Assinatura: soloTrack(index: int, value: int = -1, inGroup: bool = False) -> None
+    Parâmetros: ['index', 'value', 'inGroup']
+    Retorno: None
+    Descrição: *Toggle whether the track at `index` is solo. An unsolo track will become*
+
+[150] Módulo: playlist | Função: isTrackSolo
+    Assinatura: isTrackSolo(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the track at `index` is solo*
+
+[151] Módulo: playlist | Função: muteTrackLock
+    Assinatura: muteTrackLock(index: int) -> None
+    Parâmetros: ['index']
+    Retorno: None
+    Descrição: *Toggle whether the track at `index`'s mute status is locked (meaning that*
+
+[152] Módulo: playlist | Função: isTrackMuteLock
+    Assinatura: isTrackMuteLock(index: int) -> bool
+    Parâmetros: ['index']
+    Retorno: bool
+    Descrição: *Returns whether the mute status of the track at `index` is locked (meaning* ## Live Mode
+
+[153] Módulo: playlist | Função: getLiveStatus
+    Assinatura: getLiveStatus(index: int, mode: int = midi.LB_Status_Default) -> int
+    Parâmetros: ['index', 'mode']
+    Retorno: int
+    Descrição: *Returns the live status for track at `index`.*
+
+[154] Módulo: playlist | Função: getLiveBlockStatus
+    Assinatura: getLiveBlockStatus(index: int, blockNum: int, mode: int = midi.LB_Status_Default,) -> int
+    Parâmetros: ['index', 'blockNum', 'mode']
+    Retorno: int
+    Descrição: *Returns the live block status for block `blockNum` within the track at*
+
+[155] Módulo: playlist | Função: getLiveBlockColor
+    Assinatura: getLiveBlockColor(index: int, blockNum: int) -> int
+    Parâmetros: ['index', 'blockNum']
+    Retorno: int
+    Descrição: *Returns the color for block `blockNum` within the track at `index`.*
+
+[156] Módulo: playlist | Função: triggerLiveClip
+    Assinatura: triggerLiveClip(index: int, subNum: int, flags: int, velocity: int = -1,) -> None
+    Parâmetros: ['index', 'subNum', 'flags', 'velocity']
+    Retorno: None
+    Descrição: *Triggers live clip for track at `index` and for block `subNum`.*
+
+[157] Módulo: playlist | Função: refreshLiveClips
+    Assinatura: refreshLiveClips(*args) -> None
+    Parâmetros: ['*args']
+    Retorno: None
+    Descrição: *Refresh live clips for track at `index`.* ## Loop/Trigger
+
+[158] Módulo: playlist | Função: getLiveLoopMode
+    Assinatura: getLiveLoopMode(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Get the loop mode of the given track.*
+
+[159] Módulo: playlist | Função: incLiveLoopMode
+    Assinatura: incLiveLoopMode(index: int, value: int) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Increase live loop mode for track at `index`.*
+
+[160] Módulo: playlist | Função: getLiveTriggerMode
+    Assinatura: getLiveTriggerMode(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Get the trigger mode of the given track.*
+
+[161] Módulo: playlist | Função: incLiveTrigMode
+    Assinatura: incLiveTrigMode(index: int, value: int) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Increase live trigger mode for track at `index`.*
+
+[162] Módulo: playlist | Função: getLiveTrigSnap
+    Assinatura: getLiveTrigSnap(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Get the trigger sync mode of the given track.*
+
+[163] Módulo: playlist | Função: incLiveTrigSnap
+    Assinatura: incLiveTrigSnap(index: int, value: int) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Increase live trigger snap for track at `index`.*
+
+[164] Módulo: playlist | Função: getLivePosSnap
+    Assinatura: getLivePosSnap(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Get the position sync mode of the given track.*
+
+[165] Módulo: playlist | Função: incLivePosSnap
+    Assinatura: incLivePosSnap(index: int, value: int) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Increase live position snap for track at `index`.* ## Position/Display
+
+[166] Módulo: playlist | Função: getVisTimeBar
+    Assinatura: getVisTimeBar() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the current bar number, as shown in the song position panel. See*
+
+[167] Módulo: playlist | Função: getVisTimeStep
+    Assinatura: getVisTimeStep() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the step number within the song, as shown in the song position*
+
+[168] Módulo: playlist | Função: getVisTimeTick
+    Assinatura: getVisTimeTick() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the tick number within the song, as shown in the song position*
+
+[169] Módulo: playlist | Função: getDisplayZone
+    Assinatura: getDisplayZone() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the current display zone in the playlist or zero if none.*
+
+[170] Módulo: playlist | Função: liveDisplayZone
+    Assinatura: liveDisplayZone(left: int, top: int, right: int, bottom: int, duration: int = 0,) -> None
+    Parâmetros: ['left', 'top', 'right', 'bottom', 'duration']
+    Retorno: None
+    Descrição: *Set the display zone in the playlist to the specified co-ordinates. Use the*
+
+[171] Módulo: playlist | Função: lockDisplayZone
+    Assinatura: lockDisplayZone(index: int, value: int) -> None
+    Parâmetros: ['index', 'value']
+    Retorno: None
+    Descrição: *Lock display zone at `index`.*
+
+[172] Módulo: playlist | Função: scrollTo
+    Assinatura: scrollTo(a: int, b: int, c: int, d: int) -> None
+    Parâmetros: ['a', 'b', 'c', 'd']
+    Retorno: None
+    Descrição: *Scroll to the given location?* ## Performance
+
+[173] Módulo: playlist | Função: getPerformanceModeState
+    Assinatura: getPerformanceModeState() -> bool
+    Parâmetros: []
+    Retorno: bool
+    Descrição: *Returns whether FL Studio's performance mode is enabled.*
+
+[174] Módulo: playlist | Função: getTrackActivityLevel
+    Assinatura: getTrackActivityLevel(index: int) -> float
+    Parâmetros: ['index']
+    Retorno: float
+    Descrição: *Returns the activity level of the track at `index`. This value is either*
+
+[175] Módulo: playlist | Função: getTrackActivityLevelVis
+    Assinatura: getTrackActivityLevelVis(index: int) -> float
+    Parâmetros: ['index']
+    Retorno: float
+    Descrição: *Returns the visual activity level of the track at `index`. This value is a* ## Time
+
+[176] Módulo: playlist | Função: getSongStartTickPos
+    Assinatura: getSongStartTickPos() -> int
+    Parâmetros: []
+    Retorno: int
+    Descrição: *Returns the number of ticks before the "song start" marker (which marks the*
+
+[177] Módulo: playlist | Função: liveBlockNumToTime
+    Assinatura: liveBlockNumToTime(index: int) -> int
+    Parâmetros: ['index']
+    Retorno: int
+    Descrição: *Returns the number of ticks before the live block marker at `index`.*
+
+[178] Módulo: playlist | Função: liveTimeToBlockNum
+    Assinatura: liveTimeToBlockNum(time: int) -> int
+    Parâmetros: ['time']
+    Retorno: int
+    Descrição: *Returns the block number that a time (in ticks) is associated with in live*
+
+
+--- ABLETON LIVE (LOM - SCRAPED) ---
+[1] Classe: Song | Tipo: Property | Nome: tempo
+    Retorno: float
+    Descrição: Current tempo in BPM (20.0 - 999.0). May be automated.
+
+[2] Classe: Song | Tipo: Property | Nome: is_playing
+    Retorno: bool
+    Descrição: Transport running state
+
+[3] Classe: Song | Tipo: Property | Nome: metronome
+    Retorno: bool
+    Descrição: Metronome enabled state
+
+[4] Classe: Song | Tipo: Property | Nome: nudge_down
+    Retorno: bool
+    Descrição: Tempo Nudge Down button pressed state
+
+[5] Classe: Song | Tipo: Property | Nome: nudge_up
+    Retorno: bool
+    Descrição: Tempo Nudge Up button pressed state
+
+[6] Classe: Song | Tipo: Property | Nome: current_song_time
+    Retorno: float
+    Descrição: Playing position in beats
+
+[7] Classe: Song | Tipo: Property | Nome: start_time
+    Retorno: float
+    Descrição: Playback start position in beats
+
+[8] Classe: Song | Tipo: Property | Nome: song_length
+    Retorno: float
+    Descrição: Total song length in beats (a little more than last_event_time)
+
+[9] Classe: Song | Tipo: Property | Nome: last_event_time
+    Retorno: float
+    Descrição: Beat time of the last event in the arrangement
+
+[10] Classe: Song | Tipo: Property | Nome: signature_numerator
+    Retorno: int
+    Descrição: Time signature numerator
+
+[11] Classe: Song | Tipo: Property | Nome: signature_denominator
+    Retorno: int
+    Descrição: Time signature denominator
+
+[12] Classe: Song | Tipo: Property | Nome: loop
+    Retorno: bool
+    Descrição: Arrangement loop enabled state
+
+[13] Classe: Song | Tipo: Property | Nome: loop_start
+    Retorno: float
+    Descrição: Arrangement loop start position in beats
+
+[14] Classe: Song | Tipo: Property | Nome: loop_length
+    Retorno: float
+    Descrição: Arrangement loop length in beats
+
+[15] Classe: Song | Tipo: Property | Nome: clip_trigger_quantization
+    Retorno: int
+    Descrição: Quantization setting (0=None through 13=1/32)
+
+[16] Classe: Song | Tipo: Property | Nome: midi_recording_quantization
+    Retorno: int
+    Descrição: Record quantization value (0=None through 8=1/32)
+
+[17] Classe: Song | Tipo: Property | Nome: swing_amount
+    Retorno: float
+    Descrição: Swing amount (0.0 - 1.0). Affects MIDI Recording Quantization and Clip.quantize calls.
+
+[18] Classe: Song | Tipo: Property | Nome: groove_amount
+    Retorno: float
+    Descrição: Groove pool amount (0.0 - 1.0)
+
+[19] Classe: Song | Tipo: Property | Nome: record_mode
+    Retorno: bool
+    Descrição: Arrangement Record button state
+
+[20] Classe: Song | Tipo: Property | Nome: session_record
+    Retorno: bool
+    Descrição: Session Overdub button state
+
+[21] Classe: Song | Tipo: Property | Nome: session_record_status
+    Retorno: int
+    Descrição: Session Record button state
+
+[22] Classe: Song | Tipo: Property | Nome: session_automation_record
+    Retorno: bool
+    Descrição: Automation Arm button state
+
+[23] Classe: Song | Tipo: Property | Nome: arrangement_overdub
+    Retorno: bool
+    Descrição: State of MIDI Arrangement Overdub button
+
+[24] Classe: Song | Tipo: Property | Nome: overdub
+    Retorno: bool
+    Descrição: MIDI Arrangement Overdub enabled state
+
+[25] Classe: Song | Tipo: Property | Nome: punch_in
+    Retorno: bool
+    Descrição: Punch-In button enabled state
+
+[26] Classe: Song | Tipo: Property | Nome: punch_out
+    Retorno: bool
+    Descrição: Punch-Out button enabled state
+
+[27] Classe: Song | Tipo: Property | Nome: back_to_arranger
+    Retorno: bool
+    Descrição: Transport bar button indicating playback differs from arrangement
+
+[28] Classe: Song | Tipo: Property | Nome: re_enable_automation_enabled
+    Retorno: bool
+    Descrição: Re-Enable Automation button state
+
+[29] Classe: Song | Tipo: Property | Nome: can_capture_midi
+    Retorno: bool
+    Descrição: Whether recently played MIDI material can be captured
+
+[30] Classe: Song | Tipo: Property | Nome: count_in_duration
+    Retorno: int
+    Descrição: Metronome count-in duration index (0=None, 1=1 Bar, 2=2 Bars, 3=4 Bars)
+
+[31] Classe: Song | Tipo: Property | Nome: is_counting_in
+    Retorno: bool
+    Descrição: Metronome count-in in progress
+
+[32] Classe: Song | Tipo: Property | Nome: root_note
+    Retorno: int
+    Descrição: Scale root note (0=C through 11=B)
+
+[33] Classe: Song | Tipo: Property | Nome: scale_name
+    Retorno: unicode
+    Descrição: Current scale name from chooser
+
+[34] Classe: Song | Tipo: Property | Nome: scale_intervals
+    Retorno: list
+    Descrição: Integer list representing current scale intervals
+
+[35] Classe: Song | Tipo: Property | Nome: scale_mode
+    Retorno: bool
+    Descrição: Scale Mode highlighting and editing state
+
+[36] Classe: Song | Tipo: Property | Nome: file_path
+    Retorno: symbol
+    Descrição: OS-native Live Set file path; empty if unsaved
+
+[37] Classe: Song | Tipo: Property | Nome: exclusive_arm
+    Retorno: bool
+    Descrição: Exclusive Arm preference status
+
+[38] Classe: Song | Tipo: Property | Nome: exclusive_solo
+    Retorno: bool
+    Descrição: Exclusive Solo preference status
+
+[39] Classe: Song | Tipo: Property | Nome: select_on_launch
+    Retorno: bool
+    Descrição: "Select on Launch" preference status
+
+[40] Classe: Song | Tipo: Property | Nome: is_ableton_link_enabled
+    Retorno: bool
+    Descrição: Ableton Link toggle state
+
+[41] Classe: Song | Tipo: Property | Nome: is_ableton_link_start_stop_sync_enabled
+    Retorno: bool
+    Descrição: Link Start Stop Sync state
+
+[42] Classe: Song | Tipo: Property | Nome: can_undo
+    Retorno: bool
+    Descrição: Undo history availability
+
+[43] Classe: Song | Tipo: Property | Nome: can_redo
+    Retorno: bool
+    Descrição: Redo history availability
+
+[44] Classe: Song | Tipo: Property | Nome: can_jump_to_next_cue
+    Retorno: bool
+    Descrição: Whether a cue point exists to the right
+
+[45] Classe: Song | Tipo: Property | Nome: can_jump_to_prev_cue
+    Retorno: bool
+    Descrição: Whether a cue point exists to the left
+
+[46] Classe: Song | Tipo: Property | Nome: tempo_follower_enabled
+    Retorno: bool
+    Descrição: Tempo Follower controls tempo
+
+[47] Classe: Song | Tipo: Property | Nome: appointed_device
+    Retorno: Device
+    Descrição: The appointed device for control surfaces (marked by blue hand)
+
+[48] Classe: Song | Tipo: Property | Nome: tracks
+    Retorno: list[Track]
+    Descrição: All tracks (audio, MIDI, group)
+
+[49] Classe: Song | Tipo: Property | Nome: return_tracks
+    Retorno: list[Track]
+    Descrição: Return track collection
+
+[50] Classe: Song | Tipo: Property | Nome: visible_tracks
+    Retorno: list[Track]
+    Descrição: Tracks not part of a folded group
+
+[51] Classe: Song | Tipo: Property | Nome: master_track
+    Retorno: Track
+    Descrição: Master output track
+
+[52] Classe: Song | Tipo: Property | Nome: scenes
+    Retorno: list[Scene]
+    Descrição: Scene collection
+
+[53] Classe: Song | Tipo: Property | Nome: cue_points
+    Retorno: list[CuePoint]
+    Descrição: Arrangement markers
+
+[54] Classe: Song | Tipo: Property | Nome: groove_pool
+    Retorno: GroovePool
+    Descrição: Live's groove pool (since Live 11.0)
+
+[55] Classe: Song | Tipo: Property | Nome: tuning_system
+    Retorno: TuningSystem
+    Descrição: Active tuning system
+
+[56] Classe: Song | Tipo: Property | Nome: view
+    Retorno: Song.View
+    Descrição: Song view object
+
+[57] Classe: Song | Tipo: Property | Nome: detail_clip
+    Retorno: Clip
+    Descrição: The clip currently displayed in Detail View
+
+[58] Classe: Song | Tipo: Property | Nome: highlighted_clip_slot
+    Retorno: ClipSlot
+    Descrição: The slot highlighted in Session View
+
+[59] Classe: Song | Tipo: Property | Nome: selected_chain
+    Retorno: Chain
+    Descrição: The highlighted chain, or 'id 0' if none
+
+[60] Classe: Song | Tipo: Property | Nome: selected_parameter
+    Retorno: DeviceParameter
+    Descrição: The selected parameter, or 'id 0' if none
+
+[61] Classe: Song | Tipo: Property | Nome: selected_scene
+    Retorno: Scene
+    Descrição: The currently selected scene
+
+[62] Classe: Song | Tipo: Property | Nome: selected_track
+    Retorno: Track
+    Descrição: The currently selected track
+
+[63] Classe: Song | Tipo: Property | Nome: draw_mode
+    Retorno: bool
+    Descrição: Draw Mode state in transport bar (Cmd/Ctrl-B). 0=breakpoint editing (arrow), 1=drawing (pencil)
+
+[64] Classe: Song | Tipo: Property | Nome: follow_song
+    Retorno: bool
+    Descrição: Follow switch state in transport bar (Cmd/Ctrl-F). 0=don't follow, 1=follow playback position
+
+[65] Classe: Song | Tipo: Property | Nome: time
+    Retorno: float
+    Descrição: Arrangement position of the marker in beats
+
+[66] Classe: Song | Tipo: Property | Nome: grooves
+    Retorno: list[Groove]
+    Descrição: List of grooves in the groove pool from top to bottom
+
+[67] Classe: Song | Tipo: Property | Nome: base
+    Retorno: int
+    Descrição: Groove's base grid setting
+
+[68] Classe: Song | Tipo: Property | Nome: quantization_amount
+    Retorno: float
+    Descrição: Groove's quantization amount
+
+[69] Classe: Song | Tipo: Property | Nome: random_amount
+    Retorno: float
+    Descrição: Groove's random amount
+
+[70] Classe: Song | Tipo: Property | Nome: timing_amount
+    Retorno: float
+    Descrição: Groove's timing amount
+
+[71] Classe: Song | Tipo: Property | Nome: velocity_amount
+    Retorno: float
+    Descrição: Groove's velocity amount
+
+[72] Classe: Song | Tipo: Property | Nome: pseudo_octave_in_cents
+    Retorno: float
+    Descrição: The pseudo octave in cents of the currently active tuning system
+
+[73] Classe: Song | Tipo: Property | Nome: lowest_note
+    Retorno: dictionary
+    Descrição: The note index within the pseudo octave and octave of the lowest note
+
+[74] Classe: Song | Tipo: Property | Nome: highest_note
+    Retorno: dictionary
+    Descrição: The note index within the pseudo octave and octave of the highest note
+
+[75] Classe: Song | Tipo: Property | Nome: reference_pitch
+    Retorno: dictionary
+    Descrição: The reference pitch of the current tuning system
+
+[76] Classe: Song | Tipo: Property | Nome: note_tunings
+    Retorno: dictionary
+    Descrição: The relative note tunings in cents (single-element dictionary holding an array)
+
+[77] Classe: Track | Tipo: Property | Nome: color
+    Retorno: int
+    Descrição: RGB color value (0x00rrggbb format); snaps to nearest palette color
+
+[78] Classe: Track | Tipo: Property | Nome: color_index
+    Retorno: long
+    Descrição: Track color index reference
+
+[79] Classe: Track | Tipo: Property | Nome: arm
+    Retorno: bool
+    Descrição: Track armed for recording (not available on return/master tracks)
+
+[80] Classe: Track | Tipo: Property | Nome: can_be_armed
+    Retorno: bool
+    Descrição: Returns 0 for return and master tracks
+
+[81] Classe: Track | Tipo: Property | Nome: implicit_arm
+    Retorno: bool
+    Descrição: Secondary arm state (Push controller integration)
+
+[82] Classe: Track | Tipo: Property | Nome: mute
+    Retorno: bool
+    Descrição: Mute state (not available on master track)
+
+[83] Classe: Track | Tipo: Property | Nome: solo
+    Retorno: bool
+    Descrição: Solo state; bypasses exclusive solo logic when set (not available on master track)
+
+[84] Classe: Track | Tipo: Property | Nome: muted_via_solo
+    Retorno: bool
+    Descrição: 1 if track is muted due to Solo on another track
+
+[85] Classe: Track | Tipo: Property | Nome: is_frozen
+    Retorno: bool
+    Descrição: 1 if track is currently frozen
+
+[86] Classe: Track | Tipo: Property | Nome: can_be_frozen
+    Retorno: bool
+    Descrição: 1 if track can be frozen
+
+[87] Classe: Track | Tipo: Property | Nome: performance_impact
+    Retorno: float
+    Descrição: Track performance load metric
+
+[88] Classe: Track | Tipo: Property | Nome: has_audio_input
+    Retorno: bool
+    Descrição: Returns 1 for audio tracks
+
+[89] Classe: Track | Tipo: Property | Nome: has_audio_output
+    Retorno: bool
+    Descrição: Returns 1 for audio tracks and MIDI tracks with instruments
+
+[90] Classe: Track | Tipo: Property | Nome: has_midi_input
+    Retorno: bool
+    Descrição: Returns 1 for MIDI tracks
+
+[91] Classe: Track | Tipo: Property | Nome: has_midi_output
+    Retorno: bool
+    Descrição: Returns 1 for MIDI tracks without instruments and without audio effects
+
+[92] Classe: Track | Tipo: Property | Nome: input_routing_type
+    Retorno: dict
+    Descrição: Currently selected source type (`display_name`, `identifier`)
+
+[93] Classe: Track | Tipo: Property | Nome: input_routing_channel
+    Retorno: dict
+    Descrição: Currently selected source channel (`display_name`, `identifier`)
+
+[94] Classe: Track | Tipo: Property | Nome: output_routing_type
+    Retorno: dict
+    Descrição: Currently selected target type (`display_name`, `identifier`) (not available on master track)
+
+[95] Classe: Track | Tipo: Property | Nome: output_routing_channel
+    Retorno: dict
+    Descrição: Currently selected target channel (`display_name`, `identifier`) (not available on master track)
+
+[96] Classe: Track | Tipo: Property | Nome: available_input_routing_types
+    Retorno: dict
+    Descrição: Available source types for input routing (MIDI/audio tracks only)
+
+[97] Classe: Track | Tipo: Property | Nome: available_input_routing_channels
+    Retorno: dict
+    Descrição: Available source channels for input routing (MIDI/audio tracks only)
+
+[98] Classe: Track | Tipo: Property | Nome: available_output_routing_types
+    Retorno: dict
+    Descrição: Available target types for output routing (not available on master track)
+
+[99] Classe: Track | Tipo: Property | Nome: available_output_routing_channels
+    Retorno: dict
+    Descrição: Available target channels for output routing (not available on master track)
+
+[100] Classe: Track | Tipo: Property | Nome: input_meter_left
+    Retorno: float
+    Descrição: Smoothed momentary peak value (left channel input)
+
+[101] Classe: Track | Tipo: Property | Nome: input_meter_right
+    Retorno: float
+    Descrição: Smoothed momentary peak value (right channel input)
+
+[102] Classe: Track | Tipo: Property | Nome: input_meter_level
+    Retorno: float
+    Descrição: Hold peak value of input meters (1-second hold time)
+
+[103] Classe: Track | Tipo: Property | Nome: output_meter_left
+    Retorno: float
+    Descrição: Smoothed momentary peak value (left channel output)
+
+[104] Classe: Track | Tipo: Property | Nome: output_meter_right
+    Retorno: float
+    Descrição: Smoothed momentary peak value (right channel output)
+
+[105] Classe: Track | Tipo: Property | Nome: output_meter_level
+    Retorno: float
+    Descrição: Hold peak value of output meters (1-second hold time)
+
+[106] Classe: Track | Tipo: Property | Nome: fired_slot_index
+    Retorno: int
+    Descrição: Blinking clip slot index (-1=none, -2=Stop button fired) (not available on return/master tracks)
+
+[107] Classe: Track | Tipo: Property | Nome: playing_slot_index
+    Retorno: int
+    Descrição: Currently playing slot index (0+ = slot index, -2=Clip Stop slot fired in Session View, -1=Arrangement recording with no Session clip playing) (not available on return/master tracks)
+
+[108] Classe: Track | Tipo: Property | Nome: back_to_arranger
+    Retorno: bool
+    Descrição: Single Track Back to Arrangement button state. Setting to 0 makes Live go back to playing the track's arrangement content
+
+[109] Classe: Track | Tipo: Property | Nome: is_foldable
+    Retorno: bool
+    Descrição: 1 if track can be folded (group tracks only)
+
+[110] Classe: Track | Tipo: Property | Nome: fold_state
+    Retorno: int
+    Descrição: 0=tracks within the Group Track are visible, 1=Group Track is folded and the tracks within are hidden (only accessible if is_foldable=1)
+
+[111] Classe: Track | Tipo: Property | Nome: is_grouped
+    Retorno: bool
+    Descrição: 1 if track is contained within a Group Track
+
+[112] Classe: Track | Tipo: Property | Nome: is_visible
+    Retorno: bool
+    Descrição: 0 if track is hidden in a folded Group Track
+
+[113] Classe: Track | Tipo: Property | Nome: can_show_chains
+    Retorno: bool
+    Descrição: 1 if track contains an Instrument Rack device that can show chains
+
+[114] Classe: Track | Tipo: Property | Nome: is_showing_chains
+    Retorno: bool
+    Descrição: Instrument Rack chain visibility in Session View
+
+[115] Classe: Track | Tipo: Property | Nome: is_part_of_selection
+    Retorno: bool
+    Descrição: Track selection status
+
+[116] Classe: Track | Tipo: Property | Nome: crossfade_assign
+    Retorno: int
+    Descrição: 0=A, 1=none, 2=B (not available on master track)
+
+[117] Classe: Track | Tipo: Property | Nome: panning_mode
+    Retorno: int
+    Descrição: 0=Stereo, 1=Split Stereo
+
+[118] Classe: Track | Tipo: Property | Nome: device_insert_mode
+    Retorno: int
+    Descrição: Determines where a device will be inserted when loaded from the browser: 0=add device at end, 1=add device left of selected, 2=add device right of selected
+
+[119] Classe: Track | Tipo: Property | Nome: is_collapsed
+    Retorno: bool
+    Descrição: In Arrangement View: 1=track collapsed, 0=track opened
+
+[120] Classe: Device | Tipo: Property | Nome: parameters
+    Retorno: list of DeviceParameter
+    Descrição: Only automatable parameters are accessible
+
+[121] Classe: Device | Tipo: Property | Nome: view
+    Retorno: Device.View
+    Descrição: View aspects of the device
+
+[122] Classe: Device | Tipo: Property | Nome: class_name
+    Retorno: symbol
+    Descrição: Live device type identifier (e.g., "Operator", "MidiChord", "Limiter", "MxDeviceAudioEffect", "PluginDevice")
+
+[123] Classe: Device | Tipo: Property | Nome: class_display_name
+    Retorno: symbol
+    Descrição: Original device name (e.g., "Operator", "Auto Filter")
+
+[124] Classe: Device | Tipo: Property | Nome: is_active
+    Retorno: bool
+    Descrição: 0 if the device itself or its enclosing Rack device is off
+
+[125] Classe: Device | Tipo: Property | Nome: can_have_chains
+    Retorno: bool
+    Descrição: 0 for single device, 1 for Rack
+
+[126] Classe: Device | Tipo: Property | Nome: can_have_drum_pads
+    Retorno: bool
+    Descrição: 1 if device is a Drum Rack, 0 otherwise
+
+[127] Classe: Device | Tipo: Property | Nome: latency_in_samples
+    Retorno: int
+    Descrição: Device latency in samples
+
+[128] Classe: Device | Tipo: Property | Nome: latency_in_ms
+    Retorno: float
+    Descrição: Device latency in milliseconds
+
+[129] Classe: Device | Tipo: Property | Nome: can_compare_ab
+    Retorno: bool
+    Descrição: 1 for devices that support AB Compare (Live 12.3+)
+
+[130] Classe: Device | Tipo: Property | Nome: is_using_compare_preset_b
+    Retorno: bool
+    Descrição: 1 if compare preset B is active (Live 12.3+)
+
+[131] Classe: Device | Tipo: Property | Nome: original_name
+    Retorno: symbol
+    Descrição: The name of a Macro parameter before its assignment
+
+[132] Classe: Device | Tipo: Property | Nome: display_value
+    Retorno: float
+    Descrição: The value as visible in the GUI
+
+[133] Classe: Device | Tipo: Property | Nome: min
+    Retorno: float
+    Descrição: Lowest allowed value
+
+[134] Classe: Device | Tipo: Property | Nome: max
+    Retorno: float
+    Descrição: Largest allowed value
+
+[135] Classe: Device | Tipo: Property | Nome: default_value
+    Retorno: float
+    Descrição: Default value (only accessible for non-quantized parameters)
+
+[136] Classe: Device | Tipo: Property | Nome: is_enabled
+    Retorno: bool
+    Descrição: Indicates whether the parameter can be modified by users, automation, MIDI, or keystrokes
+
+[137] Classe: Device | Tipo: Property | Nome: is_quantized
+    Retorno: bool
+    Descrição: 1 for booleans and enums, 0 for int/float parameters
+
+[138] Classe: Device | Tipo: Property | Nome: value_items
+    Retorno: StringVector
+    Descrição: Lists all possible values for quantized parameters only
+
+[139] Classe: Device | Tipo: Property | Nome: automation_state
+    Retorno: int
+    Descrição: 0=no automation, 1=automation active, 2=automation overridden
+
+[140] Classe: Device | Tipo: Property | Nome: state
+    Retorno: int
+    Descrição: 0=active/changeable, 1=inactive but changeable, 2=cannot change
+
+[141] Classe: Device | Tipo: Property | Nome: is_collapsed
+    Retorno: bool
+    Descrição: 1 = the device is shown collapsed in the device chain
+
+[142] Classe: Device | Tipo: Property | Nome: available_routing_channels
+    Retorno: dict
+    Descrição: Dictionary containing a list of channel dictionaries matching the structure of `routing_channel`
+
+[143] Classe: Device | Tipo: Property | Nome: available_routing_types
+    Retorno: dict
+    Descrição: Dictionary containing a list of type dictionaries matching the structure of `routing_type`
+
+[144] Classe: Device | Tipo: Property | Nome: default_external_routing_channel_is_none
+    Retorno: bool
+    Descrição: When 1, the default routing channel for External routing types is none (Live 11.0+)
+
+[145] Classe: Device | Tipo: Property | Nome: routing_channel
+    Retorno: dict
+    Descrição: Current routing channel containing `display_name` [symbol] and `identifier` [symbol]. Can be set to any value from `available_routing_channels`
+
+[146] Classe: Device | Tipo: Property | Nome: routing_type
+    Retorno: dict
+    Descrição: Current routing type containing `display_name` [symbol] and `identifier` [symbol]. Can be set to any value from `available_routing_types`
+
+[147] Classe: Device | Tipo: Property | Nome: presets
+    Retorno: StringVector
+    Descrição: List of the plug-in's presets
+
+[148] Classe: Device | Tipo: Property | Nome: selected_preset_index
+    Retorno: int
+    Descrição: Index of the currently selected preset
+
+[149] Classe: Device | Tipo: Property | Nome: audio_inputs
+    Retorno: list of DeviceIO
+    Descrição: List of audio inputs the MaxDevice offers
+
+[150] Classe: Device | Tipo: Property | Nome: audio_outputs
+    Retorno: list of DeviceIO
+    Descrição: List of audio outputs the MaxDevice offers
+
+[151] Classe: Device | Tipo: Property | Nome: midi_inputs
+    Retorno: list of DeviceIO
+    Descrição: List of MIDI inputs the MaxDevice offers (Live 11.0+)
+
+[152] Classe: Device | Tipo: Property | Nome: midi_outputs
+    Retorno: list of DeviceIO
+    Descrição: List of MIDI outputs the MaxDevice offers (Live 11.0+)
+
+[153] Classe: Device | Tipo: Property | Nome: chain_selector
+    Retorno: DeviceParameter
+    Descrição: Convenience accessor for the Rack's chain selector
+
+[154] Classe: Device | Tipo: Property | Nome: chains
+    Retorno: list of Chain
+    Descrição: The Rack's chains
+
+[155] Classe: Device | Tipo: Property | Nome: drum_pads
+    Retorno: list of DrumPad
+    Descrição: All 128 drum pads for topmost Drum Rack; nested racks return empty
+
+[156] Classe: Device | Tipo: Property | Nome: return_chains
+    Retorno: list of Chain
+    Descrição: The Rack's return chains
+
+[157] Classe: Device | Tipo: Property | Nome: visible_drum_pads
+    Retorno: list of DrumPad
+    Descrição: All 16 visible drum pads for topmost Drum Rack; nested racks return empty
+
+[158] Classe: Device | Tipo: Property | Nome: can_show_chains
+    Retorno: bool
+    Descrição: Indicates if rack contains instrument capable of displaying chains in Session View
+
+[159] Classe: Device | Tipo: Property | Nome: has_drum_pads
+    Retorno: bool
+    Descrição: 1 if device is Drum Rack with pads; nested racks lack pads
+
+[160] Classe: Device | Tipo: Property | Nome: has_macro_mappings
+    Retorno: bool
+    Descrição: 1 if any of the Rack's Macros are mapped to a parameter
+
+[161] Classe: Device | Tipo: Property | Nome: is_showing_chains
+    Retorno: bool
+    Descrição: Indicates if rack displays chains in Session View
+
+[162] Classe: Device | Tipo: Property | Nome: variation_count
+    Retorno: int
+    Descrição: Count of stored macro variations (Live 11.0+)
+
+[163] Classe: Device | Tipo: Property | Nome: selected_variation_index
+    Retorno: int
+    Descrição: Current selected macro variation (Live 11.0+)
+
+[164] Classe: Device | Tipo: Property | Nome: visible_macro_count
+    Retorno: int
+    Descrição: Number of currently visible macros
+
+[165] Classe: Device | Tipo: Property | Nome: selected_drum_pad
+    Retorno: DrumPad
+    Descrição: Currently selected Drum Rack pad. Only available for Drum Racks
+
+[166] Classe: Device | Tipo: Property | Nome: selected_chain
+    Retorno: Chain
+    Descrição: Currently selected chain
+
+[167] Classe: Device | Tipo: Property | Nome: drum_pads_scroll_position
+    Retorno: int
+    Descrição: Lowest row of pads visible, range: 0-28. Only available for Drum Racks
+
+[168] Classe: Device | Tipo: Property | Nome: is_showing_chain_devices
+    Retorno: bool
+    Descrição: 1 = the devices in the currently selected chain are visible
+
+[169] Classe: Device | Tipo: Property | Nome: sample
+    Retorno: Sample
+    Descrição: The sample currently loaded into Simpler
+
+[170] Classe: Device | Tipo: Property | Nome: can_warp_as
+    Retorno: bool
+    Descrição: 1 if warp_as is available
+
+[171] Classe: Device | Tipo: Property | Nome: can_warp_double
+    Retorno: bool
+    Descrição: 1 if warp_double is available
+
+[172] Classe: Device | Tipo: Property | Nome: can_warp_half
+    Retorno: bool
+    Descrição: 1 if warp_half is available
+
+[173] Classe: Device | Tipo: Property | Nome: multi_sample_mode
+    Retorno: bool
+    Descrição: 1 if Simpler is in multisample mode
+
+[174] Classe: Device | Tipo: Property | Nome: pad_slicing
+    Retorno: bool
+    Descrição: 1 if slices can be added in Slicing Mode by playing notes not yet assigned
+
+[175] Classe: Device | Tipo: Property | Nome: playback_mode
+    Retorno: int
+    Descrição: 0=Classic, 1=One-Shot, 2=Slicing
+
+[176] Classe: Device | Tipo: Property | Nome: playing_position
+    Retorno: float
+    Descrição: Current playing position in sample (0.0 to 1.0)
+
+[177] Classe: Device | Tipo: Property | Nome: playing_position_enabled
+    Retorno: bool
+    Descrição: Indicates if Simpler actively plays the sample and displays position
+
+[178] Classe: Device | Tipo: Property | Nome: retrigger
+    Retorno: bool
+    Descrição: 1 if Retrigger is enabled
+
+[179] Classe: Device | Tipo: Property | Nome: slicing_playback_mode
+    Retorno: int
+    Descrição: 0=Mono, 1=Poly, 2=Thru
+
+[180] Classe: Device | Tipo: Property | Nome: voices
+    Retorno: int
+    Descrição: Number of polyphonic voices available
+
+[181] Classe: Device | Tipo: Property | Nome: selected_slice
+    Retorno: int
+    Descrição: The currently selected slice, identified by its slice time
+
+[182] Classe: Device | Tipo: Property | Nome: filter_routing
+    Retorno: int
+    Descrição: 0=Serial, 1=Parallel, 2=Split
+
+[183] Classe: Device | Tipo: Property | Nome: mono_poly
+    Retorno: int
+    Descrição: 0=Mono, 1=Poly
+
+[184] Classe: Device | Tipo: Property | Nome: oscillator_1_effect_mode
+    Retorno: int
+    Descrição: 0=None, 1=Fm, 2=Classic, 3=Modern
+
+[185] Classe: Device | Tipo: Property | Nome: oscillator_2_effect_mode
+    Retorno: int
+    Descrição: 0=None, 1=Fm, 2=Classic, 3=Modern
+
+[186] Classe: Device | Tipo: Property | Nome: oscillator_1_wavetable_category
+    Retorno: int
+    Descrição: Oscillator 1's wavetable category selector
+
+[187] Classe: Device | Tipo: Property | Nome: oscillator_2_wavetable_category
+    Retorno: int
+    Descrição: Oscillator 2's wavetable category selector
+
+[188] Classe: Device | Tipo: Property | Nome: oscillator_1_wavetable_index
+    Retorno: int
+    Descrição: Oscillator 1's wavetable index selector
+
+[189] Classe: Device | Tipo: Property | Nome: oscillator_2_wavetable_index
+    Retorno: int
+    Descrição: Oscillator 2's wavetable index selector
+
+[190] Classe: Device | Tipo: Property | Nome: oscillator_1_wavetables
+    Retorno: StringVector
+    Descrição: List of available wavetable names for oscillator 1 (depends on category)
+
+[191] Classe: Device | Tipo: Property | Nome: oscillator_2_wavetables
+    Retorno: StringVector
+    Descrição: List of available wavetable names for oscillator 2 (depends on category)
+
+[192] Classe: Device | Tipo: Property | Nome: oscillator_wavetable_categories
+    Retorno: StringVector
+    Descrição: List of available wavetable category names
+
+[193] Classe: Device | Tipo: Property | Nome: poly_voices
+    Retorno: int
+    Descrição: Current number of polyphonic voices
+
+[194] Classe: Device | Tipo: Property | Nome: unison_mode
+    Retorno: int
+    Descrição: 0=None, 1=Classic, 2=Shimmer, 3=Noise, 4=Phase Sync, 5=Position Spread, 6=Random Note
+
+[195] Classe: Device | Tipo: Property | Nome: unison_voice_count
+    Retorno: int
+    Descrição: Number of unison voices
+
+[196] Classe: Device | Tipo: Property | Nome: visible_modulation_target_names
+    Retorno: StringVector
+    Descrição: List of modulation target names currently visible in the modulation matrix
+
+[197] Classe: Device | Tipo: Property | Nome: loop_length
+    Retorno: float
+    Descrição: The length of Looper's buffer
+
+[198] Classe: Device | Tipo: Property | Nome: overdub_after_record
+    Retorno: bool
+    Descrição: 1=switch to overdub after recording, 0=switch to playback
+
+[199] Classe: Device | Tipo: Property | Nome: record_length_index
+    Retorno: int
+    Descrição: Index of Record Length chooser entry
+
+[200] Classe: Device | Tipo: Property | Nome: record_length_list
+    Retorno: StringVector
+    Descrição: List of Record Length chooser entry strings
+
+[201] Classe: Device | Tipo: Property | Nome: tempo
+    Retorno: float
+    Descrição: The tempo of Looper's buffer
+
+[202] Classe: Device | Tipo: Property | Nome: available_input_routing_channels
+    Retorno: dict
+    Descrição: Dictionary containing list of source channels available for sidechain input routing
+
+[203] Classe: Device | Tipo: Property | Nome: available_input_routing_types
+    Retorno: dict
+    Descrição: Dictionary containing list of source types available for sidechain input routing
+
+[204] Classe: Device | Tipo: Property | Nome: input_routing_channel
+    Retorno: dict
+    Descrição: Current source channel for sidechain input routing (contains `display_name` and `identifier`)
+
+[205] Classe: Device | Tipo: Property | Nome: input_routing_type
+    Retorno: dict
+    Descrição: Current source type for sidechain input routing (contains `display_name` and `identifier`)
+
+[206] Classe: Device | Tipo: Property | Nome: edit_mode
+    Retorno: bool
+    Descrição: Edit mode toggle. In L/R mode: 0=L, 1=R. In M/S mode: 0=M, 1=S. In Stereo mode: 0=A, 1=B (inactive)
+
+[207] Classe: Device | Tipo: Property | Nome: global_mode
+    Retorno: int
+    Descrição: 0=Stereo, 1=L/R, 2=M/S
+
+[208] Classe: Device | Tipo: Property | Nome: oversample
+    Retorno: bool
+    Descrição: 0=Off, 1=On
+
+[209] Classe: Device | Tipo: Property | Nome: selected_band
+    Retorno: int
+    Descrição: The index of the currently selected filter band
+
+[210] Classe: Device | Tipo: Property | Nome: ir_attack_time
+    Retorno: float
+    Descrição: Attack time of the amplitude envelope for the impulse response, in seconds
+
+[211] Classe: Device | Tipo: Property | Nome: ir_category_index
+    Retorno: int
+    Descrição: Index of the selected impulse response category
+
+[212] Classe: Device | Tipo: Property | Nome: ir_category_list
+    Retorno: StringVector
+    Descrição: List of impulse response categories
+
+[213] Classe: Device | Tipo: Property | Nome: ir_decay_time
+    Retorno: float
+    Descrição: Decay time of the amplitude envelope for the impulse response, in seconds
+
+[214] Classe: Device | Tipo: Property | Nome: ir_file_index
+    Retorno: int
+    Descrição: Index of the selected impulse response file from the current category
+
+[215] Classe: Device | Tipo: Property | Nome: ir_file_list
+    Retorno: StringVector
+    Descrição: List of impulse response files from the selected category
+
+[216] Classe: Device | Tipo: Property | Nome: ir_size_factor
+    Retorno: float
+    Descrição: Relative size of the impulse response (0.0 to 1.0)
+
+[217] Classe: Device | Tipo: Property | Nome: ir_time_shaping_on
+    Retorno: bool
+    Descrição: 1=enables transformation using amplitude envelope and size parameters
+
+[218] Classe: Device | Tipo: Property | Nome: mod_matrix_filter_source_1_index
+    Retorno: int
+    Descrição: Index of available sources for Filter Frequency modulation slot 1
+
+[219] Classe: Device | Tipo: Property | Nome: mod_matrix_filter_source_1_list
+    Retorno: StringVector
+    Descrição: List of available sources for Filter Frequency modulation slot 1
+
+[220] Classe: Device | Tipo: Property | Nome: mod_matrix_filter_source_2_index
+    Retorno: int
+    Descrição: Index of available sources for Filter Frequency modulation slot 2
+
+[221] Classe: Device | Tipo: Property | Nome: mod_matrix_filter_source_2_list
+    Retorno: StringVector
+    Descrição: List of available sources for Filter Frequency modulation slot 2
+
+[222] Classe: Device | Tipo: Property | Nome: mod_matrix_lfo_source_index
+    Retorno: int
+    Descrição: Index of available sources for LFO Amount modulation
+
+[223] Classe: Device | Tipo: Property | Nome: mod_matrix_lfo_source_list
+    Retorno: StringVector
+    Descrição: List of available sources for LFO Amount modulation
+
+[224] Classe: Device | Tipo: Property | Nome: mod_matrix_pitch_source_1_index
+    Retorno: int
+    Descrição: Index for pitch modulation source 1
+
+[225] Classe: Device | Tipo: Property | Nome: mod_matrix_pitch_source_1_list
+    Retorno: StringVector
+    Descrição: List of pitch modulation sources (slot 1)
+
+[226] Classe: Device | Tipo: Property | Nome: mod_matrix_pitch_source_2_index
+    Retorno: int
+    Descrição: Index for pitch modulation source 2
+
+[227] Classe: Device | Tipo: Property | Nome: mod_matrix_pitch_source_2_list
+    Retorno: StringVector
+    Descrição: List of pitch modulation sources (slot 2)
+
+[228] Classe: Device | Tipo: Property | Nome: mod_matrix_shape_source_index
+    Retorno: int
+    Descrição: Index of available sources for Shape modulation
+
+[229] Classe: Device | Tipo: Property | Nome: mod_matrix_shape_source_list
+    Retorno: StringVector
+    Descrição: List of available sources for Shape modulation
+
+[230] Classe: Device | Tipo: Property | Nome: mod_matrix_source_1_index
+    Retorno: int
+    Descrição: Index for custom modulation slot 1
+
+[231] Classe: Device | Tipo: Property | Nome: mod_matrix_source_1_list
+    Retorno: StringVector
+    Descrição: List of sources for custom modulation slot 1
+
+[232] Classe: Device | Tipo: Property | Nome: mod_matrix_source_2_index
+    Retorno: int
+    Descrição: Index for custom modulation slot 2
+
+[233] Classe: Device | Tipo: Property | Nome: mod_matrix_source_2_list
+    Retorno: StringVector
+    Descrição: List of sources for custom modulation slot 2
+
+[234] Classe: Device | Tipo: Property | Nome: mod_matrix_source_3_index
+    Retorno: int
+    Descrição: Index for custom modulation slot 3
+
+[235] Classe: Device | Tipo: Property | Nome: mod_matrix_source_3_list
+    Retorno: StringVector
+    Descrição: List of sources for custom modulation slot 3
+
+[236] Classe: Device | Tipo: Property | Nome: mod_matrix_target_1_index
+    Retorno: int
+    Descrição: Index of available targets for custom modulation slot 1
+
+[237] Classe: Device | Tipo: Property | Nome: mod_matrix_target_1_list
+    Retorno: StringVector
+    Descrição: List of available targets for custom modulation slot 1
+
+[238] Classe: Device | Tipo: Property | Nome: mod_matrix_target_2_index
+    Retorno: int
+    Descrição: Index of available targets for custom modulation slot 2
+
+[239] Classe: Device | Tipo: Property | Nome: mod_matrix_target_2_list
+    Retorno: StringVector
+    Descrição: List of available targets for custom modulation slot 2
+
+[240] Classe: Device | Tipo: Property | Nome: mod_matrix_target_3_index
+    Retorno: int
+    Descrição: Index of available targets for custom modulation slot 3
+
+[241] Classe: Device | Tipo: Property | Nome: mod_matrix_target_3_list
+    Retorno: StringVector
+    Descrição: List of available targets for custom modulation slot 3
+
+[242] Classe: Device | Tipo: Property | Nome: pitch_bend_range
+    Retorno: int
+    Descrição: MIDI Pitch Bend range in semitones
+
+[243] Classe: Device | Tipo: Property | Nome: voice_count_index
+    Retorno: int
+    Descrição: Index of the voice count parameter
+
+[244] Classe: Device | Tipo: Property | Nome: voice_count_list
+    Retorno: StringVector
+    Descrição: List of available voice count settings
+
+[245] Classe: Device | Tipo: Property | Nome: voice_mode_index
+    Retorno: int
+    Descrição: Index of the voice mode utilized by Drift
+
+[246] Classe: Device | Tipo: Property | Nome: voice_mode_list
+    Retorno: StringVector
+    Descrição: List of available voice modes
+
+[247] Classe: Device | Tipo: Property | Nome: selected_engine
+    Retorno: int
+    Descrição: 0=Engine A, 1=Engine B
+
+[248] Classe: Device | Tipo: Property | Nome: unison_voices
+    Retorno: int
+    Descrição: 0=off, 1=two, 2=three, 3=four
+
+[249] Classe: Device | Tipo: Property | Nome: mono_poly
+    Retorno: int
+    Descrição: 0=mono, 1=poly
+
+[250] Classe: Device | Tipo: Property | Nome: poly_voices
+    Retorno: int
+    Descrição: 0=two, 1=three, 2=four, 3=five, 4=six, 5=eight, 6=twelve
+
+[251] Classe: Device | Tipo: Property | Nome: routing_mode_index
+    Retorno: int
+    Descrição: Index of the routing mode utilized by Roar
+
+[252] Classe: Device | Tipo: Property | Nome: routing_mode_list
+    Retorno: StringVector
+    Descrição: List of available routing modes
+
+[253] Classe: Device | Tipo: Property | Nome: env_listen
+    Retorno: bool
+    Descrição: Envelope Input Listen toggle
+
+[254] Classe: Device | Tipo: Property | Nome: pitch_bend_range
+    Retorno: int
+    Descrição: Pitch bend range used in MIDI Pitch Mode
+
+[255] Classe: Device | Tipo: Property | Nome: pitch_mode_index
+    Retorno: int
+    Descrição: 0=Internal, 1=MIDI
+
+[256] Classe: Device | Tipo: Property | Nome: frequency_dial_mode
+    Retorno: int
+    Descrição: 0=Hertz, 1=MIDI note values
+
+[257] Classe: Device | Tipo: Property | Nome: midi_gate
+    Retorno: int
+    Descrição: MIDI gate switch: 0=Off, 1=On
+
+[258] Classe: Device | Tipo: Property | Nome: mod_mode
+    Retorno: int
+    Descrição: 0=None, 1=Chorus, 2=Wander, 3=Granular
+
+[259] Classe: Device | Tipo: Property | Nome: mono_poly
+    Retorno: int
+    Descrição: 0=Mono, 1=Poly
+
+[260] Classe: Device | Tipo: Property | Nome: pitch_mode
+    Retorno: int
+    Descrição: 0=Internal, 1=MIDI
+
+[261] Classe: Device | Tipo: Property | Nome: pitch_bend_range
+    Retorno: int
+    Descrição: Pitch Bend Range control
+
+[262] Classe: Device | Tipo: Property | Nome: polyphony
+    Retorno: int
+    Descrição: 0=2 voices, 1=4 voices, 2=8 voices, 3=16 voices
+
+[263] Classe: Device | Tipo: Property | Nome: gain
+    Retorno: float
+    Descrição: The sample gain, as normalized value
+
+[264] Classe: Device | Tipo: Property | Nome: devices
+    Retorno: list of Device
+    Descrição: Devices in the chain
+
+[265] Classe: Device | Tipo: Property | Nome: mixer_device
+    Retorno: ChainMixerDevice
+    Descrição: The chain's mixer device
+
+[266] Classe: Device | Tipo: Property | Nome: color
+    Retorno: int
+    Descrição: RGB value of the chain's color in the form 0x00rrggbb
+
+[267] Classe: Device | Tipo: Property | Nome: color_index
+    Retorno: long
+    Descrição: Numeric identifier for the chain's color selection
+
+[268] Classe: Device | Tipo: Property | Nome: is_auto_colored
+    Retorno: bool
+    Descrição: When enabled, chain inherits the color of its containing track or parent chain
+
+[269] Classe: Device | Tipo: Property | Nome: mute
+    Retorno: bool
+    Descrição: 1 = muted (Chain Activator off)
+
+[270] Classe: Device | Tipo: Property | Nome: solo
+    Retorno: bool
+    Descrição: 1 = soloed (Solo switch on). Does not automatically turn Solo off in other chains
+
+[271] Classe: Device | Tipo: Property | Nome: muted_via_solo
+    Retorno: bool
+    Descrição: Reflects muted state caused by soloing another chain
+
+[272] Classe: Device | Tipo: Property | Nome: has_audio_input
+    Retorno: bool
+    Descrição: Indicates whether the chain accepts audio
+
+[273] Classe: Device | Tipo: Property | Nome: has_audio_output
+    Retorno: bool
+    Descrição: Indicates whether the chain produces audio
+
+[274] Classe: Device | Tipo: Property | Nome: has_midi_input
+    Retorno: bool
+    Descrição: Indicates whether the chain accepts MIDI
+
+[275] Classe: Device | Tipo: Property | Nome: has_midi_output
+    Retorno: bool
+    Descrição: Indicates whether the chain produces MIDI
+
+[276] Classe: Device | Tipo: Property | Nome: in_note
+    Retorno: int
+    Descrição: MIDI note that will trigger this chain. Value -1 corresponds to "All Notes" setting (Live 12.3+)
+
+[277] Classe: Device | Tipo: Property | Nome: out_note
+    Retorno: int
+    Descrição: MIDI note sent to the devices in the chain
+
+[278] Classe: Device | Tipo: Property | Nome: choke_group
+    Retorno: int
+    Descrição: The chain's choke group
+
+[279] Classe: Device | Tipo: Property | Nome: chains
+    Retorno: list of Chain
+    Descrição: The chains contained in this drum pad
+
+[280] Classe: Device | Tipo: Property | Nome: note
+    Retorno: int
+    Descrição: MIDI note number assigned to this pad
+
+[281] Classe: Device | Tipo: Property | Nome: mute
+    Retorno: bool
+    Descrição: 1 = muted
+
+[282] Classe: Device | Tipo: Property | Nome: solo
+    Retorno: bool
+    Descrição: 1 = soloed (Solo switch on). Does not automatically turn Solo off in other chains
+
+[283] Classe: Device | Tipo: Property | Nome: sends
+    Retorno: list of DeviceParameter
+    Descrição: One send per return track
+
+[284] Classe: Device | Tipo: Property | Nome: cue_volume
+    Retorno: DeviceParameter
+    Descrição: Master track only
+
+[285] Classe: Device | Tipo: Property | Nome: crossfader
+    Retorno: DeviceParameter
+    Descrição: Master track only
+
+[286] Classe: Device | Tipo: Property | Nome: left_split_stereo
+    Retorno: DeviceParameter
+    Descrição: Track's Left Split Stereo Pan Parameter
+
+[287] Classe: Device | Tipo: Property | Nome: panning
+    Retorno: DeviceParameter
+    Descrição: Standard pan control
+
+[288] Classe: Device | Tipo: Property | Nome: right_split_stereo
+    Retorno: DeviceParameter
+    Descrição: Track's Right Split Stereo Pan Parameter
+
+[289] Classe: Device | Tipo: Property | Nome: song_tempo
+    Retorno: DeviceParameter
+    Descrição: Master track only
+
+[290] Classe: Device | Tipo: Property | Nome: track_activator
+    Retorno: DeviceParameter
+    Descrição: Enables/disables track
+
+[291] Classe: Device | Tipo: Property | Nome: volume
+    Retorno: DeviceParameter
+    Descrição: Track volume control
+
+[292] Classe: Device | Tipo: Property | Nome: crossfade_assign
+    Retorno: int
+    Descrição: 0=A, 1=none, 2=B (not available on master track)
+
+[293] Classe: Device | Tipo: Property | Nome: panning_mode
+    Retorno: int
+    Descrição: 0=Stereo, 1=Split Stereo
+
+[294] Classe: Device | Tipo: Property | Nome: sends
+    Retorno: list of DeviceParameter
+    Descrição: Available in Audio Effect and Instrument Racks only; empty for Drum Racks
+
+[295] Classe: Device | Tipo: Property | Nome: chain_activator
+    Retorno: DeviceParameter
+    Descrição: Enables/disables the chain
+
+[296] Classe: Device | Tipo: Property | Nome: panning
+    Retorno: DeviceParameter
+    Descrição: Audio Effect Racks and Instrument Racks only
+
+[297] Classe: Device | Tipo: Property | Nome: volume
+    Retorno: DeviceParameter
+    Descrição: Audio Effect Racks and Instrument Racks only
+

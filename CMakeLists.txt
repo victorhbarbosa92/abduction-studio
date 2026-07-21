@@ -74,6 +74,7 @@ set(IMGUI_SOURCES
 add_executable(AbductionStudioV2
     src/main.cpp
     src/core/miniz.c
+    src/core/DawApiBridge.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -106,8 +107,7 @@ add_custom_command(TARGET AbductionStudioV2 PRE_BUILD
 # Pós-processamento para Assinar Digitalmente o binário em nome de "Kuru" e copiar DLLs
 add_custom_command(TARGET AbductionStudioV2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
-    COMMAND powershell -Command "$cert = Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $_.Subject -eq 'CN=Kuru' } | Select-Object -First 1; if (-not $cert) { $cert = New-SelfSignedCertificate -Subject 'CN=Kuru' -Type CodeSigningCert -CertStoreLocation 'Cert:\\CurrentUser\\My' }; Set-AuthenticodeSignature -FilePath $<TARGET_FILE:AbductionStudioV2> -Certificate $cert"
     COMMAND powershell -Command "Unblock-File -Path $<TARGET_FILE:AbductionStudioV2>"
     COMMAND powershell -Command "git add .; git commit -m 'Auto-Commit: Compilacao da DAW executada com sucesso.'; exit 0"
-    COMMENT "Copiando IA (ONNX), Assinando, Desbloqueando Windows Security e Commit Local..."
+    COMMENT "Copiando IA (ONNX), Desbloqueando Windows Security e Commit Local..."
 )

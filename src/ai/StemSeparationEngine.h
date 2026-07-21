@@ -63,7 +63,102 @@ private:
     std::atomic<bool> is_running{false};
     std::atomic<bool> has_finished{false};
     std::atomic<float> progress{0.0f};
-    std::string current_status;
+    
+private:
+
+    void applyMultiband(const std::vector<float>& in, std::vector<float>& low, std::vector<float>& mid, std::vector<float>& high, float freq1, float freq2, float sr) {
+        low.clear(); low.reserve(in.size());
+        mid.clear(); mid.reserve(in.size());
+        high.clear(); high.reserve(in.size());
+        
+        SimpleRC lp1, lp2;
+        lp1.init(freq1, sr);
+        lp2.init(freq2, sr);
+        
+        for (size_t i = 0; i < in.size(); i += 2) {
+            float in_l = in[i];
+            float in_r = in[i+1];
+            
+            float l_l, l_r;
+            lp1.processLP(in_l, in_r, l_l, l_r);
+            low.push_back(l_l); low.push_back(l_r);
+            
+            float rem_l = in_l - l_l;
+            float rem_r = in_r - l_r;
+            
+            float m_l, m_r;
+            lp2.processLP(rem_l, rem_r, m_l, m_r);
+            mid.push_back(m_l); mid.push_back(m_r);
+            
+            high.push_back(rem_l - m_l); high.push_back(rem_r - m_r);
+        }
+    }
+
+    void executePostProcessingMatrix(float sr) {
+        KuroUtils::Log("[DSP Matrix] Iniciando subdivisao para 20 Stems...");
+        
+        std::vector<float> base_bass = stems_buffers[0];
+        std::vector<float> base_drums = stems_buffers[1];
+        std::vector<float> base_vox = stems_buffers[2];
+        std::vector<float> base_other = stems_buffers[3];
+        
+        // Limpa tudo
+        for(int i=0; i<20; i++) stems_buffers[i].clear();
+        
+        // BASS (0 a 2)
+        applyMultiband(base_bass, stems_buffers[0], stems_buffers[1], stems_buffers[2], 100.0f, 500.0f, sr);
+        track_names[0] = "Sub Bass"; track_names[1] = "Mid Bass"; track_names[2] = "High Bass (Click)";
+        
+        // DRUMS (3 a 6)
+        std::vector<float> kick, snare, hats;
+        applyMultiband(base_drums, kick, snare, hats, 150.0f, 1000.0f, sr);
+        std::vector<float> perc_harm, perc_perc;
+        KuroAI::KuroSpectralExtractor::separateHarmonicPercussive(base_drums, perc_harm, perc_perc, sr);
+        stems_buffers[3] = kick; track_names[3] = "Kick (Bumbo)";
+        stems_buffers[4] = snare; track_names[4] = "Snare/Toms (Caixa)";
+        stems_buffers[5] = hats; track_names[5] = "Cymbals/Hi-Hats";
+        stems_buffers[6] = perc_perc; track_names[6] = "Percussion Transients";
+        
+        // VOCALS (7 a 9)
+        std::vector<float> vox_mid, vox_side;
+        KuroAI::KuroSpectralExtractor::separateMidSide(base_vox, vox_mid, vox_side);
+        stems_buffers[7] = vox_mid; track_names[7] = "Lead Vocal (Center)";
+        stems_buffers[8] = vox_side; track_names[8] = "Backing Vocal/Reverb (Wide)";
+        
+        std::vector<float> vox_low, vox_m, vox_high;
+        applyMultiband(base_vox, vox_low, vox_m, vox_high, 100.0f, 6000.0f, sr);
+        stems_buffers[9] = vox_high; track_names[9] = "Vocal Sibilance/Noise (>6kHz)";
+        
+        // OTHER (10 a 19)
+        std::vector<float> other_harm, other_perc;
+        KuroAI::KuroSpectralExtractor::separateHarmonicPercussive(base_other, other_harm, other_perc, sr);
+        
+        std::vector<float> harm_low, harm_mid, harm_high;
+        applyMultiband(other_harm, harm_low, harm_mid, harm_high, 250.0f, 2000.0f, sr);
+        stems_buffers[10] = harm_low; track_names[10] = "Low Drone/Pad";
+        stems_buffers[11] = harm_mid; track_names[11] = "Mid Pad/Atmos";
+        stems_buffers[12] = harm_high; track_names[12] = "High String/Air";
+        
+        std::vector<float> perc_low, perc_mid, perc_high;
+        applyMultiband(other_perc, perc_low, perc_mid, perc_high, 300.0f, 3000.0f, sr);
+        stems_buffers[13] = perc_low; track_names[13] = "Low Pluck";
+        stems_buffers[14] = perc_mid; track_names[14] = "Mid Synth/Arp";
+        stems_buffers[15] = perc_high; track_names[15] = "High Zap/Squelch";
+        
+        std::vector<float> other_mid, other_side;
+        KuroAI::KuroSpectralExtractor::separateMidSide(base_other, other_mid, other_side);
+        stems_buffers[16] = other_mid; track_names[16] = "Other (Mono Center)";
+        stems_buffers[17] = other_side; track_names[17] = "Other (Stereo Width)";
+        
+        // Faixas 18 e 19 vazias ou reservadas para resíduos
+        stems_buffers[18] = base_other; track_names[18] = "Raw Other (Unprocessed)";
+        stems_buffers[19] = base_drums; track_names[19] = "Raw Drums (Unprocessed)";
+        
+        KuroUtils::Log("[DSP Matrix] Deconstrução de 20 Stems finalizada!");
+    }
+
+    std::string current_file = "";
+    std::string current_status = "Ocioso";
     std::thread worker_thread;
     
     // Metadados da Faixa (KuroMIR)
@@ -98,7 +193,7 @@ private:
         
         // Verifica a extensão do arquivo
         std::string ext = filepath.substr(filepath.find_last_of(".") + 1);
-        for(auto& c : ext) c = tolower(c);
+        for(auto& c : ext) c = std::tolower((unsigned char)c);
 
         if (ext == "mp3") {
             current_status = "Decodificando MP3 para memoria RAM...";
@@ -179,8 +274,19 @@ private:
         
         KuroUtils::Log("Metadados extraidos. BPM: " + std::to_string(detected_bpm) + " | Tom: " + detected_key);
 
-        // 2. CONFIGURAR ONNX
-        current_status = "Acelerando Tensores ONNX Runtime (AVX2)...";
+        // 2. CONFIGURAR ONNX OU FAST IMPORT
+        if (mode == 1) {
+            current_status = "Importação Rápida (Bypass IA)...";
+            KuroUtils::Log("Fast Import ativado. Pulando processamento ONNX.");
+            
+            stems_buffers[0] = safe_audio_data;
+            std::string filename = filepath.substr(filepath.find_last_of("/\\") + 1);
+            track_names[0] = filename;
+            stem_sample_rate = sampleRate;
+            total_stem_frames = totalPCMFrameCount;
+            progress = 1.0f;
+        } else {
+            current_status = "Acelerando Tensores ONNX Runtime (AVX2)...";
         Ort::SessionOptions session_options;
         session_options.SetIntraOpNumThreads(4);
         session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
@@ -271,29 +377,26 @@ private:
                     
                     size_t T = 343980; // Tempo total do tensor
                     
-                    for (size_t s = 0; s < framesToProcess; s++) { // Extrai apenas os frames válidos
-                        // Endereço no tensor 4D = (source * 2 * T) + (channel * T) + s
-                        // Onde Sources: 0=Drums, 1=Bass, 2=Other, 3=Vocals
-                        
-                        // KICK/BASS (Source 1 - Bass) extraído do modelo arr_bass
+                    for (size_t s = 0; s < framesToProcess; s++) { 
+                        // BASS (Source 1) -> stems_buffers[0]
                         float bassL = arr_bass[(1 * 2 * T) + (0 * T) + s];
                         float bassR = arr_bass[(1 * 2 * T) + (1 * T) + s];
                         stems_buffers[0].push_back(bassL); stems_buffers[0].push_back(bassR);
                         
-                        // LEADS (Source 0 - Drums extraído de arr_drums) + (Source 2 - Other extraído de arr_other)
+                        // DRUMS (Source 0) -> stems_buffers[1]
                         float drumsL = arr_drums[(0 * 2 * T) + (0 * T) + s];
                         float drumsR = arr_drums[(0 * 2 * T) + (1 * T) + s];
-                        float otherL = arr_other[(2 * 2 * T) + (0 * T) + s];
-                        float otherR = arr_other[(2 * 2 * T) + (1 * T) + s];
-                        stems_buffers[1].push_back(drumsL + otherL); stems_buffers[1].push_back(drumsR + otherR);
+                        stems_buffers[1].push_back(drumsL); stems_buffers[1].push_back(drumsR);
                         
-                        // VOX (Source 3 - Vocals extraído de arr_vocals)
+                        // VOCALS (Source 3) -> stems_buffers[2]
                         float voxL = arr_vocals[(3 * 2 * T) + (0 * T) + s];
                         float voxR = arr_vocals[(3 * 2 * T) + (1 * T) + s];
                         stems_buffers[2].push_back(voxL); stems_buffers[2].push_back(voxR);
                         
-                        // FX (Deixamos mudo inicialmente)
-                        stems_buffers[3].push_back(0.0f); stems_buffers[3].push_back(0.0f);
+                        // OTHER (Source 2) -> stems_buffers[3]
+                        float otherL = arr_other[(2 * 2 * T) + (0 * T) + s];
+                        float otherR = arr_other[(2 * 2 * T) + (1 * T) + s];
+                        stems_buffers[3].push_back(otherL); stems_buffers[3].push_back(otherR);
                     }
                     
                 } catch(const std::exception& e) {
@@ -358,8 +461,13 @@ private:
             
             progress = static_cast<float>(i + 1) / totalChunks;
         }
-        // 4. DEEP PSYTRANCE EXTRACTION (Modo 8 Stems)
-        if (mode == 8) {
+        
+        // --- INICIO POST-PROCESSING DSP MATRIX ---
+        if (mode == 20) {
+            current_status = "DSP Matrix: Deconstrução Total (20 Stems)...";
+            executePostProcessingMatrix(sampleRate);
+        }
+        else if (mode == 8) {
             current_status = "KuroSpectralExtractor: Isolando FX, Synths e Zaps...";
             KuroUtils::Log("Ativando KuroSpectralExtractor em stems_buffers[3] (Outros)...");
             
@@ -367,16 +475,14 @@ private:
                 stems_buffers[3], stems_buffers[4], stems_buffers[5], sampleRate
             );
             
-            // Opcional: Auto-Label nos logs (A Timeline pode ler isso depois)
             std::string label4 = KuroAI::KuroSpectralExtractor::autoLabel(stems_buffers[4], sampleRate);
             std::string label5 = KuroAI::KuroSpectralExtractor::autoLabel(stems_buffers[5], sampleRate);
             
             track_names[4] = label4;
             track_names[5] = label5;
-            
-            KuroUtils::Log("FX Separado! Faixa 4 (Harmonicos) Rotulada como: " + label4);
-            KuroUtils::Log("FX Separado! Faixa 5 (Percussivos) Rotulada como: " + label5);
         }
+
+        } // end if (mode != 1)
 
         current_status = "Gerando visualizações (Waveforms CDJ)...";
         size_t visual_chunk_size = 882; // ~50 pixels por segundo
@@ -468,6 +574,11 @@ public:
     // Recuperar Análise
     float getBPM() const { return detected_bpm; }
     std::string getKey() const { return detected_key; }
+
+    bool isTrackActive(int index) const {
+        if (index < 0 || index >= MAX_TRACKS) return false;
+        return !stems_buffers[index].empty();
+    }
 
     // Exportar os canais isolados para WAV
     void exportStems(const std::string& output_folder, int num_tracks = 4) {

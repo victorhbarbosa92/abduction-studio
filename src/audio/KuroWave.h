@@ -3,7 +3,7 @@
 #include <cmath>
 #include <mutex>
 #include <algorithm>
-#include "SynthEngine.h" // For MidiNote and basic types
+#include "../core/MidiNote.h" // For MidiNote and basic types
 #include "LFOEngine.h"
 
 namespace KuroAudio {
@@ -14,17 +14,23 @@ namespace KuroAudio {
         float f, q;
         float hp, bp, lp;
     public:
-        SVFilter() : f(0.0f), q(0.0f), hp(0.0f), bp(0.0f), lp(0.0f) {}
+        SVFilter() : f(0.0f), q(1.0f), hp(0.0f), bp(0.0f), lp(0.0f) {}
 
         void setParameters(float cutoff, float resonance, float sample_rate) {
-            f = 2.0f * std::sin(3.1415926535f * cutoff / sample_rate);
-            q = 1.0f / resonance;
+            float safe_cutoff = std::clamp(cutoff, 20.0f, sample_rate * 0.15f);
+            float safe_res = std::clamp(resonance, 0.5f, 10.0f);
+            f = 2.0f * std::sin(3.1415926535f * safe_cutoff / sample_rate);
+            q = 1.0f / safe_res;
         }
 
         float processLowpass(float input) {
+            if (std::isnan(input) || std::isinf(input)) input = 0.0f;
             hp = input - lp - q * bp;
             bp += f * hp;
             lp += f * bp;
+            if (std::isnan(lp) || std::isinf(lp)) {
+                hp = bp = lp = 0.0f;
+            }
             return lp;
         }
     };
@@ -123,7 +129,7 @@ namespace KuroAudio {
     class KuroWave {
     private:
         float sample_rate;
-        std::vector<MidiNote> notes;
+        std::vector<KuroDSP::MidiNote> notes;
         std::mutex synth_mutex;
         
         struct SynthVoice {
@@ -173,7 +179,7 @@ namespace KuroAudio {
 
         void noteOn(int pitch, float start, float duration, float velocity = 0.8f) {
             std::lock_guard<std::mutex> lock(synth_mutex);
-            notes.push_back(MidiNote(pitch, start, duration, velocity));
+            notes.push_back(KuroDSP::MidiNote(pitch, start, duration, velocity));
         }
 
         void triggerNote(int pitch, float duration, float velocity = 0.8f) {
@@ -259,10 +265,8 @@ namespace KuroAudio {
                 active_voices.erase(std::remove_if(active_voices.begin(), active_voices.end(), 
                     [](const SynthVoice& v) { return !v.active; }), active_voices.end());
                     
-                *out_left += sample_l;
-                *out_right += sample_r;
-                out_left += 2;
-                out_right += 2;
+                out_left[i] += sample_l;
+                out_right[i] += sample_r;
             }
         }
     };

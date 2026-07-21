@@ -18,9 +18,18 @@ public:
             
             ImGui::Text("TIME MANIPULATION ENVELOPE (Y: Offset, X: Bar Time)");
             
+            // Botoes de Presets
+            ImGui::Spacing();
+            if (ImGui::Button("Normal")) ApplyPreset(node, 0); ImGui::SameLine();
+            if (ImGui::Button("Half-Speed")) ApplyPreset(node, 1); ImGui::SameLine();
+            if (ImGui::Button("Vinyl Stop")) ApplyPreset(node, 2); ImGui::SameLine();
+            if (ImGui::Button("Reverse")) ApplyPreset(node, 3); ImGui::SameLine();
+            if (ImGui::Button("Stutter")) ApplyPreset(node, 4);
+            ImGui::Spacing();
+            
             // Desenha um grid interativo
             ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-            ImVec2 canvas_size = ImVec2(ImGui::GetContentRegionAvail().x, 300);
+            ImVec2 canvas_size = ImVec2(ImGui::GetContentRegionAvail().x, 250);
             if (canvas_size.x < 100) canvas_size.x = 100;
             
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -44,17 +53,18 @@ public:
             bool is_hovered = ImGui::IsItemHovered();
             bool is_active = ImGui::IsItemActive();
             
-            // Atualiza pontos com mouse input (simples arrastar do único ponto, ou preset)
-            // Para simplificar, vou criar 4 botões de presets acima do grid
-            
-            // Desenha pontos atuais
-            std::vector<KuroDSP::GrossBeatNode::Point> current_points;
-            {
-                // Copia pontos para renderizar (no futuro, pegar via getter)
-                current_points = {{0.0f, 1.0f}, {1.0f, 0.0f}}; // Mocked, vai vir dos presets abaixo
+            // Desenha os pontos atuais na tela
+            auto pts = node.getTimePoints();
+            if (pts.size() >= 2) {
+                for (size_t i = 0; i < pts.size() - 1; i++) {
+                    ImVec2 p1(canvas_pos.x + pts[i].x * canvas_size.x, canvas_pos.y + (1.0f - pts[i].y) * canvas_size.y);
+                    ImVec2 p2(canvas_pos.x + pts[i+1].x * canvas_size.x, canvas_pos.y + (1.0f - pts[i+1].y) * canvas_size.y);
+                    draw_list->AddLine(p1, p2, IM_COL32(50, 255, 50, 255), 3.0f);
+                    draw_list->AddCircleFilled(p1, 5.0f, IM_COL32(255, 255, 255, 255));
+                }
+                ImVec2 plast(canvas_pos.x + pts.back().x * canvas_size.x, canvas_pos.y + (1.0f - pts.back().y) * canvas_size.y);
+                draw_list->AddCircleFilled(plast, 5.0f, IM_COL32(255, 255, 255, 255));
             }
-            
-            // Ponto flutuante do cursor de reprodução poderia ser renderizado aqui
             
             ImGui::EndChild();
         }

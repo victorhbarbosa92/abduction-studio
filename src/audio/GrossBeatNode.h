@@ -48,6 +48,11 @@ public:
         time_points = points;
     }
     
+    std::vector<Point> getTimePoints() {
+        std::lock_guard<std::mutex> lock(points_mutex);
+        return time_points;
+    }
+    
     void setVolPoints(const std::vector<Point>& points) {
         std::lock_guard<std::mutex> lock(points_mutex);
         vol_points = points;

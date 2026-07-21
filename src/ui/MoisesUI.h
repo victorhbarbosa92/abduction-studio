@@ -68,6 +68,15 @@ namespace KuroUI {
                     moises_stem_mode = 8;
                     engine.startProcessing(pending_moises_file, 8);
                 }
+                
+                ImGui::Spacing();
+                
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.5f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.3f, 0.7f, 1.0f));
+                if (ImGui::Button("20 STEMS (Psytrance Total Deconstruction)", ImVec2(500, 60))) {
+                    moises_stem_mode = 20;
+                    engine.startProcessing(pending_moises_file, 20);
+                }
                 ImGui::PopStyleColor(2);
                 
                 ImGui::PopStyleColor(2);

@@ -23,14 +23,18 @@ namespace KuroAudio {
         }
 
         void exportSingleStem(int track_index) {
-            if (!internal_ai.hasFinished()) {
-                KuroUtils::Log("[Stem Extractor] Aguarde a separação terminar antes de exportar.");
-                return;
-            }
-            // Chama uma função interna para salvar
-            // Simulando o processo que criaria "Kick_Isolated.wav"
-            KuroUtils::Log("[Stem Extractor] Exportando Stem Isolada da faixa " + std::to_string(track_index) + " para a pasta raiz.");
-            internal_ai.exportStems(".", 4); // Por enquanto exporta tudo para a raiz
+            if (!internal_ai.hasFinished()) return;
+            internal_ai.exportStems(".", 4); // old behavior
+        }
+        
+        void exportAllStems() {
+            if (!internal_ai.hasFinished()) return;
+            KuroUtils::Log("[Stem Extractor] Exportando TODAS as faixas isoladas...");
+            internal_ai.exportStems("Stems_Exportadas", 20); // Salva na subpasta
+        }
+        
+        bool isTrackActive(int index) const {
+            return internal_ai.isTrackActive(index);
         }
 
         bool isProcessing() const {

@@ -12,6 +12,8 @@
 #include "../core/KuroConfig.h"
 
 extern float track_volumes[MAX_TRACKS];
+extern float track_sends_A[MAX_TRACKS];
+extern float track_sends_B[MAX_TRACKS];
 extern bool global_fx_bypass;
 extern bool track_mutes[MAX_TRACKS];
 extern bool track_solos[MAX_TRACKS];

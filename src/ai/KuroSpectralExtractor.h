@@ -59,6 +59,36 @@ public:
         }
     }
 
+    // Separação Espacial (Mid/Side) para isolar Vocais (Mid) de Reverbs e Backing Vocals (Side)
+    static void separateMidSide(
+        const std::vector<float>& input,
+        std::vector<float>& out_mid,
+        std::vector<float>& out_side)
+    {
+        out_mid.clear();
+        out_mid.reserve(input.size());
+        out_side.clear();
+        out_side.reserve(input.size());
+
+        for (size_t i = 0; i < input.size(); i += 2) {
+            float in_l = input[i];
+            float in_r = i + 1 < input.size() ? input[i+1] : in_l;
+            
+            // Mid = (L + R) / 2
+            float mid = (in_l + in_r) * 0.5f;
+            // Side = (L - R) / 2
+            float side = (in_l - in_r) * 0.5f;
+            
+            // Reconstruct L/R for Mid (Mono in Center)
+            out_mid.push_back(mid);
+            out_mid.push_back(mid);
+            
+            // Reconstruct L/R for Side (Anti-phase)
+            out_side.push_back(side);
+            out_side.push_back(-side);
+        }
+    }
+
     // Auto-Labeller (Inteligência de Nomenclatura para Psytrance)
     static std::string autoLabel(const std::vector<float>& buffer, float sampleRate) {
         if (buffer.empty()) return "VAZIO";

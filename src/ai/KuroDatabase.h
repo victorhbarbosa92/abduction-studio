@@ -12,7 +12,8 @@ namespace KuroAI {
         // Busca instantânea (Sem IA) no banco de dados local
         static bool fetchMetadata(const std::string& filepath, float& out_bpm, std::string& out_key) {
             std::string lower_path = filepath;
-            std::transform(lower_path.begin(), lower_path.end(), lower_path.begin(), ::tolower);
+            std::transform(lower_path.begin(), lower_path.end(), lower_path.begin(), 
+                           [](unsigned char c){ return std::tolower(c); });
             
             // Simulação de um banco de dados integrado (ID3/MusicBrainz Cache)
             // Na vida real, usaríamos libcurl + nlohmann/json para bater na API do Spotify/MusicBrainz

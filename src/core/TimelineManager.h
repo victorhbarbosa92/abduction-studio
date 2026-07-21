@@ -7,6 +7,9 @@
 #include <cmath>
 #include "KuroConfig.h"
 #include "MidiNote.h"
+#include "ClipManager.h"
+
+extern int channel_tracks[8];
 
 namespace KuroDSP {
 
@@ -19,6 +22,9 @@ namespace KuroDSP {
         bool is_playing = false;
 
     public:
+        std::mutex timeline_mutex;
+        int track_steps_limit[MAX_TRACKS] = {16, 16, 16, 16, 16, 16, 16, 16};
+        
         float getBPM() const { return bpm; }
         void setBPM(float b) { bpm = b; }
         
@@ -26,16 +32,6 @@ namespace KuroDSP {
         // 16 passos (1 Compass = 4 tempos = 16 semicolcheias)
         std::atomic<bool> seq_grid[16];
         std::atomic<int> current_step = {0};
-        
-        // Piano Roll Notes (Uma lista por canal) - Agora é a linha do tempo Flattened
-        std::vector<MidiNote> track_notes[MAX_TRACKS];
-        int track_steps_limit[MAX_TRACKS];
-        std::mutex timeline_mutex;
-
-        // Scratchpad para o Piano Roll
-        std::vector<MidiNote> scratchpad_notes;
-        bool is_scratchpad_active = false;
-        int scratchpad_target_track = 5; // Track 5 by default (Synth)
         
         // FASE 10: AUTOMATION LANES
         struct AutoPoint {
@@ -64,9 +60,51 @@ namespace KuroDSP {
         };
         std::vector<AutomationLane> automation_lanes;
         
+        void addAutomationPoint(const std::string& node_id, int param_index, float time_sec, float value) {
+            std::lock_guard<std::mutex> lock(timeline_mutex);
+            for (auto& lane : automation_lanes) {
+                if (lane.target_node_id == node_id && lane.param_index == param_index) {
+                    for (auto it = lane.points.begin(); it != lane.points.end(); ++it) {
+                        if (std::abs(it->time_sec - time_sec) < 0.05f) { // If close enough, overwrite
+                            it->value = value;
+                            it->time_sec = time_sec; // Update time precisely
+                            return;
+                        }
+                        if (it->time_sec > time_sec) {
+                            lane.points.insert(it, {time_sec, value});
+                            return;
+                        }
+                    }
+                    lane.points.push_back({time_sec, value});
+                    return;
+                }
+            }
+            AutomationLane new_lane;
+            new_lane.target_node_id = node_id;
+            new_lane.param_index = param_index;
+            new_lane.points.push_back({time_sec, value});
+            automation_lanes.push_back(new_lane);
+        }
+        
+        void removeAutomationPoint(const std::string& node_id, int param_index, float time_sec) {
+            std::lock_guard<std::mutex> lock(timeline_mutex);
+            for (auto& lane : automation_lanes) {
+                if (lane.target_node_id == node_id && lane.param_index == param_index) {
+                    for (auto it = lane.points.begin(); it != lane.points.end(); ++it) {
+                        if (std::abs(it->time_sec - time_sec) < 0.05f) {
+                            lane.points.erase(it);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        ClipManager* clip_manager = nullptr;
+        void setClipManager(ClipManager* cm) { clip_manager = cm; }
+        
         TimelineManager() {
             for(int i=0; i<16; i++) seq_grid[i] = false;
-            for(int i=0; i<MAX_TRACKS; i++) track_steps_limit[i] = 16;
         }
 
         void setPlaying(bool play) {
@@ -82,23 +120,11 @@ namespace KuroDSP {
         uint64_t getMasterFrame() const { return master_frame; }
         
         void addNote(int track_index, int pitch, float start, float duration, float velocity = 0.8f, float probability = 1.0f) {
-            std::lock_guard<std::mutex> lock(timeline_mutex);
-            if (is_scratchpad_active) {
-                scratchpad_notes.push_back(MidiNote(pitch, start, duration, velocity, probability));
-            } else {
-                if (track_index < 0 || track_index >= 8) return;
-                track_notes[track_index].push_back(MidiNote(pitch, start, duration, velocity, probability));
-            }
+            // Deprecated, notes are now in Patterns
         }
 
         void clearNotes(int track_index) {
-            std::lock_guard<std::mutex> lock(timeline_mutex);
-            if (is_scratchpad_active) {
-                scratchpad_notes.clear();
-            } else {
-                if (track_index < 0 || track_index >= 8) return;
-                track_notes[track_index].clear();
-            }
+            // Deprecated
         }
 
         struct AutomationEvent {
@@ -145,45 +171,113 @@ namespace KuroDSP {
             float t_end = (float)frame_end / sample_rate;
             
             std::lock_guard<std::mutex> lock(timeline_mutex);
-            for (int i = 0; i < MAX_TRACKS; i++) {
-                // Determine which notes list to use for this track (scratchpad overrides if active for this track)
-                auto& notes_list = (is_scratchpad_active && scratchpad_target_track == i) ? scratchpad_notes : track_notes[i];
+            if (clip_manager) {
+                std::lock_guard<std::mutex> clip_lock(clip_manager->clip_mutex);
                 
-                if (i < 4 && !(is_scratchpad_active && scratchpad_target_track == i)) {
-                    float loop_len = track_steps_limit[i] * snap_step;
-                    float t_start_mod = fmod(t_start, loop_len);
-                    float dt = t_end - t_start;
-                    float t_end_mod = t_start_mod + dt;
-                    
-                    for (auto& note : notes_list) {
-                        bool trigger = false;
-                        if (!note.is_muted) {
-                            if (note.start_time >= t_start_mod && note.start_time < t_end_mod) {
-                                trigger = true;
-                            } else if (t_end_mod >= loop_len) {
-                                float note_start_wrapped = note.start_time + loop_len;
-                                if (note_start_wrapped >= t_start_mod && note_start_wrapped < t_end_mod) {
-                                    trigger = true;
-                                }
+                // Count total MIDI clips on the timeline
+                size_t total_clips = 0;
+                for (int i = 0; i < MAX_TRACKS; i++) {
+                    total_clips += clip_manager->track_midi_clips[i].size();
+                }
+                
+                if (total_clips == 0) {
+                    // --- PATTERN MODE (Loop the active pattern) ---
+                    if (clip_manager->current_pattern_idx >= 0 && clip_manager->current_pattern_idx < (int)clip_manager->global_patterns.size()) {
+                        auto& pat = clip_manager->global_patterns[clip_manager->current_pattern_idx];
+                        
+                        // Determine loop length (default 4 beats, grow if notes exceed it)
+                        float max_time = 0.0f;
+                        for (const auto& note : pat.notes) {
+                            if (note.start_time + note.duration > max_time) {
+                                max_time = note.start_time + note.duration;
                             }
                         }
                         
-                        if (trigger) {
-                            float rand_val = (float)rand() / RAND_MAX;
-                            if (rand_val <= note.probability) {
-                                fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                        float beat_len = (60.0f / bpm);
+                        float loop_beats = 4.0f;
+                        if (max_time > 0.0f) {
+                            float total_beats = ceilf(max_time / beat_len);
+                            loop_beats = ceilf(total_beats / 4.0f) * 4.0f;
+                        }
+                        float loop_len = loop_beats * beat_len;
+                        
+                        float loop_t_start = fmodf(t_start, loop_len);
+                        float loop_t_end = loop_t_start + (t_end - t_start);
+                        bool wrapped = (loop_t_end > loop_len);
+                        
+                        for (auto& note : pat.notes) {
+                            if (note.is_muted) continue;
+                            
+                            bool trigger = false;
+                            if (!wrapped) {
+                                if (note.start_time >= loop_t_start && note.start_time < loop_t_end) {
+                                    trigger = true;
+                                }
+                            } else {
+                                // On wrap: reset is_playing for all notes so next loop triggers properly
+                                note.is_playing = false;
+                                if ((note.start_time >= loop_t_start && note.start_time < loop_len) ||
+                                    (note.start_time >= 0.0f && note.start_time < loop_t_end - loop_len)) {
+                                    trigger = true;
+                                }
+                            }
+                            
+                            // Skip if already triggered in this loop pass
+                            if (trigger && note.is_playing) {
+                                trigger = false;
+                            }
+                            
+                            if (trigger) {
+                                note.is_playing = true;
+                                
+                                // Full pitch-to-track routing matching StepSequencer pitches:
+                                // 36=Kick, 38=Snare, 42=HiHat, 48=Bassline, 60=Serum, 72=Lead, 39=Clap, 46=OpenHat
+                                int trk = 0;
+                                if (note.pitch == 36) trk = ::channel_tracks[0];      // Kick
+                                else if (note.pitch == 38) trk = ::channel_tracks[1]; // Snare
+                                else if (note.pitch == 42) trk = ::channel_tracks[2]; // HiHat
+                                else if (note.pitch == 48) trk = ::channel_tracks[3]; // Bassline
+                                else if (note.pitch == 60) trk = ::channel_tracks[4]; // Serum Chords
+                                else if (note.pitch == 72) trk = ::channel_tracks[5]; // Lead Synth
+                                else if (note.pitch == 39) trk = ::channel_tracks[6]; // Clap
+                                else if (note.pitch == 46) trk = ::channel_tracks[7]; // Open Hat
+                                else trk = 5; // Default fallback
+                                
+                                float rand_val = (float)rand() / RAND_MAX;
+                                if (rand_val <= note.probability) {
+                                    fired_events.push_back({trk, note.pitch, note.duration, note.velocity});
+                                }
                             }
                         }
                     }
                 } else {
-                    for (auto& note : notes_list) {
-                        if (note.is_muted) continue;
-                        if (!note.is_playing && t_end >= note.start_time && t_start < note.start_time + note.duration) {
-                            note.is_playing = true;
-                            fired_events.push_back({i, note.pitch, note.duration, note.velocity});
-                        }
-                        else if (note.is_playing && t_end >= note.start_time + note.duration) {
-                            note.is_playing = false;
+                    // --- SONG MODE (Play from timeline MIDI clips) ---
+                    for (int i = 0; i < MAX_TRACKS; i++) {
+                        for (auto& clip : clip_manager->track_midi_clips[i]) {
+                            float clip_t_start = t_start - clip.start_time_sec;
+                            float clip_t_end = t_end - clip.start_time_sec;
+                            
+                            if (t_end >= clip.start_time_sec && t_start <= clip.start_time_sec + clip.length_sec) {
+                                Pattern* p = nullptr;
+                                for (auto& pat : clip_manager->global_patterns) {
+                                    if (pat.id == clip.pattern_id) { p = &pat; break; }
+                                }
+                                
+                                if (p) {
+                                    for (auto& note : p->notes) {
+                                        if (note.is_muted) continue;
+                                        
+                                        if (clip_t_end >= note.start_time && clip_t_start < note.start_time + note.duration) {
+                                            if (clip_t_start <= note.start_time) {
+                                                float rand_val = (float)rand() / RAND_MAX;
+                                                if (rand_val <= note.probability) {
+                                                    fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
