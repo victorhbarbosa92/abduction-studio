@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <algorithm>
+#include "../core/MidiNote.h"
 
 namespace KuroAI {
 
@@ -116,6 +118,96 @@ public:
         if (zcr_rate > 0.01f) return "ATMOS / DRONE / PAD"; // Frequencias mais baixas
         
         return "BASS / SUB"; 
+    }
+
+    // Algoritmo Audio-to-MIDI (Pitch Tracking via Autocorrelação Espectral)
+    static std::vector<KuroDSP::MidiNote> convertAudioToMidi(
+        const std::vector<float>& audio_samples,
+        float sampleRate = 44100.0f,
+        float sensitivity = 0.05f) 
+    {
+        std::vector<KuroDSP::MidiNote> notes;
+        if (audio_samples.empty()) return notes;
+
+        size_t window_size = 2048;
+        size_t hop_size = 1024;
+        
+        int current_pitch = -1;
+        float note_start_sec = 0.0f;
+        float note_duration_sec = 0.0f;
+        float note_velocity = 0.8f;
+
+        for (size_t pos = 0; pos + window_size < audio_samples.size(); pos += hop_size) {
+            float time_sec = (float)pos / sampleRate;
+
+            // Compute RMS energy
+            float rms = 0.0f;
+            for (size_t i = 0; i < window_size; i++) {
+                float s = audio_samples[pos + i];
+                rms += s * s;
+            }
+            rms = std::sqrt(rms / window_size);
+
+            if (rms < sensitivity) {
+                if (current_pitch != -1) {
+                    // Close active note
+                    notes.push_back(KuroDSP::MidiNote(current_pitch, note_start_sec, std::max(0.1f, note_duration_sec), note_velocity));
+                    current_pitch = -1;
+                }
+                continue;
+            }
+
+            // Autocorrelation Pitch Estimation
+            int best_lag = 0;
+            float max_autocorr = -1.0f;
+
+            int min_lag = (int)(sampleRate / 1000.0f); // 1000 Hz limit (~ C6)
+            int max_lag = (int)(sampleRate / 50.0f);   // 50 Hz limit (~ G1)
+
+            for (int lag = min_lag; lag < max_lag && lag < (int)window_size / 2; lag++) {
+                float autocorr = 0.0f;
+                for (size_t i = 0; i < window_size / 2; i++) {
+                    autocorr += audio_samples[pos + i] * audio_samples[pos + i + lag];
+                }
+
+                if (autocorr > max_autocorr) {
+                    max_autocorr = autocorr;
+                    best_lag = lag;
+                }
+            }
+
+            int detected_pitch = -1;
+            if (best_lag > 0) {
+                float fundamental_freq = sampleRate / (float)best_lag;
+                if (fundamental_freq >= 50.0f && fundamental_freq <= 1200.0f) {
+                    float midi_val = 69.0f + 12.0f * std::log2(fundamental_freq / 440.0f);
+                    detected_pitch = (int)std::round(midi_val);
+                }
+            }
+
+            if (detected_pitch != -1) {
+                if (current_pitch == -1) {
+                    current_pitch = detected_pitch;
+                    note_start_sec = time_sec;
+                    note_duration_sec = (float)hop_size / sampleRate;
+                    note_velocity = std::clamp(rms * 2.5f, 0.4f, 1.0f);
+                } else if (std::abs(detected_pitch - current_pitch) <= 1) {
+                    note_duration_sec += (float)hop_size / sampleRate;
+                } else {
+                    // Pitch shifted -> Emit note and start new note
+                    notes.push_back(KuroDSP::MidiNote(current_pitch, note_start_sec, std::max(0.1f, note_duration_sec), note_velocity));
+                    current_pitch = detected_pitch;
+                    note_start_sec = time_sec;
+                    note_duration_sec = (float)hop_size / sampleRate;
+                }
+            }
+        }
+
+        if (current_pitch != -1) {
+            notes.push_back(KuroDSP::MidiNote(current_pitch, note_start_sec, std::max(0.1f, note_duration_sec), note_velocity));
+        }
+
+        return notes;
     }
 };
 

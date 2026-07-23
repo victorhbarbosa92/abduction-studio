@@ -40,6 +40,29 @@ namespace KuroUI {
                 if (ImGui::MenuItem("Limpar Notas deste Canal")) {
                     clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx).clear();
                 }
+                if (ImGui::MenuItem("🎲 Humanizar Velocity & Timing")) {
+                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    for (auto& n : notes) {
+                        float vel_jitter = ((rand() % 100) / 100.0f - 0.5f) * 0.15f;
+                        float time_jitter = ((rand() % 100) / 100.0f - 0.5f) * 0.02f;
+                        n.velocity = std::clamp(n.velocity + vel_jitter, 0.2f, 1.0f);
+                        n.start_time = std::max(0.0f, n.start_time + time_jitter);
+                    }
+                }
+                if (ImGui::MenuItem("🎹 Gerar Triade Maior (C Major)")) {
+                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    notes.push_back(KuroDSP::MidiNote(60, 0.0f, 1.0f, 0.85f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(64, 0.0f, 1.0f, 0.75f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(67, 0.0f, 1.0f, 0.75f, 1.0f, ch_idx));
+                }
+                if (ImGui::MenuItem("👽 Gerar Acorde Alien Minor 9th")) {
+                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    notes.push_back(KuroDSP::MidiNote(60, 0.0f, 2.0f, 0.85f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(63, 0.0f, 2.0f, 0.75f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(67, 0.0f, 2.0f, 0.75f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(70, 0.0f, 2.0f, 0.70f, 1.0f, ch_idx));
+                    notes.push_back(KuroDSP::MidiNote(74, 0.0f, 2.0f, 0.65f, 1.0f, ch_idx));
+                }
                 ImGui::EndMenu();
             }
             

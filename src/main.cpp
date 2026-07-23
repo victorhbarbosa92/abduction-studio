@@ -40,6 +40,8 @@ HWND main_hwnd = nullptr;
 #include "core/StemExtractorEngine.h"
 #include "audio/GrossBeatNode.h"
 #include "core/DawApiBridge.h"
+#include "audio/MasterLimiter.h"
+#include "ui/SpectrumVisualizerUI.h"
 
 // Globais para o StudioUI
 bool is_playing = false;
@@ -47,6 +49,8 @@ unsigned long long global_sample_count = 0;
 ClipManager g_clip_manager;
 KuroAudio::KuroWave g_kurowave;
 KuroAudio::SynthEngine g_piano_synth;
+KuroAudio::MasterLimiter g_master_limiter;
+KuroUI::SpectrumVisualizerUI g_spectrum_visualizer;
 KuroDSP::ExpressiveLeadSynth g_lead_synth("lead");
 KuroDSP::MonkSynth g_monk_synth("monk");
 KuroDSP::AlienVoiceSynth g_alien_synth("alien");
@@ -405,6 +409,12 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         // Aplica o volume master final
         left *= g_master_volume;
         right *= g_master_volume;
+
+        // Processa pelo Master Limiter de pico
+        g_master_limiter.processBlock(&left, &right, 1);
+
+        // Alimenta o Spectrum Visualizer em tempo real
+        g_spectrum_visualizer.pushAudioSamples(left, right);
 
         out_buffer[i * 2] = left;     // L
         out_buffer[i * 2 + 1] = right; // R
@@ -836,6 +846,9 @@ int main(int argc, char* argv[]) {
         if (g_ai_engine) {
             KuroUI::RenderMainApp(*g_ai_engine);
         }
+
+        // Render Spectrum Visualizer & Vectorscope UI
+        g_spectrum_visualizer.renderUI();
         
         ImGui::End();
         
