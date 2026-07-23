@@ -57,6 +57,7 @@ KuroDSP::AlienVoiceSynth g_alien_synth("alien");
 KuroDSP::AnalogMonsterSynth g_analog_synth("analog");
 KuroDSP::SynthwaveSynth g_synthwave_synth("synthwave");
 KuroDSP::AbductionFMSynth g_fm_synth("fm");
+KuroDSP::AcousticContrabassSynth g_contrabass_synth("contrabass");
 void clear_all_synths() {
     g_piano_synth.clearNotes();
     g_kurowave.clearNotes();
@@ -318,8 +319,9 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         g_piano_synth.triggerNote(pitch, duration, velocity, track_idx);
         
         // 2. Roteamento de sintetizadores direcionado por Canal (Channel 3 = Bassline, 4 = Serum Chords, 5 = Lead Synth)
-        if ((track_idx == 3 || pitch == 48) && !g_piano_synth.flex_active[3]) { // Bassline
+        if ((track_idx == 3 || pitch <= 48) && !g_piano_synth.flex_active[3]) { // Bassline / Contrabaixo
             KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+            g_contrabass_synth.pushMidiEvent(ev_mpe);
             g_monk_synth.pushMidiEvent(ev_mpe);
             g_analog_synth.pushMidiEvent(ev_mpe);
         }
@@ -368,6 +370,7 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
     
     // Processa os sintetizadores nos respectivos buffers de canal (se o FLEX estiver inativo para aquele canal)
     if (!g_piano_synth.flex_active[3]) {
+        g_contrabass_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
         g_monk_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
         g_analog_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
     }

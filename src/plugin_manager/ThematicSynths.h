@@ -1138,5 +1138,176 @@ namespace KuroDSP {
             ImGui::PopStyleColor();
         }
     };
+
+    // -------------------------------------------------------------------------
+    // AcousticContrabassSynth: Sintetizador Físico de Contrabaixo Acústico Real
+    // Modelo: Impulso de Pluck (Ataque de corda), Ressonância de Madeira (Dual Formant Body Cavity)
+    // -------------------------------------------------------------------------
+    class AcousticContrabassSynth : public MpeSynthNode {
+    private:
+        struct Voice {
+            int note;
+            float freq;
+            float phase_fundamental = 0.0f;
+            float phase_sub = 0.0f;
+            float phase_harm3 = 0.0f;
+            float envelope = 1.0f;
+            float time_alive = 0.0f;
+            float velocity = 0.8f;
+            bool active = false;
+
+            // Formant Body Filters (Body cavity & Wood resonance)
+            float body_filter1_state1 = 0.0f, body_filter1_state2 = 0.0f;
+            float body_filter2_state1 = 0.0f, body_filter2_state2 = 0.0f;
+        };
+
+        static constexpr size_t MAX_VOICES = 8;
+        Voice voices[MAX_VOICES];
+
+        float body_resonance_target = 0.85f;
+        float body_resonance = 0.85f;
+
+        float slap_amount_target = 0.40f;
+        float slap_amount = 0.40f;
+
+        float attack_target = 0.003f;
+        float attack = 0.003f;
+
+        float release_target = 0.60f;
+        float release = 0.60f;
+
+    public:
+        AcousticContrabassSynth(const std::string& id) : MpeSynthNode(id, "Contrabaixo Acustico Real") {
+            for (size_t i = 0; i < MAX_VOICES; i++) {
+                voices[i].active = false;
+            }
+        }
+
+        void process(float* left, float* right, unsigned int num_frames) override {
+            MpeMidiEvent ev;
+            while (midi_queue.pop(ev)) {
+                if (ev.is_note_on) {
+                    int v_idx = -1;
+                    for (size_t i = 0; i < MAX_VOICES; i++) {
+                        if (!voices[i].active) { v_idx = (int)i; break; }
+                    }
+                    if (v_idx == -1) v_idx = 0;
+
+                    auto& v = voices[v_idx];
+                    v.note = ev.key;
+                    v.freq = getFrequency(ev.key, ev.pitch_bend);
+                    v.phase_fundamental = 0.0f;
+                    v.phase_sub = 0.0f;
+                    v.phase_harm3 = 0.0f;
+                    v.envelope = 1.0f;
+                    v.time_alive = 0.0f;
+                    v.velocity = ev.velocity;
+                    v.active = true;
+                    v.body_filter1_state1 = v.body_filter1_state2 = 0.0f;
+                    v.body_filter2_state1 = v.body_filter2_state2 = 0.0f;
+                } else {
+                    for (size_t i = 0; i < MAX_VOICES; i++) {
+                        if (voices[i].active && voices[i].note == ev.key) {
+                            voices[i].envelope *= 0.5f;
+                        }
+                    }
+                }
+            }
+
+            ParamChangeEvent pev;
+            while (param_queue.pop(pev)) {
+                if (pev.param_index == 0) body_resonance_target = pev.target_value;
+                if (pev.param_index == 1) slap_amount_target = pev.target_value;
+                if (pev.param_index == 2) attack_target = pev.target_value;
+                if (pev.param_index == 3) release_target = pev.target_value;
+            }
+
+            float dt = 1.0f / sample_rate;
+
+            for (unsigned int i = 0; i < num_frames; i++) {
+                body_resonance = lerp(body_resonance, body_resonance_target, 0.001f);
+                slap_amount = lerp(slap_amount, slap_amount_target, 0.001f);
+                attack = lerp(attack, attack_target, 0.001f);
+                release = lerp(release, release_target, 0.001f);
+
+                float mix = 0.0f;
+
+                for (size_t v_idx = 0; v_idx < MAX_VOICES; v_idx++) {
+                    auto& v = voices[v_idx];
+                    if (!v.active) continue;
+
+                    float dec_rate = (v.time_alive < attack) ? (1.0f / attack) : (1.0f / (release + 0.1f));
+                    if (v.time_alive < attack) {
+                        v.envelope = std::min(1.0f, v.time_alive * dec_rate);
+                    } else {
+                        v.envelope *= std::exp(-dt / (release + 0.05f));
+                    }
+
+                    if (v.envelope < 0.001f) {
+                        v.active = false;
+                        continue;
+                    }
+
+                    float pitch_stretch = 1.0f + 0.04f * std::exp(-v.time_alive * 40.0f);
+                    float cur_freq = v.freq * pitch_stretch;
+
+                    v.phase_fundamental += cur_freq / sample_rate;
+                    if (v.phase_fundamental >= 1.0f) v.phase_fundamental -= 1.0f;
+
+                    v.phase_sub += (cur_freq * 0.5f) / sample_rate;
+                    if (v.phase_sub >= 1.0f) v.phase_sub -= 1.0f;
+
+                    v.phase_harm3 += (cur_freq * 3.0f) / sample_rate;
+                    if (v.phase_harm3 >= 1.0f) v.phase_harm3 -= 1.0f;
+
+                    float tri_fund = 2.0f * std::abs(2.0f * (v.phase_fundamental - std::floor(v.phase_fundamental + 0.5f))) - 1.0f;
+                    float sine_sub = std::sin(KURO_TWO_PI * v.phase_sub);
+                    float sine_harm3 = std::sin(KURO_TWO_PI * v.phase_harm3);
+
+                    float raw_string = 0.55f * tri_fund + 0.35f * sine_sub + 0.10f * sine_harm3;
+
+                    float noise_slap = 0.0f;
+                    if (v.time_alive < 0.015f) {
+                        float noise = ((rand() % 1000) / 500.0f - 1.0f);
+                        noise_slap = noise * (1.0f - v.time_alive / 0.015f) * slap_amount;
+                    }
+
+                    float string_signal = raw_string + noise_slap;
+
+                    float f1_cutoff = 110.0f / sample_rate;
+                    float f1_q = 0.85f * body_resonance;
+                    v.body_filter1_state1 += f1_cutoff * (string_signal - v.body_filter1_state1 + f1_q * (v.body_filter1_state1 - v.body_filter1_state2));
+                    v.body_filter1_state2 += f1_cutoff * (v.body_filter1_state1 - v.body_filter2_state2);
+
+                    float f2_cutoff = 380.0f / sample_rate;
+                    v.body_filter2_state1 += f2_cutoff * (string_signal - v.body_filter2_state1 + 0.6f * (v.body_filter2_state1 - v.body_filter2_state2));
+                    v.body_filter2_state2 += f2_cutoff * (v.body_filter2_state1 - v.body_filter2_state2);
+
+                    float acoustic_body_out = v.body_filter1_state1 * 0.7f + v.body_filter2_state1 * 0.3f;
+
+                    mix += acoustic_body_out * v.velocity * v.envelope * 0.85f;
+                    v.time_alive += dt;
+                }
+
+                left[i] += mix;
+                right[i] += mix;
+            }
+        }
+
+        void renderCustomUI() override {
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.55f, 0.25f, 1.0f));
+            ImGui::BeginChild("ContrabassUI", ImVec2(0, 190), true);
+            ImGui::TextColored(ImVec4(0.95f, 0.65f, 0.35f, 1.0f), "CONTRABAIXO ACUSTICO REAL (PHYSICAL MODELING)");
+
+            float res = body_resonance_target, slap = slap_amount_target, att = attack_target, rel = release_target;
+            if (ImGui::SliderFloat("Corpo de Madeira (Resonancia)", &res, 0.1f, 0.98f)) setParameter(0, res);
+            if (ImGui::SliderFloat("Estalo do Dedo (Slap Attack)", &slap, 0.0f, 1.0f)) setParameter(1, slap);
+            if (ImGui::SliderFloat("Ataque de Pluck", &att, 0.001f, 0.05f, "%.4f s")) setParameter(2, att);
+            if (ImGui::SliderFloat("Ressuo de Madeira (Release)", &rel, 0.1f, 2.0f, "%.2f s")) setParameter(3, rel);
+
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
+    };
 }
 
