@@ -14,6 +14,8 @@
 #include "KuroDSPUI.h"
 #include "KuroWaveUI.h"
 #include "KuroSamplerUI.h"
+#include "SpectrumVisualizerUI.h"
+extern KuroUI::SpectrumVisualizerUI g_spectrum_visualizer;
 #include <thread>
 #include <cstdlib>
 #include <atomic>
@@ -32,6 +34,7 @@ extern ClipManager g_clip_manager;
 extern KuroAudio::KuroWave g_kurowave;
 extern KuroAudio::RecordManager g_record_manager;
 extern KuroDSP::AudioGraph master_graph;
+extern KuroDSP::AcousticContrabassSynth g_contrabass_synth;
 extern std::string track_names[MAX_TRACKS];
 extern KuroDSP::TimelineManager timeline;
 extern std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
@@ -71,6 +74,7 @@ namespace KuroUI {
     inline bool focus_delay_lama = false;
     inline bool show_monksynth_vst3 = false;
     inline bool focus_monksynth_vst3 = false;
+    inline bool show_contrabass_window = false;
     static char cloud_search_query[512] = "";
     static std::string cloud_status = "Pronto. Cole um link ou pesquise...";
     
@@ -1963,6 +1967,20 @@ inline void RenderMonkSynthVst3Window() {
     ImGui::PopStyleColor(2);
 }
 
+inline void RenderContrabassWindow() {
+    if (!show_contrabass_window) return;
+
+    ImGui::SetNextWindowSize(ImVec2(520, 240), ImGuiCond_FirstUseEver);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.08f, 0.05f, 0.96f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.85f, 0.45f, 0.15f, 1.0f));
+
+    if (ImGui::Begin("🎻 Contrabaixo Acústico Real (Physical Modeling)###ContrabassWindow", &show_contrabass_window, ImGuiWindowFlags_NoCollapse)) {
+        ::g_contrabass_synth.renderCustomUI();
+    }
+    ImGui::End();
+    ImGui::PopStyleColor(2);
+}
+
 inline void RenderParametricEQ2() {
     if (!show_parametric_eq2) return;
     ImGui::SetNextWindowSize(ImVec2(680, 440), ImGuiCond_FirstUseEver);
@@ -3744,11 +3762,26 @@ namespace KuroUI {
             if (ImGui::BeginMenu("Exibir")) {
                 if (ImGui::MenuItem("Mostrar Browser", "", true)) {}
                 if (ImGui::MenuItem("Mostrar Mixer", "", true)) {}
-                if (ImGui::MenuItem("DAW API Explorer", "")) {
-                    show_daw_api_explorer = true;
+                ImGui::Separator();
+                if (ImGui::MenuItem("🎹 Piano Roll", "", show_piano_roll)) {
+                    show_piano_roll = !show_piano_roll;
                 }
-                if (ImGui::MenuItem("[+] Delay Lama (Monge Tibetano 3D)", "")) {
-                    show_delay_lama = true;
+                if (ImGui::MenuItem("🛸 Master Spectrum & Vectorscope", "", g_spectrum_visualizer.is_visible)) {
+                    g_spectrum_visualizer.is_visible = !g_spectrum_visualizer.is_visible;
+                }
+                if (ImGui::MenuItem("🎻 Contrabaixo Acústico Real (DSP Physical)", "", show_contrabass_window)) {
+                    show_contrabass_window = !show_contrabass_window;
+                }
+                if (ImGui::MenuItem("[+] MonkSynth VST3 (Host Nativo VST3)", "", show_monksynth_vst3)) {
+                    show_monksynth_vst3 = !show_monksynth_vst3;
+                    focus_monksynth_vst3 = true;
+                }
+                if (ImGui::MenuItem("[+] Delay Lama (Monge Tibetano 3D)", "", show_delay_lama)) {
+                    show_delay_lama = !show_delay_lama;
+                    focus_delay_lama = true;
+                }
+                if (ImGui::MenuItem("DAW API Explorer", "", show_daw_api_explorer)) {
+                    show_daw_api_explorer = !show_daw_api_explorer;
                 }
                 ImGui::Separator();
                 if (ImGui::BeginMenu("Temas")) {
@@ -4031,6 +4064,7 @@ namespace KuroUI {
                 RenderFloatingPluginWindows();
                 RenderDelayLamaPlugin(); // 🕉️ RENDERIZAR A JANELA 3D DO MONGE TIBETANO DELAY LAMA!
                 RenderMonkSynthVst3Window(); // 🎛️ RENDERIZAR A JANELA DO VST3 NATIVO IMPORTADO!
+                RenderContrabassWindow(); // 🎻 RENDERIZAR A JANELA DO CONTRABAIXO ACÚSTICO REAL!
                 break;
             case AppMode::DJ_MODE:
                 RenderDJMode();
