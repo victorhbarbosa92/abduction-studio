@@ -52,6 +52,7 @@ KuroDSP::MonkSynth g_monk_synth("monk");
 KuroDSP::AlienVoiceSynth g_alien_synth("alien");
 KuroDSP::AnalogMonsterSynth g_analog_synth("analog");
 KuroDSP::SynthwaveSynth g_synthwave_synth("synthwave");
+KuroDSP::AbductionFMSynth g_fm_synth("fm");
 void clear_all_synths() {
     g_piano_synth.clearNotes();
     g_kurowave.clearNotes();
@@ -60,6 +61,7 @@ void clear_all_synths() {
     g_alien_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
     g_analog_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
     g_synthwave_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
+    g_fm_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
 }
 KuroAudio::RecordManager g_record_manager;
 KuroDSP::AudioGraph master_graph;
@@ -294,12 +296,8 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
             // Tremolo Rate (range: 0.1 a 5.0)
             float mod_range = 4.9f * mod.depth;
             float new_val = board.param_ritual_rate + lfo_val * mod_range * 0.5f;
-            board.active_ritual_rate = std::clamp(new_val, 0.1f, 5.0f);
         }
     }
-
-    // Calcular tempo global em segundos
-    float global_time_sec = (float)global_sample_count / 44100.0f;
 
     // 1. Processar a Timeline (Gera Eventos MIDI e Automação)
     unsigned int out_offset_frames = 0;
@@ -312,26 +310,28 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         float duration = std::get<2>(ev);
         float velocity = std::get<3>(ev);
         
-        // 1. Sempre aciona a reprodução de samples / baterias no sampler geral
+        // 1. Aciona a reprodução de samples / baterias no sampler do canal
         g_piano_synth.triggerNote(pitch, duration, velocity, track_idx);
         
-        // 2. Roteamento de sintetizadores direcionado por PITCH (evita conflitos de tracks no mixer se o FLEX estiver inativo)
-        if (pitch == 48 && !g_piano_synth.flex_active[3]) { // Bassline -> MonkSynth & AnalogMonster
+        // 2. Roteamento de sintetizadores direcionado por Canal (Channel 3 = Bassline, 4 = Serum Chords, 5 = Lead Synth)
+        if ((track_idx == 3 || pitch == 48) && !g_piano_synth.flex_active[3]) { // Bassline
             KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
             g_monk_synth.pushMidiEvent(ev_mpe);
             g_analog_synth.pushMidiEvent(ev_mpe);
         }
-        else if (pitch == 60 && !g_piano_synth.flex_active[4]) { // Serum Chords -> SynthwaveSynth
+        else if ((track_idx == 4 || pitch == 60) && !g_piano_synth.flex_active[4]) { // Serum Chords
             KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
             g_synthwave_synth.pushMidiEvent(ev_mpe);
         }
-        else if (pitch == 72 && !g_piano_synth.flex_active[5]) { // Lead Synth -> LeadSynth & AlienSynth
+        else if ((track_idx == 5 || pitch == 72) && !g_piano_synth.flex_active[5]) { // Lead Synth
             KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
             g_lead_synth.pushMidiEvent(ev_mpe);
             g_alien_synth.pushMidiEvent(ev_mpe);
-        }
-        else if (track_idx == 5 && !g_piano_synth.flex_active[5]) { // Notas da track 5 vão para o KuroWave
             g_kurowave.triggerNote(pitch, duration, velocity);
+        }
+        else if ((track_idx == 6 || pitch == 84) && !g_piano_synth.flex_active[6]) { // Alien FM 4-Op Matrix
+            KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+            g_fm_synth.pushMidiEvent(ev_mpe);
         }
     }
     
@@ -374,6 +374,9 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         g_lead_synth.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames);
         g_alien_synth.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames);
         g_kurowave.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames, global_time_sec);
+    }
+    if (!g_piano_synth.flex_active[6]) {
+        g_fm_synth.process(track_synth_buffer_l[6], track_synth_buffer_r[6], nFrames);
     }
     
     // Aplica o Gross Beat nos canais de synth correspondentes (Tracks 3, 4 e 5)

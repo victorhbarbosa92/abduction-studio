@@ -1,0 +1,538 @@
+﻿diff --git a/abduction_cert.cer b/abduction_cert.cer
+index 960d1f7..4d4652a 100644
+Binary files a/abduction_cert.cer and b/abduction_cert.cer differ
+diff --git a/imgui.ini b/imgui.ini
+index a87c10a..6112725 100644
+--- a/imgui.ini
++++ b/imgui.ini
+@@ -1,82 +1,82 @@
+ [Window][Files]
+-Pos=4,-374
++Pos=4,23
+ Size=230,461
+ Collapsed=0
+ DockId=0x00000003,0
+ LastUsed=20260721
+ 
+ [Window][Plugins]
+-Pos=4,-374
++Pos=4,23
+ Size=230,461
+ Collapsed=0
+ DockId=0x00000003,1
+ LastUsed=20260721
+ 
+ [Window][Samples]
+-Pos=4,-374
++Pos=4,23
+ Size=230,461
+ Collapsed=0
+ DockId=0x00000003,2
+ LastUsed=20260721
+ 
+ [Window][Browser]
+-Pos=4,-374
++Pos=4,23
+ Size=230,461
+ Collapsed=0
+ DockId=0x00000003,3
+ LastUsed=20260721
+ 
+ [Window][Piano Roll]
+-Pos=236,-374
++Pos=236,23
+ Size=710,461
+ Collapsed=0
+-DockId=0x00000005,0
++DockId=0x00000005,1
+ LastUsed=20260721
+ 
+ [Window][Project Settings]
+-Pos=236,-374
++Pos=236,23
+ Size=710,461
+ Collapsed=0
+-DockId=0x00000005,1
++DockId=0x00000005,0
+ LastUsed=20260721
+ 
+ [Window][Mixer Panel]
+-Pos=948,-374
++Pos=948,23
+ Size=314,461
+ Collapsed=0
+ DockId=0x00000006,1
+ LastUsed=20260721
+ 
+ [Window][Master]
+-Pos=948,-374
++Pos=948,23
+ Size=314,461
+ Collapsed=0
+ DockId=0x00000006,0
+ LastUsed=20260721
+ 
+ [Window][[Playlist]]
+-Pos=4,89
++Pos=4,486
+ Size=1258,230
+ Collapsed=0
+ DockId=0x00000002,0
+ LastUsed=20260721
+ 
+ [Window][[Channel Rack]]
+-Pos=4,89
++Pos=4,486
+ Size=1258,230
+ Collapsed=0
+ DockId=0x00000002,1
+ LastUsed=20260721
+ 
+ [Window][[Automation Clip]]
+-Pos=4,89
++Pos=4,486
+ Size=1258,230
+ Collapsed=0
+ DockId=0x00000002,2
+ LastUsed=20260721
+ 
+ [Window][[Audio Editor]]
+-Pos=4,89
++Pos=4,486
+ Size=1258,230
+ Collapsed=0
+ DockId=0x00000002,3
+@@ -138,11 +138,11 @@ Collapsed=0
+ LastUsed=20260721
+ 
+ [Docking][Data]
+-DockSpace       ID=0xDFC910ED Window=0xF67BD0C2 Pos=4,-374 Size=1258,693 Split=Y
++DockSpace       ID=0xDFC910ED Window=0xF67BD0C2 Pos=4,23 Size=1258,693 Split=Y
+   DockNode      ID=0x00000001 Parent=0xDFC910ED SizeRef=1280,488 Split=X
+     DockNode    ID=0x00000003 Parent=0x00000001 SizeRef=230,488 Selected=0x54719807
+     DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=1048,488 Split=X
+-      DockNode  ID=0x00000005 Parent=0x00000004 SizeRef=710,488 CentralNode=1 Selected=0xC2D28E01
++      DockNode  ID=0x00000005 Parent=0x00000004 SizeRef=732,488 CentralNode=1 Selected=0x3F1379AF
+       DockNode  ID=0x00000006 Parent=0x00000004 SizeRef=314,488 Selected=0x5C9A74D1
+   DockNode      ID=0x00000002 Parent=0xDFC910ED SizeRef=1280,230 Selected=0xFECC63C3
+ 
+diff --git a/src/audio/KuroWave.h b/src/audio/KuroWave.h
+index f8606cf..6c51526 100644
+--- a/src/audio/KuroWave.h
++++ b/src/audio/KuroWave.h
+@@ -189,6 +189,15 @@ namespace KuroAudio {
+             active_voices.push_back(new_voice);
+         }
+ 
++        void releaseNote(int pitch) {
++            std::lock_guard<std::mutex> lock(synth_mutex);
++            for (auto& voice : active_voices) {
++                if (voice.pitch == pitch && voice.current_time < voice.duration) {
++                    voice.duration = voice.current_time;
++                }
++            }
++        }
++
+         void clearNotes() {
+             std::lock_guard<std::mutex> lock(synth_mutex);
+             notes.clear();
+diff --git a/src/audio/SynthEngine.h b/src/audio/SynthEngine.h
+index 58cfd5e..30676af 100644
+--- a/src/audio/SynthEngine.h
++++ b/src/audio/SynthEngine.h
+@@ -712,6 +712,15 @@ namespace KuroAudio {
+             active_voices.push_back({pitch, 0.0f, 0.0f, duration, velocity, true, 0.0f, track_idx});
+         }
+ 
++        void releaseNote(int pitch) {
++            std::lock_guard<std::mutex> lock(synth_mutex);
++            for (auto& voice : active_voices) {
++                if (voice.pitch == pitch && voice.current_time < voice.duration) {
++                    voice.duration = voice.current_time;
++                }
++            }
++        }
++
+         void triggerSfx(int index) {
+             std::lock_guard<std::mutex> lock(synth_mutex);
+             if (index >= 0 && index < (int)sfx_library.size()) {
+diff --git a/src/ui/StudioUI.h b/src/ui/StudioUI.h
+index a7de3b7..fb1cebb 100644
+--- a/src/ui/StudioUI.h
++++ b/src/ui/StudioUI.h
+@@ -1381,375 +1381,6 @@ namespace KuroUI {
+             ImGui::TreePop();
+         }
+         ImGui::End();
+-        
+-        // --- TIMELINE (inside Piano Roll docked window) ---
+-        // The DockSpace handles placement - no SameLine needed
+-
+-        // Cores das faixas (Tons cibern├®ticos e alien├¡genas)
+-        ImVec4 timeline_track_colors[MAX_TRACKS] = {
+-            ImVec4(0.8f, 0.2f, 0.2f, 1.0f), // KICK/BASS
+-            ImVec4(0.2f, 0.8f, 0.2f, 1.0f), // LEADS
+-            ImVec4(0.2f, 0.2f, 0.8f, 1.0f), // VOX
+-            ImVec4(0.8f, 0.8f, 0.2f, 1.0f), // FX
+-            ImVec4(0.2f, 0.8f, 0.8f, 1.0f), // DRUMS
+-            ImVec4(0.8f, 0.2f, 0.8f, 1.0f), // SYNTH
+-            ImVec4(0.5f, 0.5f, 0.5f, 1.0f), // PADS
+-            ImVec4(0.3f, 0.7f, 0.4f, 1.0f),  // EXTRA
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+-            ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f)
+-        };
+-
+-        float header_width = 180.0f;
+-        ImGui::BeginChild("Timeline", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+-        draw_list = ImGui::GetWindowDrawList(); // Pegar o draw_list AQUI garante o clipping do ChildWindow!
+-        
+-        static float pixels_per_second = 15.0f;
+-        
+-        if (ImGui::IsWindowHovered() && io.KeyCtrl && io.MouseWheel != 0.0f) {
+-            pixels_per_second += io.MouseWheel * 1.5f;
+-            if (pixels_per_second < 4.0f) pixels_per_second = 4.0f;
+-            if (pixels_per_second > 200.0f) pixels_per_second = 200.0f;
+-        }
+-        int num_tracks = 8;
+-        float track_height = 55.0f; // Um pouco mais alto para ficar espa├ºoso
+-        
+-        float playhead_x_offset = ((float)timeline.getMasterFrame() / 44100.0f) * pixels_per_second;
+-
+-        // Calcular a largura total da linha do tempo com base nos clipes e na agulha
+-        float total_timeline_width = ImGui::GetWindowWidth();
+-        if (playhead_x_offset + header_width + 500.0f > total_timeline_width) {
+-            total_timeline_width = playhead_x_offset + header_width + 500.0f;
+-        }
+-        for (int i = 0; i < MAX_TRACKS; i++) {
+-            for (const auto& clip : g_clip_manager.getClips(i)) {
+-                float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
+-                if (clip_end + header_width + 500.0f > total_timeline_width) {
+-                    total_timeline_width = clip_end + header_width + 500.0f;
+-                }
+-            }
+-            for (const auto& clip : g_clip_manager.getMidiClips(i)) {
+-                float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
+-                if (clip_end + header_width + 500.0f > total_timeline_width) {
+-                    total_timeline_width = clip_end + header_width + 500.0f;
+-                }
+-            }
+-        }
+-
+-        // --- R├®gua da Timeline ---
+-        ImVec2 ruler_pos = ImGui::GetCursorScreenPos();
+-        float ruler_height = 20.0f;
+-        
+-        // Desenha o fundo da r├®gua (cinza escuro)
+-        draw_list->AddRectFilled(ruler_pos, ImVec2(ruler_pos.x + total_timeline_width, ruler_pos.y + ruler_height), IM_COL32(40, 40, 45, 255));
+-        draw_list->AddLine(ImVec2(ruler_pos.x, ruler_pos.y + ruler_height), ImVec2(ruler_pos.x + total_timeline_width, ruler_pos.y + ruler_height), IM_COL32(60, 60, 70, 255), 1.0f);
+-        
+-        // Desenhar os ticks da r├®gua
+-        // Cada tick representa 6 segundos (0, 1, 2, 3, 4, 5... na r├®gua correspondem a 0s, 6s, 12s, 18s, 24s, 30s...)
+-        // Lembrete: 6 segundos = 6 * pixels_per_second = 300 pixels.
+-        float scroll_x = ImGui::GetScrollX();
+-        float window_width = ImGui::GetWindowWidth();
+-        float tick_spacing = 6.0f * pixels_per_second; // 300.0f
+-        
+-        // Find visible ticks range
+-        int start_tick = (int)(scroll_x / tick_spacing);
+-        int end_tick = (int)((scroll_x + window_width) / tick_spacing) + 2;
+-        
+-        float visible_min_x = ImGui::GetWindowPos().x + header_width + 10;
+-        float visible_max_x = ImGui::GetWindowPos().x + ImGui::GetWindowSize().x;
+-        
+-        // Clip ticks to visible grid area
+-        draw_list->PushClipRect(ImVec2(visible_min_x, ruler_pos.y), ImVec2(visible_max_x, ruler_pos.y + ruler_height), true);
+-        
+-        for (int t = start_tick; t <= end_tick; t++) {
+-            float tx = ruler_pos.x + header_width + 10 + t * tick_spacing;
+-            
+-            if (t % 5 == 0) {
+-                // Major tick: maior, com n├║mero
+-                draw_list->AddLine(ImVec2(tx, ruler_pos.y + 4.0f), ImVec2(tx, ruler_pos.y + ruler_height), IM_COL32(200, 200, 200, 255), 1.5f);
+-                
+-                char label[16];
+-                snprintf(label, sizeof(label), "%d", t); // 0, 5, 10, 15...
+-                draw_list->AddText(ImVec2(tx + 4, ruler_pos.y + 2), IM_COL32(200, 200, 200, 255), label);
+-            } else {
+-                // Minor tick
+-                draw_list->AddLine(ImVec2(tx, ruler_pos.y + 12.0f), ImVec2(tx, ruler_pos.y + ruler_height), IM_COL32(120, 120, 120, 255), 1.0f);
+-            }
+-        }
+-        draw_list->PopClipRect();
+-        
+-        // Cabe├ºalho da R├®gua (Fixo na esquerda)
+-        scroll_x = ImGui::GetScrollX();
+-        ImVec2 header_ruler_min = ImVec2(ruler_pos.x + scroll_x, ruler_pos.y);
+-        ImVec2 header_ruler_max = ImVec2(header_ruler_min.x + header_width, ruler_pos.y + ruler_height);
+-        draw_list->AddRectFilled(header_ruler_min, header_ruler_max, IM_COL32(25, 25, 30, 255));
+-        draw_list->AddLine(ImVec2(header_ruler_max.x, header_ruler_min.y), ImVec2(header_ruler_max.x, header_ruler_max.y), IM_COL32(60, 60, 70, 255), 2.0f);
+-        
+-        // Pula o cursor da UI para baixo da r├®gua
+-        ImGui::Dummy(ImVec2(total_timeline_width, ruler_height));
+-
+-        for (int i = 0; i < num_tracks; i++) {
+-            ImGui::PushID(i);
+-            
+-            ImVec2 p_min = ImGui::GetCursorScreenPos();
+-            // p_min.x j├í considera o scroll negativo da janela do ImGui!
+-            // Ent├úo, a largura visual da track precisa ser total_timeline_width real.
+-            ImVec2 p_max_track = ImVec2(p_min.x + total_timeline_width, p_min.y + track_height);
+-            
+-            // Fundo da Faixa
+-            draw_list->AddRectFilled(p_min, p_max_track, selected_track_idx == i ? IM_COL32(30, 40, 30, 255) : IM_COL32(15, 15, 18, 255));
+-            draw_list->AddRect(p_min, p_max_track, IM_COL32(40, 40, 50, 255));
+-            
+-            // Cabe├ºalho da Faixa (Acompanha o scroll na visualiza├º├úo, mas vamos prender ele na esquerda da tela subtraindo o scrollX)
+-            float scroll_x = ImGui::GetScrollX();
+-            ImVec2 header_p_min = ImVec2(p_min.x + scroll_x, p_min.y);
+-            ImVec2 header_p_max = ImVec2(header_p_min.x + header_width, p_min.y + track_height);
+-            
+-            draw_list->AddRectFilled(header_p_min, header_p_max, IM_COL32(25, 25, 30, 255));
+-            draw_list->AddLine(ImVec2(header_p_max.x, header_p_min.y), ImVec2(header_p_max.x, header_p_max.y), IM_COL32(60, 60, 70, 255), 2.0f);
+-            
+-            // Linha colorida de destaque no cabe├ºalho
+-            draw_list->AddRectFilled(header_p_min, ImVec2(header_p_min.x + 6, header_p_max.y), ImColor(timeline_track_colors[i]));
+-            
+-            ImGui::SetCursorScreenPos(ImVec2(header_p_min.x + 12, p_min.y + 5));
+-            
+-            // Sele├º├úo de Faixa
+-            if (ImGui::Selectable((track_names[i] + "##sel" + std::to_string(i)).c_str(), selected_track_idx == i, 0, ImVec2(100, 15))) {
+-                selected_track_idx = i;
+-            }
+-            
+-            ImGui::SetCursorScreenPos(ImVec2(header_p_min.x + 12, p_min.y + 28));
+-            
+-            if (::track_mutes[i]) {
+-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+-            } else {
+-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+-            }
+-            if (ImGui::Button((std::string("M##m") + std::to_string(i)).c_str(), ImVec2(24, 20))) { ::track_mutes[i] = !::track_mutes[i]; }
+-            ImGui::PopStyleColor();
+-            
+-            ImGui::SameLine();
+-            if (::track_solos[i]) {
+-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
+-            } else {
+-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+-            }
+-            if (ImGui::Button((std::string("S##s") + std::to_string(i)).c_str(), ImVec2(24, 20))) { ::track_solos[i] = !::track_solos[i]; }
+-            ImGui::PopStyleColor();
+-
+-            // FASE 28: FX RACK movido para o GLOBAL MIXER
+-
+-            // Timeline Waveforms
+-            ImU32 col = ImColor(timeline_track_colors[i]);
+-            float mid_y = p_min.y + (track_height / 2);
+-            float start_x = p_min.x + header_width + 10;
+-            
+-            const auto& wave_data = ai_engine.getWaveformOverview(i);
+-            auto clips = g_clip_manager.getClips(i);
+-            
+-            // Visibilidade real da tela
+-            float screen_view_min_x = p_min.x + scroll_x + header_width;
+-            float screen_view_max_x = p_min.x + scroll_x + ImGui::GetWindowWidth();
+-            
+-            for (size_t c_idx = 0; c_idx < clips.size(); c_idx++) {
+-                const auto& clip = clips[c_idx];
+-                float clip_start_x = start_x + (clip.start_time_sec * pixels_per_second);
+-                float clip_width = clip.length_sec * pixels_per_second;
+-                float clip_end_x = clip_start_x + clip_width;
+-                
+-                if (clip_end_x > screen_view_min_x && clip_start_x < screen_view_max_x) {
+-                    float draw_start = std::max(clip_start_x, screen_view_min_x);
+-                    float draw_end = std::min(clip_end_x, screen_view_max_x);
+-                    
+-                    ImU32 fill_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, clip.is_selected ? 0.4f : 0.15f);
+-                    ImU32 outline_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, 0.8f);
+-                    
+-                    draw_list->AddRectFilled(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), fill_col, 4.0f);
+-                    draw_list->AddRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), outline_col, 4.0f);
+-                    
+-                    if (wave_data.size() > 0) {
+-                        float source_px_start = clip.source_offset_sec * pixels_per_second;
+-                        for (float px = 0; px < clip_width; px++) {
+-                            float point_x = clip_start_x + px;
+-                            if (point_x >= draw_start && point_x <= draw_end) {
+-                                size_t wave_idx = (size_t)(source_px_start + px);
+-                                if (wave_idx < wave_data.size()) {
+-                                    float amp = wave_data[wave_idx] * ((track_height / 2) - 4); 
+-                                    draw_list->AddLine(ImVec2(point_x, mid_y - amp), ImVec2(point_x, mid_y + amp), col, 1.0f);
+-                                }
+-                            }
+-                        }
+-                    }
+-                    
+-                    ImGui::SetCursorScreenPos(ImVec2(draw_start, p_min.y));
+-                    ImGui::InvisibleButton("##clip_btn", ImVec2(draw_end - draw_start, track_height));
+-                }
+-            }
+-            
+-            auto mclips = g_clip_manager.getMidiClips(i);
+-            for (size_t c_idx = 0; c_idx < mclips.size(); c_idx++) {
+-                const auto& clip = mclips[c_idx];
+-                float clip_start_x = start_x + (clip.start_time_sec * pixels_per_second);
+-                float clip_width = clip.length_sec * pixels_per_second;
+-                float clip_end_x = clip_start_x + clip_width;
+-                
+-                if (clip_end_x > screen_view_min_x && clip_start_x < screen_view_max_x) {
+-                    float draw_start = std::max(clip_start_x, screen_view_min_x);
+-                    float draw_end = std::min(clip_end_x, screen_view_max_x);
+-                    
+-                    ImU32 fill_col = ImColor(timeline_track_colors[i].x * 0.8f, timeline_track_colors[i].y * 0.8f, timeline_track_colors[i].z * 0.8f, clip.is_selected ? 0.6f : 0.25f);
+-                    ImU32 outline_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, 1.0f);
+-                    
+-                    draw_list->AddRectFilled(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), fill_col, 4.0f);
+-                    draw_list->AddRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), outline_col, 4.0f);
+-                    
+-                    draw_list->PushClipRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), true);
+-                    
+-                    // Render pattern notes
+-                    Pattern* p = nullptr;
+-                    for(auto& pat : g_clip_manager.global_patterns) {
+-                        if(pat.id == clip.pattern_id) { p = &pat; break; }
+-                    }
+-                    if(p) {
+-                        // Title of Pattern
+-                        draw_list->AddText(ImVec2(draw_start + 4, p_min.y + 4), IM_COL32(255,255,255,255), p->name.c_str());
+-                        for (const auto& n : p->notes) {
+-                            float n_x = clip_start_x + (n.start_time * pixels_per_second);
+-                            float n_w = n.duration * pixels_per_second;
+-                            float n_y = p_min.y + track_height - 6.0f - ((n.pitch / 127.0f) * (track_height - 24.0f));
+-                            draw_list->AddRectFilled(ImVec2(n_x, n_y - 2), ImVec2(n_x + n_w, n_y + 2), IM_COL32(255, 255, 255, 200));
+-                        }
+-                    }
+-                    draw_list->PopClipRect();
+-                    
+-                    ImGui::SetCursorScreenPos(ImVec2(draw_start, p_min.y));
+-                    ImGui::PushID(clip.id);
+-                    ImGui::InvisibleButton("##mclip_btn", ImVec2(draw_end - draw_start, track_height));
+-                    ImGui::PopID();
+-                }
+-            }
+-            // --- FASE 10: AUTOMATION LANES ---
+-            std::string target_node = "TrackOut_" + std::to_string(i);
+-            int target_param = 0; // Volume
+-            KuroDSP::TimelineManager::AutomationLane* current_lane = nullptr;
+-            for (auto& lane : timeline.automation_lanes) {
+-                if (lane.target_node_id == target_node && lane.param_index == target_param) {
+-                    current_lane = &lane;
+-                    break;
+-                }
+-            }
+-
+-            ImGui::SetCursorScreenPos(ImVec2(start_x, p_min.y)); 
+-            ImGui::InvisibleButton(("##track_bg_" + std::to_string(i)).c_str(), ImVec2(total_timeline_width, track_height));
+-            
+-            // FASE 30: Drag and Drop Target for Patterns
+-            if (ImGui::BeginDragDropTarget()) {
+-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PATTERN_PAYLOAD")) {
+-                    int p_idx = *(const int*)payload->Data;
+-                    float drop_x = ImGui::GetMousePos().x - start_x;
+-                    float drop_time_sec = drop_x / pixels_per_second;
+-                    float snap_sec = 60.0f / timeline.getBPM(); // Snap to beat
+-                    drop_time_sec = std::round(drop_time_sec / snap_sec) * snap_sec;
+-                    
+-                    int pat_id = g_clip_manager.global_patterns[p_idx].id;
+-                    float def_len = g_clip_manager.global_patterns[p_idx].default_length_sec;
+-                    g_clip_manager.addPatternClip(i, drop_time_sec, def_len, pat_id);
+-                }
+-                ImGui::EndDragDropTarget();
+-            }
+-            
+-            if (current_lane && !current_lane->points.empty()) {
+-                ImU32 auto_col = IM_COL32(255, 100, 100, 255); // Red for volume
+-                std::vector<ImVec2> draw_points;
+-                for (const auto& pt : current_lane->points) {
+-                    float px_x = start_x + (pt.time_sec * pixels_per_second);
+-                    // Value is -60 to 6
+-                    float norm_val = (pt.value + 60.0f) / 66.0f;
+-                    norm_val = std::clamp(norm_val, 0.0f, 1.0f);
+-                    float px_y = p_min.y + track_height - (norm_val * track_height);
+-                    draw_points.push_back(ImVec2(px_x, px_y));
+-                }
+-                
+-                // Draw lines
+-                for (size_t pt_idx = 0; pt_idx < draw_points.size() - 1; pt_idx++) {
+-                    draw_list->AddLine(draw_points[pt_idx], draw_points[pt_idx+1], auto_col, 2.0f);
+-                }
+-                // Draw circles
+-                for (const auto& dp : draw_points) {
+-                    draw_list->AddCircleFilled(dp, 4.0f, auto_col);
+-                }
+-            }
+-
+-            // Interactions for Automation
+-            if (ImGui::IsItemHovered()) {
+-                float mouse_x = ImGui::GetMousePos().x - start_x;
+-                float mouse_time_sec = mouse_x / pixels_per_second;
+-                float mouse_y = ImGui::GetMousePos().y - p_min.y;
+-                float norm_y = 1.0f - (mouse_y / track_height);
+-                float val = -60.0f + (norm_y * 66.0f);
+-                
+-                if (io.KeyAlt && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+-                    // Alt+Click = Add point
+-                    timeline.addAutomationPoint(target_node, target_param, mouse_time_sec, val);
+-                } else if (io.KeyAlt && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+-                    // Alt+RightClick = Delete point
+-                    timeline.removeAutomationPoint(target_node, target_param, mouse_time_sec);
+-                } else if (io.KeyAlt && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+-                    // Alt+Drag = Move point
+-                    timeline.addAutomationPoint(target_node, target_param, mouse_time_sec, val);
+-                }
+-            }
+-
+-            ImGui::PopID();
+-            ImGui::Spacing();
+-        }
+-
+-        // Agulha (Playhead) Verde Neon e Intera├º├úo
+-        if (is_playing) {
+-            float target_scroll = playhead_x_offset - (ImGui::GetWindowWidth() * 0.5f);
+-            if (target_scroll < 0) target_scroll = 0;
+-            ImGui::SetScrollX(target_scroll);
+-        }
+-        
+-        // Intera├º├úo de Clique/Arraste na Timeline
+-        static bool is_dragging_playhead = false;
+-        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+-            is_dragging_playhead = true;
+-        }
+-        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+-            is_dragging_playhead = false;
+-        }
+-
+-        if (is_dragging_playhead) {
+-            ImVec2 mouse_pos = ImGui::GetMousePos();
+-            if (mouse_pos.x > ImGui::GetWindowPos().x + header_width) { // Clicou depois do cabe├ºalho
+-                float click_x_in_timeline = mouse_pos.x - (ImGui::GetWindowPos().x + header_width + 10 - ImGui::GetScrollX());
+-                if (click_x_in_timeline < 0) click_x_in_timeline = 0;
+-                float grid_start_x = ImGui::GetWindowPos().x + header_width + 10;
+-                float clicked_time_sec = (io.MousePos.x - grid_start_x + ImGui::GetScrollX()) / pixels_per_second;
+-                timeline.setMasterFrame((uint64_t)(clicked_time_sec * 44100.0f));
+-                playhead_x_offset = click_x_in_timeline; // Update instant├óneo visual
+-            }
+-        }
+-        
+-        float playhead_x = ImGui::GetWindowPos().x + header_width + 10 - ImGui::GetScrollX() + playhead_x_offset; 
+-        float min_playhead_x = ImGui::GetWindowPos().x + header_width + 10;
+-        
+-        // Clip playhead line and triangle so it doesn't leak into the track headers
+-        float playhead_y_min = ImGui::GetWindowPos().y; 
+-        float playhead_y_max = ImGui::GetWindowPos().y + ImGui::GetWindowSize().y;
+-        
+-        draw_list->PushClipRect(ImVec2(min_playhead_x, playhead_y_min), ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowSize().x, playhead_y_max), true);
+-        if (playhead_x >= min_playhead_x) {
+-            draw_list->AddLine(ImVec2(playhead_x, playhead_y_min), ImVec2(playhead_x, playhead_y_max), IM_COL32(57, 255, 20, 200), 2.0f);
+-            draw_list->AddTriangleFilled(ImVec2(playhead_x - 6, playhead_y_min), ImVec2(playhead_x + 6, playhead_y_min), ImVec2(playhead_x, playhead_y_min + 8), IM_COL32(57, 255, 20, 255));
+-        }
+-        draw_list->PopClipRect();
+-
+-        ImGui::EndChild(); // Timeline
+ 
+         // ==========================================
+         // 3. BOTTOM RACK (DEVICE VIEW)

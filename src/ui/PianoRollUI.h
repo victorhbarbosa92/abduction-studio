@@ -20,6 +20,10 @@ namespace KuroUI {
 
     inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, ClipManager& clip_manager, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
         if (!*open) return;
+        static int active_ch_idx = 0;
+        if (track_idx >= 0 && track_idx < 8) active_ch_idx = track_idx;
+        int ch_idx = std::clamp(active_ch_idx, 0, 7);
+
         static int current_snap_option = 0; // Default to 4/4 (1/4 note)
         static PianoRollTool current_tool = PianoRollTool::Draw;
         static int current_stamp_idx = 0;
@@ -33,26 +37,27 @@ namespace KuroUI {
 
         if (ImGui::BeginMenuBar()) {
             if (ImGui::BeginMenu("Acoes")) {
-                if (ImGui::MenuItem("Limpar Todas as Notas")) {
-                    auto& current_pattern_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].notes;
-                    current_pattern_notes.clear();
+                if (ImGui::MenuItem("Limpar Notas deste Canal")) {
+                    clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx).clear();
                 }
                 ImGui::EndMenu();
             }
             
-            // Seletor de Instrumento MIDI direto na barra de menu
+            // Seletor de Canal / Instrumento direto na barra de menu
             ImGui::SameLine();
             ImGui::Text("  Instrumento:");
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.25f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.1f, 0.4f, 1.0f));
             ImGui::SetNextItemWidth(180);
-            int current_inst = (int)g_piano_synth.current_instrument;
-            if (ImGui::BeginCombo("##instrument_select", KuroAudio::getMidiInstrumentName(g_piano_synth.current_instrument))) {
-                for (int i = 0; i < (int)KuroAudio::MidiInstrument::COUNT; i++) {
-                    bool is_selected = (current_inst == i);
-                    if (ImGui::Selectable(KuroAudio::getMidiInstrumentName((KuroAudio::MidiInstrument)i), is_selected)) {
-                        g_piano_synth.setInstrument((KuroAudio::MidiInstrument)i);
+            
+            const char* ch_names[8] = { "808 Kick", "808 Snare", "808 HiHat", "Bassline", "Serum Chords", "Lead Synth", "909 Clap", "808 Open Hat" };
+            if (ImGui::BeginCombo("##channel_select", ch_names[ch_idx])) {
+                for (int i = 0; i < 8; i++) {
+                    bool is_selected = (ch_idx == i);
+                    if (ImGui::Selectable(ch_names[i], is_selected)) {
+                        active_ch_idx = i;
+                        ch_idx = i;
                     }
                     if (is_selected) ImGui::SetItemDefaultFocus();
                 }
@@ -97,10 +102,10 @@ namespace KuroUI {
         draw_tool_btn("[ Cut ]", PianoRollTool::Slice, current_tool); ImGui::SameLine();
         draw_tool_btn("[ Select ]", PianoRollTool::Select, current_tool); ImGui::SameLine();
         
-        ImGui::Text(" | Stamp:");
+        ImGui::Text(" | Stamp Escala:");
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(100);
-        const char* stamp_options[] = { "None", "Major", "Minor", "7th", "Maj7", "Min7" };
+        ImGui::SetNextItemWidth(140);
+        const char* stamp_options[] = { "Nenhum", "Psytrance Minor", "Goa Phrygian", "Harmonic Minor", "Pentatonic", "Major", "Minor", "7th", "Maj7", "Min7" };
         ImGui::Combo("##stamp_select", &current_stamp_idx, stamp_options, IM_ARRAYSIZE(stamp_options));
         ImGui::PopStyleColor(3);
         
@@ -204,7 +209,7 @@ namespace KuroUI {
         bool is_grid_hovered = ImGui::IsItemHovered();
 
         std::lock_guard<std::mutex> lock(timeline_mgr.timeline_mutex);
-        auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].notes;
+        auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
 
         // --- Interação do Mouse com Notas (Estilo FL Studio) ---
         if (is_grid_hovered) {
@@ -259,22 +264,38 @@ namespace KuroUI {
                             notes.push_back(note);
                             interacting_note_idx = (int)notes.size() - 1;
                             
-                            // Adicionar notas extras para Acordes (Stamp)
-                            if (current_stamp_idx == 1) { // Major (0, 4, 7)
-                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
-                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
-                            } else if (current_stamp_idx == 2) { // Minor (0, 3, 7)
+                            // Adicionar notas extras para Acordes e Escalas Psytrance (Stamp)
+                            if (current_stamp_idx == 1) { // Psytrance Minor (0, 3, 7, 12)
                                 notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
-                            } else if (current_stamp_idx == 3) { // 7th (0, 4, 7, 10)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 12, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 2) { // Goa Phrygian Dominant (0, 1, 4, 7)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 1, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 3) { // Harmonic Minor (0, 3, 7, 11)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 11, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 4) { // Pentatonic (0, 3, 5, 7, 10)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 5, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 5) { // Major (0, 4, 7)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 6) { // Minor (0, 3, 7)
+                                notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
+                                notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
+                            } else if (current_stamp_idx == 7) { // 7th (0, 4, 7, 10)
                                 notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 10, time_snapped, snap_step));
-                            } else if (current_stamp_idx == 4) { // Maj7 (0, 4, 7, 11)
+                            } else if (current_stamp_idx == 8) { // Maj7 (0, 4, 7, 11)
                                 notes.push_back(KuroDSP::MidiNote(pitch + 4, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 11, time_snapped, snap_step));
-                            } else if (current_stamp_idx == 5) { // Min7 (0, 3, 7, 10)
+                            } else if (current_stamp_idx == 9) { // Min7 (0, 3, 7, 10)
                                 notes.push_back(KuroDSP::MidiNote(pitch + 3, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 7, time_snapped, snap_step));
                                 notes.push_back(KuroDSP::MidiNote(pitch + 10, time_snapped, snap_step));
@@ -415,6 +436,23 @@ namespace KuroUI {
                 
                 if (y0 + zoom_y > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
                     draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), IM_COL32(100, 100, 100, 100), 2.0f);
+                }
+            }
+        }
+
+        // Render FL Studio Ghost Notes from other channels of active pattern
+        auto& current_pat = clip_manager.global_patterns[clip_manager.current_pattern_idx];
+        for (int c = 0; c < 8; c++) {
+            if (c == ch_idx) continue;
+            for (const auto& gnote : current_pat.getChannelNotes(c)) {
+                int row = (num_keys - 1) - (gnote.pitch - start_pitch);
+                float y0 = canvas_p0.y - pan_y + row * zoom_y;
+                float x0 = grid_start_x - pan_x + gnote.start_time * zoom_x;
+                float x1 = x0 + gnote.duration * zoom_x;
+                
+                if (y0 + zoom_y > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
+                    draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), IM_COL32(100, 110, 120, 80), 2.0f);
+                    draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), IM_COL32(130, 140, 150, 100), 2.0f);
                 }
             }
         }
@@ -578,15 +616,56 @@ namespace KuroUI {
             if (note_in_octave == 0) line_col = IM_COL32(255,255,255,40); // Highlight C
             draw_list->AddLine(ImVec2(grid_start_x, y), ImVec2(canvas_p1.x, y), line_col);
             
-            // Área clicável do teclado
+            // Área clicável do teclado (registro básico no ImGui)
             ImGui::SetCursorScreenPos(ImVec2(canvas_p0.x, y));
             ImGui::PushID(pitch);
-            if (ImGui::InvisibleButton("##key", ImVec2(key_width, zoom_y))) {
-                g_piano_synth.triggerNote(pitch, 0.5f, 0.8f);
-            }
+            ImGui::InvisibleButton("##key", ImVec2(key_width, zoom_y));
             ImGui::PopID();
         }
         draw_list->PopClipRect();
+
+        // --- Lógica de Glissando (Slide) no Teclado do Piano ---
+        static int last_slide_pitch = -1;
+        static bool slide_started_on_keyboard = false;
+        
+        bool mouse_in_keyboard_x = (io.MousePos.x >= canvas_p0.x && io.MousePos.x < canvas_p0.x + key_width);
+        bool mouse_in_keyboard_y = (io.MousePos.y >= canvas_p0.y && io.MousePos.y < canvas_p1.y);
+        
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            if (mouse_in_keyboard_x && mouse_in_keyboard_y) {
+                slide_started_on_keyboard = true;
+            }
+        }
+        if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            slide_started_on_keyboard = false;
+        }
+        
+        if (slide_started_on_keyboard && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+            if (mouse_in_keyboard_x && mouse_in_keyboard_y) {
+                float y_rel = io.MousePos.y - (canvas_p0.y - pan_y);
+                int hovered_i = (int)(y_rel / zoom_y);
+                if (hovered_i >= 0 && hovered_i < num_keys) {
+                    int hovered_pitch = start_pitch + (num_keys - 1 - hovered_i);
+                    if (hovered_pitch != last_slide_pitch) {
+                        if (last_slide_pitch != -1) {
+                            g_piano_synth.releaseNote(last_slide_pitch);
+                        }
+                        g_piano_synth.triggerNote(hovered_pitch, 10.0f, 0.8f);
+                        last_slide_pitch = hovered_pitch;
+                    }
+                }
+            } else {
+                if (last_slide_pitch != -1) {
+                    g_piano_synth.releaseNote(last_slide_pitch);
+                    last_slide_pitch = -1;
+                }
+            }
+        } else {
+            if (last_slide_pitch != -1) {
+                g_piano_synth.releaseNote(last_slide_pitch);
+                last_slide_pitch = -1;
+            }
+        }
 
         // --- Scrollbar Horizontal ---
         ImGui::SetCursorScreenPos(ImVec2(canvas_p0.x + key_width, canvas_p1.y + 5.0f));

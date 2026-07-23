@@ -17,14 +17,14 @@ if ($cert) {
     Export-Certificate -Cert $cert -FilePath $certPath -Type CERT | Out-Null
     Write-Host "Certificado exportado para '$certPath' no diretorio raiz." -ForegroundColor Green
     
-    # Assina o executavel
-    $exePath = "build\Debug\AbductionStudioV2.exe"
-    if (Test-Path $exePath) {
-        Write-Host "Assinando executavel: $exePath" -ForegroundColor Cyan
-        Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert
-        Write-Host "Executavel assinado com sucesso!" -ForegroundColor Green
-    } else {
-        Write-Host "Erro: Executavel nao encontrado em $exePath!" -ForegroundColor Red
+    # Assina os executaveis Release e Debug
+    $exes = @("build\Release\AbductionStudioV2.exe", "build\Debug\AbductionStudioV2.exe")
+    foreach ($exePath in $exes) {
+        if (Test-Path $exePath) {
+            Write-Host "Assinando executavel: $exePath" -ForegroundColor Cyan
+            Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert
+            Write-Host "Executavel assinado com sucesso: $exePath" -ForegroundColor Green
+        }
     }
 } else {
     Write-Host "Erro ao criar certificado!" -ForegroundColor Red

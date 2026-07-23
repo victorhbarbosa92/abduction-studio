@@ -21,16 +21,34 @@ namespace KuroUI {
     // Custom vector-drawn FL Studio style circular knob
     inline bool Knob(const char* label, float* p_value, float v_min, float v_max, float radius = 9.0f) {
         ImGuiIO& io = ImGui::GetIO();
-        ImVec2 pos = ImGui::GetCursorScreenPos();
-        ImVec2 center = ImVec2(pos.x + radius, pos.y + radius);
         
-        ImGui::InvisibleButton(label, ImVec2(radius * 2, radius * 2));
+        std::string display_name = label;
+        size_t hash_pos = display_name.find("##");
+        if (hash_pos != std::string::npos) {
+            display_name = display_name.substr(0, hash_pos);
+        }
+        
+        float label_h = display_name.empty() ? 0.0f : 12.0f;
+        float item_w = std::max(radius * 2.0f, display_name.empty() ? (radius * 2.0f) : ImGui::CalcTextSize(display_name.c_str()).x);
+        
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImVec2 center = ImVec2(pos.x + item_w * 0.5f, pos.y + radius);
+        
+        ImGui::InvisibleButton(label, ImVec2(item_w, radius * 2.0f + label_h));
         bool value_changed = false;
         bool is_active = ImGui::IsItemActive();
         bool is_hovered = ImGui::IsItemHovered();
         
+        if (is_hovered && io.MouseWheel != 0.0f) {
+            float step = (v_max - v_min) / 40.0f;
+            *p_value += io.MouseWheel * step;
+            if (*p_value < v_min) *p_value = v_min;
+            if (*p_value > v_max) *p_value = v_max;
+            value_changed = true;
+        }
+        
         if (is_active && io.MouseDelta.y != 0.0f) {
-            float step = (v_max - v_min) / 120.0f; // Drag sensitivity
+            float step = (v_max - v_min) / 120.0f;
             *p_value -= io.MouseDelta.y * step;
             if (*p_value < v_min) *p_value = v_min;
             if (*p_value > v_max) *p_value = v_max;
@@ -39,20 +57,32 @@ namespace KuroUI {
         
         float angle_min = -135.0f * (3.14159265f / 180.0f);
         float angle_max = 135.0f * (3.14159265f / 180.0f);
-        float t = (*p_value - v_min) / (v_max - v_min);
-        float angle = angle_min + t * (angle_max - angle_min);
+        float norm_v = (*p_value - v_min) / (v_max - v_min);
+        norm_v = std::clamp(norm_v, 0.0f, 1.0f);
+        float angle = angle_min + norm_v * (angle_max - angle_min);
         
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         
-        // Knob base circle (dark slate grey)
+        // Knob base circle
         draw_list->AddCircleFilled(center, radius, IM_COL32(35, 38, 42, 255), 16);
         
-        // Knob ring/border indicator (green if active, grey if normal)
-        ImU32 ring_col = is_active ? IM_COL32(90, 200, 80, 255) : (is_hovered ? IM_COL32(90, 95, 105, 255) : IM_COL32(50, 53, 58, 255));
+        // Knob ring indicator
+        ImU32 ring_col = is_active ? IM_COL32(90, 200, 80, 255) : (is_hovered ? IM_COL32(100, 180, 240, 255) : IM_COL32(55, 60, 68, 255));
         draw_list->AddCircle(center, radius, ring_col, 16, 1.5f);
         
-        // Value arc indicator line
-        draw_list->AddLine(center, ImVec2(center.x + cosf(angle - 1.570796f) * (radius - 2.0f), center.y + sinf(angle - 1.570796f) * (radius - 2.0f)), IM_COL32(230, 235, 240, 255), 2.0f);
+        // Arc line indicator
+        draw_list->AddLine(center, ImVec2(center.x + std::cos(angle - 1.570796f) * (radius - 2.0f), center.y + std::sin(angle - 1.570796f) * (radius - 2.0f)), IM_COL32(230, 235, 240, 255), 2.0f);
+        
+        // Draw Text Label centered below knob
+        if (!display_name.empty()) {
+            float text_w = ImGui::CalcTextSize(display_name.c_str()).x;
+            ImU32 text_col = is_hovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(170, 175, 185, 255);
+            draw_list->AddText(ImVec2(center.x - text_w * 0.5f, pos.y + radius * 2.0f + 1.0f), text_col, display_name.c_str());
+        }
+        
+        if (is_hovered) {
+            ImGui::SetTooltip("%s: %.2f", display_name.c_str(), *p_value);
+        }
         
         return value_changed;
     }
@@ -174,7 +204,7 @@ namespace KuroUI {
                 else if (inst == 2) btn_label = g_piano_synth.hat_variant_names[cur_var];
             }
             
-            if (ImGui::Button(btn_label, ImVec2(100, 22))) {
+            if (ImGui::Button(btn_label, ImVec2(72, 22))) {
                 selected_inst = inst;
                 g_piano_synth.triggerNote(pitches[inst], 0.25f, 0.9f);
                 
@@ -221,6 +251,13 @@ namespace KuroUI {
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("L-Click: Select | R-Click: Trocar Sample");
             ImGui::PopStyleColor(3);
+
+            ImGui::SameLine(172);
+            ImGui::SetNextItemWidth(25);
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(30, 32, 35, 255));
+            ImGui::DragInt("##limit", &timeline_mgr.track_steps_limit[inst], 0.1f, 1, 16, "%d", ImGuiSliderFlags_NoInput);
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Passos do Canal (Polirritmia): %d", timeline_mgr.track_steps_limit[inst]);
             
             ImGui::SameLine(202);
             
@@ -233,7 +270,7 @@ namespace KuroUI {
             
             // --- 6. 16 steps pads (Groups of 4 alternating colors) ---
             auto& current_pattern = clip_manager.global_patterns[clip_manager.current_pattern_idx];
-            auto& notes = current_pattern.notes;
+            auto& notes = current_pattern.getChannelNotes(inst);
             int limit = timeline_mgr.track_steps_limit[inst]; // protect bounds
 
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 4));
@@ -248,7 +285,7 @@ namespace KuroUI {
                 bool active = false;
                 int note_idx = -1;
                 for (size_t i = 0; i < notes.size(); i++) {
-                    if (notes[i].pitch == pitches[inst] && std::abs(notes[i].start_time - step_time) < 0.01f) {
+                    if (std::abs(notes[i].start_time - step_time) < 0.01f) {
                         active = true;
                         note_idx = (int)i;
                         break;
@@ -286,7 +323,7 @@ namespace KuroUI {
                             new_note.velocity = 0.9f;
                             new_note.probability = step_probs[inst][step];
                             notes.push_back(new_note);
-                            g_piano_synth.triggerNote(pitches[inst], 0.25f, 0.9f);
+                            g_piano_synth.triggerNote(pitches[inst], 0.25f, 0.9f, inst);
                         }
                     }
                 }
@@ -310,7 +347,7 @@ namespace KuroUI {
         ImGui::Spacing();
         
         auto& current_pattern = clip_manager.global_patterns[clip_manager.current_pattern_idx];
-        auto& sel_notes = current_pattern.notes;
+        auto& sel_notes = current_pattern.getChannelNotes(selected_inst);
         int sel_limit = timeline_mgr.track_steps_limit[selected_inst];
         
         ImGui::BeginChild("ChanceEditor", ImVec2(0, 90), true);
@@ -325,7 +362,7 @@ namespace KuroUI {
             float step_time = step * snap_step;
             int note_idx = -1;
             for (size_t i = 0; i < sel_notes.size(); i++) {
-                if (sel_notes[i].pitch == pitches[selected_inst] && std::abs(sel_notes[i].start_time - step_time) < 0.01f) {
+                if (std::abs(sel_notes[i].start_time - step_time) < 0.01f) {
                     note_idx = (int)i;
                     break;
                 }

@@ -189,6 +189,15 @@ namespace KuroAudio {
             active_voices.push_back(new_voice);
         }
 
+        void releaseNote(int pitch) {
+            std::lock_guard<std::mutex> lock(synth_mutex);
+            for (auto& voice : active_voices) {
+                if (voice.pitch == pitch && voice.current_time < voice.duration) {
+                    voice.duration = voice.current_time;
+                }
+            }
+        }
+
         void clearNotes() {
             std::lock_guard<std::mutex> lock(synth_mutex);
             notes.clear();

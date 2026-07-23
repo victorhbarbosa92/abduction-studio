@@ -181,71 +181,114 @@ namespace KuroDSP {
                 }
                 
                 if (total_clips == 0) {
-                    // --- PATTERN MODE (Loop the active pattern) ---
+                    // --- PATTERN MODE (Poly-looping: Drums loop per-bar, Piano Roll notes span multiple bars) ---
                     if (clip_manager->current_pattern_idx >= 0 && clip_manager->current_pattern_idx < (int)clip_manager->global_patterns.size()) {
                         auto& pat = clip_manager->global_patterns[clip_manager->current_pattern_idx];
-                        
-                        // Determine loop length (default 4 beats, grow if notes exceed it)
-                        float max_time = 0.0f;
-                        for (const auto& note : pat.notes) {
-                            if (note.start_time + note.duration > max_time) {
-                                max_time = note.start_time + note.duration;
-                            }
-                        }
-                        
                         float beat_len = (60.0f / bpm);
-                        float loop_beats = 4.0f;
-                        if (max_time > 0.0f) {
-                            float total_beats = ceilf(max_time / beat_len);
-                            loop_beats = ceilf(total_beats / 4.0f) * 4.0f;
+                        
+                        // 1. Process per-channel notes (0..7) with individual channel loop lengths
+                        for (int c = 0; c < 8; c++) {
+                            auto& ch_notes = pat.getChannelNotes(c);
+                            
+                            float max_ch_time = track_steps_limit[c] * snap_step;
+                            for (const auto& note : ch_notes) {
+                                if (note.start_time + note.duration > max_ch_time) {
+                                    max_ch_time = note.start_time + note.duration;
+                                }
+                            }
+                            
+                            float total_ch_beats = std::ceil(max_ch_time / beat_len);
+                            if (total_ch_beats < 4.0f) total_ch_beats = 4.0f;
+                            float ch_loop_beats = std::ceil(total_ch_beats / 4.0f) * 4.0f;
+                            float ch_loop_len = ch_loop_beats * beat_len;
+                            
+                            for (auto& note : ch_notes) {
+                                if (note.is_muted) continue;
+                                
+                                float loop_t_start = fmodf(t_start, ch_loop_len);
+                                float loop_t_end = loop_t_start + (t_end - t_start);
+                                bool wrapped = (loop_t_end > ch_loop_len);
+                                
+                                bool trigger = false;
+                                if (!wrapped) {
+                                    if (note.start_time >= loop_t_start && note.start_time < loop_t_end) {
+                                        trigger = true;
+                                    }
+                                } else {
+                                    note.is_playing = false;
+                                    if ((note.start_time >= loop_t_start && note.start_time < ch_loop_len) ||
+                                        (note.start_time >= 0.0f && note.start_time < loop_t_end - ch_loop_len)) {
+                                        trigger = true;
+                                    }
+                                }
+                                
+                                if (trigger && note.is_playing) {
+                                    trigger = false;
+                                }
+                                
+                                if (trigger) {
+                                    note.is_playing = true;
+                                    float rand_val = (float)rand() / RAND_MAX;
+                                    if (rand_val <= note.probability) {
+                                        fired_events.push_back({c, note.pitch, note.duration, note.velocity});
+                                    }
+                                }
+                            }
                         }
-                        float loop_len = loop_beats * beat_len;
                         
-                        float loop_t_start = fmodf(t_start, loop_len);
-                        float loop_t_end = loop_t_start + (t_end - t_start);
-                        bool wrapped = (loop_t_end > loop_len);
-                        
-                        for (auto& note : pat.notes) {
-                            if (note.is_muted) continue;
-                            
-                            bool trigger = false;
-                            if (!wrapped) {
-                                if (note.start_time >= loop_t_start && note.start_time < loop_t_end) {
-                                    trigger = true;
-                                }
-                            } else {
-                                // On wrap: reset is_playing for all notes so next loop triggers properly
-                                note.is_playing = false;
-                                if ((note.start_time >= loop_t_start && note.start_time < loop_len) ||
-                                    (note.start_time >= 0.0f && note.start_time < loop_t_end - loop_len)) {
-                                    trigger = true;
+                        // 2. Process legacy pattern notes
+                        if (!pat.notes.empty()) {
+                            float max_legacy_time = 0.0f;
+                            for (const auto& note : pat.notes) {
+                                if (note.start_time + note.duration > max_legacy_time) {
+                                    max_legacy_time = note.start_time + note.duration;
                                 }
                             }
+                            float total_leg_beats = std::ceil(max_legacy_time / beat_len);
+                            if (total_leg_beats < 4.0f) total_leg_beats = 4.0f;
+                            float pat_loop_len = std::ceil(total_leg_beats / 4.0f) * 4.0f * beat_len;
                             
-                            // Skip if already triggered in this loop pass
-                            if (trigger && note.is_playing) {
-                                trigger = false;
-                            }
-                            
-                            if (trigger) {
-                                note.is_playing = true;
+                            for (auto& note : pat.notes) {
+                                if (note.is_muted) continue;
                                 
-                                // Full pitch-to-track routing matching StepSequencer pitches:
-                                // 36=Kick, 38=Snare, 42=HiHat, 48=Bassline, 60=Serum, 72=Lead, 39=Clap, 46=OpenHat
-                                int trk = 0;
-                                if (note.pitch == 36) trk = ::channel_tracks[0];      // Kick
-                                else if (note.pitch == 38) trk = ::channel_tracks[1]; // Snare
-                                else if (note.pitch == 42) trk = ::channel_tracks[2]; // HiHat
-                                else if (note.pitch == 48) trk = ::channel_tracks[3]; // Bassline
-                                else if (note.pitch == 60) trk = ::channel_tracks[4]; // Serum Chords
-                                else if (note.pitch == 72) trk = ::channel_tracks[5]; // Lead Synth
-                                else if (note.pitch == 39) trk = ::channel_tracks[6]; // Clap
-                                else if (note.pitch == 46) trk = ::channel_tracks[7]; // Open Hat
-                                else trk = 5; // Default fallback
+                                float loop_t_start = fmodf(t_start, pat_loop_len);
+                                float loop_t_end = loop_t_start + (t_end - t_start);
+                                bool wrapped = (loop_t_end > pat_loop_len);
                                 
-                                float rand_val = (float)rand() / RAND_MAX;
-                                if (rand_val <= note.probability) {
-                                    fired_events.push_back({trk, note.pitch, note.duration, note.velocity});
+                                bool trigger = false;
+                                if (!wrapped) {
+                                    if (note.start_time >= loop_t_start && note.start_time < loop_t_end) {
+                                        trigger = true;
+                                    }
+                                } else {
+                                    note.is_playing = false;
+                                    if ((note.start_time >= loop_t_start && note.start_time < pat_loop_len) ||
+                                        (note.start_time >= 0.0f && note.start_time < loop_t_end - pat_loop_len)) {
+                                        trigger = true;
+                                    }
+                                }
+                                
+                                if (trigger && note.is_playing) {
+                                    trigger = false;
+                                }
+                                
+                                if (trigger) {
+                                    note.is_playing = true;
+                                    int target_ch = 0;
+                                    if (note.pitch == 36) target_ch = 0;
+                                    else if (note.pitch == 38) target_ch = 1;
+                                    else if (note.pitch == 42) target_ch = 2;
+                                    else if (note.pitch == 48) target_ch = 3;
+                                    else if (note.pitch == 60) target_ch = 4;
+                                    else if (note.pitch == 72) target_ch = 5;
+                                    else if (note.pitch == 39) target_ch = 6;
+                                    else if (note.pitch == 46) target_ch = 7;
+                                    else target_ch = 5;
+                                    
+                                    float rand_val = (float)rand() / RAND_MAX;
+                                    if (rand_val <= note.probability) {
+                                        fired_events.push_back({target_ch, note.pitch, note.duration, note.velocity});
+                                    }
                                 }
                             }
                         }
@@ -264,14 +307,34 @@ namespace KuroDSP {
                                 }
                                 
                                 if (p) {
-                                    for (auto& note : p->notes) {
-                                        if (note.is_muted) continue;
+                                    for (int c = 0; c < 8; c++) {
+                                        auto& ch_notes = p->getChannelNotes(c);
+                                        float note_loop_len = track_steps_limit[c] * snap_step;
+                                        if (note_loop_len <= 0.001f) note_loop_len = clip.length_sec;
                                         
-                                        if (clip_t_end >= note.start_time && clip_t_start < note.start_time + note.duration) {
-                                            if (clip_t_start <= note.start_time) {
+                                        float local_t_start = fmodf(clip_t_start, note_loop_len);
+                                        float local_t_end = local_t_start + (t_end - t_start);
+                                        bool local_wrapped = (local_t_end > note_loop_len);
+                                        
+                                        for (auto& note : ch_notes) {
+                                            if (note.is_muted) continue;
+                                            
+                                            bool note_trigger = false;
+                                            if (!local_wrapped) {
+                                                if (note.start_time >= local_t_start && note.start_time < local_t_end) note_trigger = true;
+                                            } else {
+                                                note.is_playing = false;
+                                                if ((note.start_time >= local_t_start && note.start_time < note_loop_len) ||
+                                                    (note.start_time >= 0.0f && note.start_time < local_t_end - note_loop_len)) note_trigger = true;
+                                            }
+                                            
+                                            if (note_trigger && note.is_playing) note_trigger = false;
+                                            
+                                            if (note_trigger) {
+                                                note.is_playing = true;
                                                 float rand_val = (float)rand() / RAND_MAX;
                                                 if (rand_val <= note.probability) {
-                                                    fired_events.push_back({i, note.pitch, note.duration, note.velocity});
+                                                    fired_events.push_back({c, note.pitch, note.duration, note.velocity});
                                                 }
                                             }
                                         }

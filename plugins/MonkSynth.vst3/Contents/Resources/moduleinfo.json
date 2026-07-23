@@ -1,0 +1,44 @@
+{
+  "Name": "MonkSynth",
+  "Version": "0.0.1",
+  "Factory Info": {
+    "Vendor": "MonkSynth",
+    "URL": "https://github.com/jonet",
+    "E-Mail": "mailto:",
+    "Flags": {
+      "Unicode": true,
+      "Classes Discardable": false,
+      "Component Non Discardable": false,
+    },
+  },
+  "Classes": [
+    {
+      "CID": "4D4E4B5350524F434D4E4B53594E5448",
+      "Category": "Audio Module Class",
+      "Name": "MonkSynth",
+      "Vendor": "MonkSynth",
+      "Version": "0.2.0",
+      "SDKVersion": "VST 3.8.0",
+      "Sub Categories": [
+        "Instrument",
+        "Synth",
+      ],
+      "Class Flags": 1,
+      "Cardinality": 2147483647,
+      "Snapshots": [
+      ],
+    },
+    {
+      "CID": "4D4E4B534354524C4D4E4B53594E5448",
+      "Category": "Component Controller Class",
+      "Name": "MonkSynth Controller",
+      "Vendor": "MonkSynth",
+      "Version": "0.2.0",
+      "SDKVersion": "VST 3.8.0",
+      "Class Flags": 0,
+      "Cardinality": 2147483647,
+      "Snapshots": [
+      ],
+    },
+  ],
+}

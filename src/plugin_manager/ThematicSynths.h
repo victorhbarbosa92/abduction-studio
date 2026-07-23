@@ -934,4 +934,209 @@ namespace KuroDSP {
             ImGui::PopStyleColor();
         }
     };
+
+    // --- 6. Abduction FM 4-Op Synth (Alien FM Engine) ---
+    class AbductionFMSynth : public MpeSynthNode {
+    private:
+        struct Voice {
+            int note_id = 0;
+            float freq = 440.0f;
+            float phase_op1 = 0.0f;
+            float phase_op2 = 0.0f;
+            float phase_op3 = 0.0f;
+            float phase_op4 = 0.0f;
+            float last_op4_out = 0.0f;
+            float velocity = 0.0f;
+            float envelope = 0.0f;
+            bool active = false;
+            bool note_on = false;
+            float duration = -1.0f;
+            float current_time = 0.0f;
+        };
+
+        std::vector<Voice> voices;
+
+        // Targets & smoothed params
+        float ratio_op1_target = 1.0f, ratio_op1 = 1.0f;
+        float ratio_op2_target = 2.0f, ratio_op2 = 2.0f;
+        float ratio_op3_target = 3.5f, ratio_op3 = 3.5f;
+        float ratio_op4_target = 0.5f, ratio_op4 = 0.5f;
+
+        float mod_idx1_target = 2.0f, mod_idx1 = 2.0f; // Op2 -> Op1
+        float mod_idx2_target = 1.5f, mod_idx2 = 1.5f; // Op3 -> Op2
+        float mod_idx3_target = 1.0f, mod_idx3 = 1.0f; // Op4 -> Op3
+        float feedback_target = 0.3f, feedback = 0.3f; // Op4 -> Op4
+
+        float attack_target = 0.02f, attack = 0.02f;
+        float release_target = 0.4f, release = 0.4f;
+
+    public:
+        AbductionFMSynth(const std::string& id) : MpeSynthNode(id, "Abduction FM 4-Op") {
+            voices.resize(16);
+            for (auto& v : voices) v.active = false;
+        }
+
+        void process(float* left, float* right, unsigned int frames) override {
+            if (getBypass()) return;
+
+            MpeMidiEvent m_ev;
+            while (midi_queue.pop(m_ev)) {
+                if (m_ev.note_id == -999) {
+                    for (auto& v : voices) v.active = false;
+                    continue;
+                }
+                if (m_ev.is_note_on) {
+                    for (auto& v : voices) {
+                        if (!v.active) {
+                            v.note_id = m_ev.note_id;
+                            v.freq = getFrequency(m_ev.key, m_ev.pitch_bend);
+                            v.phase_op1 = 0.0f;
+                            v.phase_op2 = 0.0f;
+                            v.phase_op3 = 0.0f;
+                            v.phase_op4 = 0.0f;
+                            v.last_op4_out = 0.0f;
+                            v.velocity = m_ev.velocity;
+                            v.envelope = 0.0f;
+                            v.active = true;
+                            v.note_on = true;
+                            v.duration = m_ev.duration;
+                            v.current_time = 0.0f;
+                            break;
+                        }
+                    }
+                } else {
+                    for (auto& v : voices) {
+                        if (v.active && v.note_id == m_ev.note_id) {
+                            v.note_on = false;
+                        }
+                    }
+                }
+            }
+
+            ParamChangeEvent p_ev;
+            while (param_queue.pop(p_ev)) {
+                if (p_ev.param_index == 0) ratio_op1_target = p_ev.target_value;
+                if (p_ev.param_index == 1) ratio_op2_target = p_ev.target_value;
+                if (p_ev.param_index == 2) ratio_op3_target = p_ev.target_value;
+                if (p_ev.param_index == 3) ratio_op4_target = p_ev.target_value;
+                if (p_ev.param_index == 4) mod_idx1_target = p_ev.target_value;
+                if (p_ev.param_index == 5) mod_idx2_target = p_ev.target_value;
+                if (p_ev.param_index == 6) mod_idx3_target = p_ev.target_value;
+                if (p_ev.param_index == 7) feedback_target = p_ev.target_value;
+                if (p_ev.param_index == 8) attack_target = p_ev.target_value;
+                if (p_ev.param_index == 9) release_target = p_ev.target_value;
+            }
+
+            bool any_active = false;
+            for (const auto& v : voices) {
+                if (v.active) { any_active = true; break; }
+            }
+            if (!any_active) return;
+
+            float dt = 1.0f / sample_rate;
+            for (unsigned int i = 0; i < frames; i++) {
+                ratio_op1 = lerp(ratio_op1, ratio_op1_target, 0.005f);
+                ratio_op2 = lerp(ratio_op2, ratio_op2_target, 0.005f);
+                ratio_op3 = lerp(ratio_op3, ratio_op3_target, 0.005f);
+                ratio_op4 = lerp(ratio_op4, ratio_op4_target, 0.005f);
+                mod_idx1 = lerp(mod_idx1, mod_idx1_target, 0.005f);
+                mod_idx2 = lerp(mod_idx2, mod_idx2_target, 0.005f);
+                mod_idx3 = lerp(mod_idx3, mod_idx3_target, 0.005f);
+                feedback = lerp(feedback, feedback_target, 0.005f);
+                attack = lerp(attack, attack_target, 0.005f);
+                release = lerp(release, release_target, 0.005f);
+
+                float att_coef = 1.0f / (attack * sample_rate + 1.0f);
+                float rel_coef = 1.0f / (release * sample_rate + 1.0f);
+
+                float mix = 0.0f;
+                for (auto& v : voices) {
+                    if (v.active) {
+                        if (v.duration > 0.0f && v.current_time >= v.duration) {
+                            v.note_on = false;
+                        }
+                        if (v.note_on) {
+                            v.envelope += att_coef;
+                            if (v.envelope > 1.0f) v.envelope = 1.0f;
+                        } else {
+                            v.envelope -= rel_coef;
+                            if (v.envelope <= 0.001f) {
+                                v.active = false;
+                                continue;
+                            }
+                        }
+
+                        // Operator 4 (Feedback Operator)
+                        float op4_freq = v.freq * ratio_op4;
+                        v.phase_op4 += op4_freq / sample_rate;
+                        if (v.phase_op4 >= 1.0f) v.phase_op4 -= 1.0f;
+                        float op4_out = std::sin(KURO_TWO_PI * (v.phase_op4 + v.last_op4_out * feedback));
+                        v.last_op4_out = op4_out;
+
+                        // Operator 3 (Modulates Op2)
+                        float op3_freq = v.freq * ratio_op3;
+                        v.phase_op3 += op3_freq / sample_rate;
+                        if (v.phase_op3 >= 1.0f) v.phase_op3 -= 1.0f;
+                        float op3_out = std::sin(KURO_TWO_PI * (v.phase_op3 + op4_out * mod_idx3));
+
+                        // Operator 2 (Modulates Op1)
+                        float op2_freq = v.freq * ratio_op2;
+                        v.phase_op2 += op2_freq / sample_rate;
+                        if (v.phase_op2 >= 1.0f) v.phase_op2 -= 1.0f;
+                        float op2_out = std::sin(KURO_TWO_PI * (v.phase_op2 + op3_out * mod_idx2));
+
+                        // Operator 1 (Carrier)
+                        float op1_freq = v.freq * ratio_op1;
+                        v.phase_op1 += op1_freq / sample_rate;
+                        if (v.phase_op1 >= 1.0f) v.phase_op1 -= 1.0f;
+                        float carrier = std::sin(KURO_TWO_PI * (v.phase_op1 + op2_out * mod_idx1));
+
+                        mix += carrier * v.velocity * v.envelope * 0.25f;
+                        v.current_time += dt;
+                    }
+                }
+
+                left[i] += mix;
+                right[i] += mix;
+            }
+        }
+
+        void renderCustomUI() override {
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.0f, 0.9f, 1.0f, 1.0f)); // Alien Cyan
+            ImGui::BeginChild("AbductionFMUI", ImVec2(0, 210), true);
+            ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "ABDUCTION FM 4-OPERATOR SYNTH (ALIEN MATRIX)");
+
+            ImGui::Columns(2, "FMCols", false);
+            
+            // Coluna 1: Ratios
+            ImGui::TextColored(ImVec4(0.0f, 0.8f, 0.6f, 1.0f), "Operator Ratios");
+            float r1 = ratio_op1_target, r2 = ratio_op2_target, r3 = ratio_op3_target, r4 = ratio_op4_target;
+            if (ImGui::SliderFloat("Carrier Op1 Ratio", &r1, 0.25f, 16.0f, "%.2fx")) setParameter(0, r1);
+            if (ImGui::SliderFloat("Mod Op2 Ratio", &r2, 0.25f, 16.0f, "%.2fx")) setParameter(1, r2);
+            if (ImGui::SliderFloat("Mod Op3 Ratio", &r3, 0.25f, 16.0f, "%.2fx")) setParameter(2, r3);
+            if (ImGui::SliderFloat("Mod Op4 Ratio", &r4, 0.25f, 16.0f, "%.2fx")) setParameter(3, r4);
+
+            ImGui::NextColumn();
+
+            // Coluna 2: Modulation Indices & Envelope
+            ImGui::TextColored(ImVec4(0.0f, 0.8f, 0.6f, 1.0f), "FM Modulation Matrix");
+            float m1 = mod_idx1_target, m2 = mod_idx2_target, m3 = mod_idx3_target, fb = feedback_target;
+            if (ImGui::SliderFloat("Op2 -> Op1 Index", &m1, 0.0f, 10.0f)) setParameter(4, m1);
+            if (ImGui::SliderFloat("Op3 -> Op2 Index", &m2, 0.0f, 10.0f)) setParameter(5, m2);
+            if (ImGui::SliderFloat("Op4 -> Op3 Index", &m3, 0.0f, 10.0f)) setParameter(6, m3);
+            if (ImGui::SliderFloat("Op4 Feedback", &fb, 0.0f, 1.0f)) setParameter(7, fb);
+
+            ImGui::Columns(1);
+            ImGui::Separator();
+
+            float att = attack_target, rel = release_target;
+            if (ImGui::SliderFloat("FM Attack", &att, 0.001f, 1.0f, "%.3f s")) setParameter(8, att);
+            ImGui::SameLine();
+            if (ImGui::SliderFloat("FM Release", &rel, 0.01f, 4.0f, "%.2f s")) setParameter(9, rel);
+
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
+    };
 }
+

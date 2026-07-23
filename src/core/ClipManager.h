@@ -16,8 +16,19 @@ struct Pattern {
     int id;
     std::string name;
     unsigned int color;
-    std::vector<KuroDSP::MidiNote> notes;
+    std::vector<KuroDSP::MidiNote> notes; // General / legacy notes
+    std::vector<KuroDSP::MidiNote> channel_notes[8]; // Per-channel notes (0..7)
     float default_length_sec = 4.0f;
+
+    std::vector<KuroDSP::MidiNote>& getChannelNotes(int channel_idx) {
+        int idx = std::clamp(channel_idx, 0, 7);
+        return channel_notes[idx];
+    }
+
+    const std::vector<KuroDSP::MidiNote>& getChannelNotes(int channel_idx) const {
+        int idx = std::clamp(channel_idx, 0, 7);
+        return channel_notes[idx];
+    }
 };
 
 struct MidiClip {
