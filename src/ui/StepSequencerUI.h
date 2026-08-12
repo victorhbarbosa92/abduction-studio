@@ -269,7 +269,7 @@ namespace KuroUI {
             ImGui::SameLine(212);
             
             // --- 6. 16 steps pads (Groups of 4 alternating colors) ---
-            auto& current_pattern = clip_manager.global_patterns[clip_manager.current_pattern_idx];
+            auto& current_pattern = clip_manager.getCurrentPattern();
             auto& notes = current_pattern.getChannelNotes(inst);
             int limit = timeline_mgr.track_steps_limit[inst]; // protect bounds
 
@@ -346,7 +346,7 @@ namespace KuroUI {
         ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "Chance / Trigger Probability Editor: %s", inst_names[selected_inst]);
         ImGui::Spacing();
         
-        auto& current_pattern = clip_manager.global_patterns[clip_manager.current_pattern_idx];
+        auto& current_pattern = clip_manager.getCurrentPattern();
         auto& sel_notes = current_pattern.getChannelNotes(selected_inst);
         int sel_limit = timeline_mgr.track_steps_limit[selected_inst];
         

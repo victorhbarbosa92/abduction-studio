@@ -108,7 +108,7 @@ public:
     void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {}
 };
 
-std::string track_names[MAX_TRACKS] = {"KICK/BASS", "LEADS", "VOX", "FX", "DRUMS", "SYNTH", "PADS", "EXTRA", "TRK 9", "TRK 10", "TRK 11", "TRK 12", "TRK 13", "TRK 14", "TRK 15", "TRK 16", "TRK 17", "TRK 18", "TRK 19", "TRK 20"};
+std::string track_names[MAX_TRACKS] = {"Drums", "Bassline", "Synth Lead", "Vocals", "Automation 1", "Automation 2", "Pads", "FX", "TRK 9", "TRK 10", "TRK 11", "TRK 12", "TRK 13", "TRK 14", "TRK 15", "TRK 16", "TRK 17", "TRK 18", "TRK 19", "TRK 20"};
 
 
 float global_time_sec = 0.0f;
@@ -129,6 +129,7 @@ bool track_solos[MAX_TRACKS] = { false };
 bool track_fx_bypass[MAX_TRACKS] = { false };
 bool track_abyss_pitch_enabled[MAX_TRACKS] = { false };
 float track_pitch_semitones[MAX_TRACKS] = { 0.0f };
+float track_offsets[MAX_TRACKS] = { 0.0f };
 
 // Linear gains para o DAG
 float track_linear_volumes[MAX_TRACKS] = { 1.0f };
@@ -826,17 +827,21 @@ int main(int argc, char* argv[]) {
             ImGui::DockBuilderDockWindow("Samples", dock_id_left);
             ImGui::DockBuilderDockWindow("Browser", dock_id_left);
 
-            // Center: Piano Roll + Project Settings (tabbed)
-            ImGui::DockBuilderDockWindow("Piano Roll", dock_id_center);
-            ImGui::DockBuilderDockWindow("Project Settings", dock_id_center);
+            // Center Top: Playlist / Arrangement View (Timeline Arranger Grid)
+            ImGui::DockBuilderDockWindow("[Playlist]", dock_id_center);
+            ImGui::DockBuilderDockWindow("Playlist - [Arrangement View]", dock_id_center);
 
-            // Right: Mixer Panel only
+            // Right: Mixer Panel
             ImGui::DockBuilderDockWindow("Mixer Panel", dock_id_mixer);
-            ImGui::DockBuilderDockWindow("Master", dock_id_mixer);
+            ImGui::DockBuilderDockWindow("Master Fader", dock_id_mixer);
 
-            // Bottom: Playlist, Channel Rack, Audio Editor (tabbed)
-            ImGui::DockBuilderDockWindow("[Playlist]", dock_id_bottom);
+            // Bottom: Device Rack, Piano Roll, Step Sequencer
+            ImGui::DockBuilderDockWindow("Device Rack", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("DeviceRack", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("Piano Roll", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("PianoRoll", dock_id_bottom);
             ImGui::DockBuilderDockWindow("[Channel Rack]", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("Channel Rack", dock_id_bottom);
             ImGui::DockBuilderDockWindow("[Automation Clip]", dock_id_bottom);
             ImGui::DockBuilderDockWindow("[Audio Editor]", dock_id_bottom);
 

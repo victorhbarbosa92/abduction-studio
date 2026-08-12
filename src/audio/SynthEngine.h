@@ -1047,6 +1047,7 @@ namespace KuroAudio {
 
                 // Checa quais notas devem começar a tocar
                 for (auto& note : notes) {
+                    if (current_time < note.start_time) { note.is_playing = false; }
                     if (!note.is_playing && current_time >= note.start_time && current_time < note.start_time + note.duration) {
                         note.is_playing = true;
                         active_voices.push_back({note.pitch, 0.0f, 0.0f, note.duration, note.velocity, true});
@@ -1430,6 +1431,7 @@ namespace KuroAudio {
 
                 // Checa quais notas devem começar a tocar
                 for (auto& note : notes) {
+                    if (current_time < note.start_time) { note.is_playing = false; }
                     if (!note.is_playing && current_time >= note.start_time && current_time < note.start_time + note.duration) {
                         note.is_playing = true;
                         active_voices.push_back({note.pitch, 0.0f, 0.0f, note.duration, note.velocity, true});

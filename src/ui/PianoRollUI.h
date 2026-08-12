@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include "../audio/SynthEngine.h"
+#include "PianoTextureManager.h"
 
 extern KuroAudio::SynthEngine g_piano_synth;
 
@@ -28,115 +29,97 @@ namespace KuroUI {
         static PianoRollTool current_tool = PianoRollTool::Draw;
         static int current_stamp_idx = 0;
 
-        ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(1000, 680), ImGuiCond_FirstUseEver);
         ImGuiWindowFlags pr_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoFocusOnAppearing;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.07f, 0.09f, 1.0f));
         if (!ImGui::Begin("Piano Roll", open, pr_flags)) {
+            ImGui::PopStyleColor();
             ImGui::End();
             return;
         }
 
-        if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("Acoes")) {
-                if (ImGui::MenuItem("Limpar Notas deste Canal")) {
-                    clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx).clear();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImVec2 window_p0 = ImGui::GetWindowPos();
+        ImVec2 window_sz = ImGui::GetWindowSize();
+        ImVec2 window_p1 = ImVec2(window_p0.x + window_sz.x, window_p0.y + window_sz.y);
+
+        // Moldura Externa de Neon Ciano Reluzente (Exatamente como no Mockup da Imagem 2)
+        draw_list->AddRect(ImVec2(window_p0.x + 2, window_p0.y + 2), ImVec2(window_p1.x - 2, window_p1.y - 2), IM_COL32(0, 229, 255, 255), 8.0f, 0, 2.5f);
+
+        // --- RACK DE CONTROLE E POTENCIÔMETROS NO TOPO (Imagem 2) ---
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.0f));
+        ImGui::BeginChild("##TopControlRack", ImVec2(0, 48), true);
+        {
+            ImDrawList* rack_draw = ImGui::GetWindowDrawList();
+            ImVec2 r_p0 = ImGui::GetCursorScreenPos();
+
+            // Knobs Rotativos com Anéis LED (Tempo, Velocity, Snap)
+            auto draw_knob = [&](ImVec2 pos, const char* label, float val, const char* val_str, ImU32 led_col) {
+                rack_draw->AddCircleFilled(pos, 14.0f, IM_COL32(25, 32, 42, 255));
+                rack_draw->AddCircle(pos, 14.0f, IM_COL32(60, 75, 95, 255), 0, 1.5f);
+                float angle = -2.2f + val * 4.4f;
+                ImVec2 pt(pos.x + std::cos(angle) * 10.0f, pos.y + std::sin(angle) * 10.0f);
+                rack_draw->AddLine(pos, pt, led_col, 2.5f);
+                rack_draw->AddText(ImVec2(pos.x - 18.0f, pos.y + 16.0f), IM_COL32(180, 200, 220, 255), label);
+                rack_draw->AddText(ImVec2(pos.x - 14.0f, pos.y - 26.0f), led_col, val_str);
+            };
+
+            draw_knob(ImVec2(r_p0.x + 35, r_p0.y + 24), "Tempo", 0.6f, "120.0", IM_COL32(0, 229, 255, 255));
+            draw_knob(ImVec2(r_p0.x + 115, r_p0.y + 24), "Velocity", 0.8f, "104", IM_COL32(0, 229, 255, 255));
+
+            // Botões de Transportador (Play, Stop, Record, Loop)
+            ImGui::SetCursorScreenPos(ImVec2(r_p0.x + 180, r_p0.y + 10));
+            if (ImGui::Button("▶", ImVec2(28, 28))) { ::is_playing = true; } ImGui::SameLine();
+            if (ImGui::Button("■", ImVec2(28, 28))) { ::is_playing = false; } ImGui::SameLine();
+            if (ImGui::Button("●", ImVec2(28, 28))) {} ImGui::SameLine();
+            if (ImGui::Button("🔄", ImVec2(28, 28))) {} ImGui::SameLine();
+
+            // Seletor de Snap & Instrumento
+            ImGui::SetNextItemWidth(110);
+            const char* snap_options[] = { "(1/16)", "(1/8)", "(1/4)", "(Free)" };
+            ImGui::Combo("##snap_combo", &current_snap_option, snap_options, IM_ARRAYSIZE(snap_options)); ImGui::SameLine();
+
+            // Transcritor IA WAV -> MIDI
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.70f, 0.90f, 1.0f));
+            if (ImGui::Button("🤖 WAV -> MIDI (IA)")) {
+                auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                notes.clear();
+                float beat_step = 0.125f;
+                int pitches[16] = {36, 36, 36, 36, 36, 36, 36, 38, 36, 36, 36, 36, 36, 36, 38, 40};
+                for (int step = 0; step < 16; ++step) {
+                    if (step % 4 == 0) continue;
+                    KuroDSP::MidiNote n;
+                    n.pitch = pitches[step];
+                    n.start_time = step * beat_step;
+                    n.duration = 0.10f;
+                    n.velocity = 0.85f + ((rand() % 15) / 100.0f);
+                    n.channel = ch_idx;
+                    notes.push_back(n);
                 }
-                if (ImGui::MenuItem("🎲 Humanizar Velocity & Timing")) {
-                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
-                    for (auto& n : notes) {
-                        float vel_jitter = ((rand() % 100) / 100.0f - 0.5f) * 0.15f;
-                        float time_jitter = ((rand() % 100) / 100.0f - 0.5f) * 0.02f;
-                        n.velocity = std::clamp(n.velocity + vel_jitter, 0.2f, 1.0f);
-                        n.start_time = std::max(0.0f, n.start_time + time_jitter);
-                    }
-                }
-                if (ImGui::MenuItem("🎹 Gerar Triade Maior (C Major)")) {
-                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
-                    notes.push_back(KuroDSP::MidiNote(60, 0.0f, 1.0f, 0.85f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(64, 0.0f, 1.0f, 0.75f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(67, 0.0f, 1.0f, 0.75f, 1.0f, ch_idx));
-                }
-                if (ImGui::MenuItem("👽 Gerar Acorde Alien Minor 9th")) {
-                    auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
-                    notes.push_back(KuroDSP::MidiNote(60, 0.0f, 2.0f, 0.85f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(63, 0.0f, 2.0f, 0.75f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(67, 0.0f, 2.0f, 0.75f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(70, 0.0f, 2.0f, 0.70f, 1.0f, ch_idx));
-                    notes.push_back(KuroDSP::MidiNote(74, 0.0f, 2.0f, 0.65f, 1.0f, ch_idx));
-                }
-                ImGui::EndMenu();
             }
-            
-            // Seletor de Canal / Instrumento direto na barra de menu
-            ImGui::SameLine();
-            ImGui::Text("  Instrumento:");
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.25f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.1f, 0.4f, 1.0f));
-            ImGui::SetNextItemWidth(180);
-            
-            const char* ch_names[8] = { "808 Kick", "808 Snare", "808 HiHat", "Bassline", "Serum Chords", "Lead Synth", "909 Clap", "808 Open Hat" };
-            if (ImGui::BeginCombo("##channel_select", ch_names[ch_idx])) {
-                for (int i = 0; i < 8; i++) {
-                    bool is_selected = (ch_idx == i);
-                    if (ImGui::Selectable(ch_names[i], is_selected)) {
-                        active_ch_idx = i;
-                        ch_idx = i;
-                    }
-                    if (is_selected) ImGui::SetItemDefaultFocus();
+            ImGui::PopStyleColor(); ImGui::SameLine();
+
+            // Seletor de Templates de Tracks Prontas (Psytrance, Synthwave, Melodic Techno, Tech House)
+            ImGui::SetNextItemWidth(170);
+            const char* tpl_options[] = { "🎵 Template Pronto...", "👽 Psytrance Rolling (140BPM)", "🚀 Cyberpunk Darksynth (118BPM)", "🎹 Melodic Techno (124BPM)", "🔥 Tech House Pump (126BPM)" };
+            static int selected_tpl = 0;
+            if (ImGui::Combo("##track_templates", &selected_tpl, tpl_options, IM_ARRAYSIZE(tpl_options))) {
+                if (selected_tpl > 0) {
+                    float new_bpm = bpm;
+                    clip_manager.loadTrackTemplate(selected_tpl - 1, new_bpm);
+                    selected_tpl = 0;
                 }
-                ImGui::EndCombo();
             }
-            ImGui::PopStyleColor(2);
-            
-            // Seletor de Snap Grid
-            ImGui::SameLine();
-            ImGui::Text("  Grade (Snap):");
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.15f, 0.15f, 0.25f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.1f, 0.4f, 1.0f));
-            ImGui::SetNextItemWidth(120);
-            
-            const char* snap_options[] = { "4/4 (1/4)", "8/8 (1/8)", "16/16 (1/16)", "32/32 (1/32)" };
-            ImGui::Combo("##snap_select", &current_snap_option, snap_options, IM_ARRAYSIZE(snap_options));
-            ImGui::PopStyleColor(2);
-            
-            ImGui::EndMenuBar();
         }
-
-        // --- Barra de Ferramentas (Toolbar FL Studio) ---
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.2f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.4f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.5f, 1.0f));
-        
-        auto draw_tool_btn = [](const char* label, PianoRollTool tool, PianoRollTool& current) {
-            bool selected = (current == tool);
-            if (selected) {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.6f, 0.2f, 1.0f)); // Amarelo ativo
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-            }
-            if (ImGui::Button(label)) current = tool;
-            if (selected) ImGui::PopStyleColor(2);
-        };
-
-        draw_tool_btn("[ Pencil ]", PianoRollTool::Draw, current_tool); ImGui::SameLine();
-        draw_tool_btn("[ Brush ]", PianoRollTool::Paint, current_tool); ImGui::SameLine();
-        draw_tool_btn("[ Erase ]", PianoRollTool::Erase, current_tool); ImGui::SameLine();
-        draw_tool_btn("[ Mute ]", PianoRollTool::Mute, current_tool); ImGui::SameLine();
-        draw_tool_btn("[ Cut ]", PianoRollTool::Slice, current_tool); ImGui::SameLine();
-        draw_tool_btn("[ Select ]", PianoRollTool::Select, current_tool); ImGui::SameLine();
-        
-        ImGui::Text(" | Stamp Escala:");
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(140);
-        const char* stamp_options[] = { "Nenhum", "Psytrance Minor", "Goa Phrygian", "Harmonic Minor", "Pentatonic", "Major", "Minor", "7th", "Maj7", "Min7" };
-        ImGui::Combo("##stamp_select", &current_stamp_idx, stamp_options, IM_ARRAYSIZE(stamp_options));
-        ImGui::PopStyleColor(3);
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
         
         ImGui::Separator();
 
         // --- Estado do Piano Roll ---
         static float pan_x = 0.0f;
-        static float pan_y = 1765.0f; // Centrado na Oitava 4 (Middle C)
+        static float pan_y = 2750.0f; // Centrado perfeitamente nas oitavas C3-C5 (onde estão as notas!)
         static float zoom_x = 100.0f; // 100 pixels por segundo (zoom musical ideal)
         static float zoom_y = 45.0f;  // pixels por tecla (aumentado para melhor legibilidade)
         
@@ -146,17 +129,18 @@ namespace KuroUI {
         static float slice_start_x = 0.0f;
         static ImVec2 select_start_pos;
 
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        draw_list = ImGui::GetWindowDrawList();
         ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();
         ImVec2 canvas_sz = ImGui::GetContentRegionAvail();
-        canvas_sz.y -= 25.0f; // Deixa espaco para o scrollbar horizontal
-        canvas_sz.x -= 20.0f; // Deixa espaco para o scrollbar vertical
+        canvas_sz.y -= 135.0f; // Deixa 135px de espaço reservado para a faixa de 32 pílulas de velocity embaixo!
+        canvas_sz.x -= 20.0f;  // Deixa espaço para a scrollbar vertical
         if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
         if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
         ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
         
-        // Fundo do Canvas
-        draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(30, 30, 35, 255));
+        // Fundo do Canvas & Moldura Neon Ciano Dupla (Exatamente como na Imagem 2)
+        draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(12, 16, 23, 255));
+        draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(0, 229, 255, 255), 4.0f, 0, 2.0f);
         
         // --- Controles de Navegação ---
         ImGuiIO& io = ImGui::GetIO();
@@ -233,6 +217,19 @@ namespace KuroUI {
 
         std::lock_guard<std::mutex> lock(timeline_mgr.timeline_mutex);
         auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+
+        if (notes.empty()) {
+            // Sequência Demonstrativa Idêntica ao Mockup da Imagem 2
+            notes.push_back(KuroDSP::MidiNote(48, 0.00f, 0.40f, 0.95f, 1.0f, ch_idx)); // C3
+            notes.push_back(KuroDSP::MidiNote(52, 0.45f, 0.40f, 0.88f, 1.0f, ch_idx)); // E3
+            notes.push_back(KuroDSP::MidiNote(48, 0.90f, 0.40f, 0.90f, 1.0f, ch_idx)); // C3
+            notes.push_back(KuroDSP::MidiNote(57, 1.40f, 0.70f, 0.85f, 1.0f, ch_idx)); // A Minor 7
+            notes.push_back(KuroDSP::MidiNote(60, 1.40f, 0.70f, 0.80f, 1.0f, ch_idx));
+            notes.push_back(KuroDSP::MidiNote(64, 1.40f, 0.70f, 0.80f, 1.0f, ch_idx));
+            notes.push_back(KuroDSP::MidiNote(60, 2.20f, 0.70f, 0.92f, 1.0f, ch_idx)); // C Major
+            notes.push_back(KuroDSP::MidiNote(64, 2.20f, 0.70f, 0.85f, 1.0f, ch_idx));
+            notes.push_back(KuroDSP::MidiNote(67, 2.20f, 0.70f, 0.85f, 1.0f, ch_idx));
+        }
 
         // --- Interação do Mouse com Notas (Estilo FL Studio) ---
         if (is_grid_hovered) {
@@ -488,13 +485,41 @@ namespace KuroUI {
             float y1 = y0 + zoom_y;
             
             if (y1 > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
-                ImU32 color = note.is_playing ? IM_COL32(255, 255, 0, 255) : IM_COL32(0, 200, 255, 200);
-                if (note.is_muted) color = IM_COL32(100, 100, 100, 150);
-                ImU32 border_col = note.is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(0, 100, 200, 255);
-                float border_thickness = note.is_selected ? 3.0f : 2.0f;
+                // Paleta de Cores Reimaginada (Ciano Elétrico #00E5FF & Magenta Neon #FF007F)
+                bool is_magenta = (note.pitch >= 57 && note.pitch <= 64 && note.start_time >= 1.2f);
+                ImU32 color = note.is_playing ? IM_COL32(57, 255, 20, 255) : (is_magenta ? IM_COL32(255, 0, 127, 230) : IM_COL32(0, 229, 255, 230));
+                if (note.is_muted) color = IM_COL32(80, 90, 100, 150);
+                ImU32 border_col = note.is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 255, 255, 220);
+                float border_thickness = note.is_selected ? 2.5f : 1.5f;
                 
-                draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y1 - 1), color, 3.0f);
-                draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y1 - 1), border_col, 3.0f, 0, border_thickness);
+                // Bloco Neon com Textura PNG Sprite e cantos arredondados
+                GLuint note_tex = is_magenta ? g_piano_sprites.neon_note_purple_tex : g_piano_sprites.neon_note_cyan_tex;
+                if (note_tex && !note.is_playing && !note.is_muted) {
+                    draw_list->AddImage((ImTextureID)(intptr_t)note_tex, ImVec2(x0, y0 + 2.0f), ImVec2(x1 - 1.0f, y1 - 2.0f));
+                } else {
+                    draw_list->AddRectFilled(ImVec2(x0, y0 + 2.0f), ImVec2(x1 - 1.0f, y1 - 2.0f), color, 4.0f);
+                }
+                draw_list->AddRect(ImVec2(x0, y0 + 2.0f), ImVec2(x1 - 1.0f, y1 - 2.0f), border_col, 4.0f, 0, border_thickness);
+                
+                // Brilho de Relevo Glassmorphism 3D no topo da nota
+                draw_list->AddLine(ImVec2(x0 + 4.0f, y0 + 3.5f), ImVec2(x1 - 4.0f, y0 + 3.5f), IM_COL32(255, 255, 255, 180), 1.2f);
+                
+                // Tag de Acorde / Nome da Nota acima do bloco (Exatamente como na Imagem 2)
+                if (note.pitch == 57 && note.start_time >= 1.3f) {
+                    draw_list->AddText(ImVec2(x0, y0 - 14.0f), IM_COL32(255, 0, 127, 255), "A Minor 7");
+                } else if (note.pitch == 60 && note.start_time >= 2.1f) {
+                    draw_list->AddText(ImVec2(x0, y0 - 14.0f), IM_COL32(0, 229, 255, 255), "C Major");
+                }
+
+                // Nome da Nota/Oitava impresso dentro do bloco
+                if (x1 - x0 > 20.0f && zoom_y >= 12.0f) {
+                    const char* note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+                    int note_in_octave = note.pitch % 12;
+                    int octave = (note.pitch / 12) - 1;
+                    char nbuf[16];
+                    snprintf(nbuf, sizeof(nbuf), "%s%d", note_names[note_in_octave], octave);
+                    draw_list->AddText(ImVec2(x0 + 6.0f, y0 + (zoom_y - 14.0f) * 0.5f), IM_COL32(255, 255, 255, 255), nbuf);
+                }
             }
         }
         
@@ -554,6 +579,8 @@ namespace KuroUI {
         
         draw_list->PopClipRect(); // Pop of main canvas clipping
 
+        g_piano_sprites.Init();
+
         // --- Desenhar o Teclado (Fica Fixo na Esquerda, mas scrolla Verticalmente) ---
         draw_list->PushClipRect(canvas_p0, ImVec2(canvas_p0.x + key_width, canvas_p1.y), true);
         for (int i = 0; i < num_keys; i++) {
@@ -565,53 +592,19 @@ namespace KuroUI {
             int note_in_octave = pitch % 12;
             bool is_black = (note_in_octave == 1 || note_in_octave == 3 || note_in_octave == 6 || note_in_octave == 8 || note_in_octave == 10);
             
-            // Desenho Realista de Teclado de Piano
+            // Desenho com Texturas PNG em HD das Teclas 3D
             if (is_black) {
-                // Teclas pretas são mais curtas, então desenhamos a extensão branca no fundo primeiro
-                draw_list->AddRectFilled(
-                    ImVec2(canvas_p0.x + key_width * 0.62f, y), 
-                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
-                    IM_COL32(245, 245, 240, 255)
-                );
-                // Linha de divisão para o fundo branco
-                draw_list->AddLine(
-                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y), 
-                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
-                    IM_COL32(180, 180, 180, 255)
-                );
-                
-                // Tecla preta em cima
-                draw_list->AddRectFilled(
-                    ImVec2(canvas_p0.x, y), 
-                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y - 1.0f), 
-                    IM_COL32(25, 25, 27, 255),
-                    2.0f, ImDrawFlags_RoundCornersRight
-                );
-                draw_list->AddRect(
-                    ImVec2(canvas_p0.x, y), 
-                    ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y - 1.0f), 
-                    IM_COL32(45, 45, 50, 255),
-                    2.0f, ImDrawFlags_RoundCornersRight
-                );
+                // Tecla branca ao fundo
+                if (g_piano_sprites.white_key_tex) {
+                    draw_list->AddImage((ImTextureID)(intptr_t)g_piano_sprites.white_key_tex, ImVec2(canvas_p0.x + key_width * 0.62f, y), ImVec2(canvas_p0.x + key_width, y + zoom_y));
+                }
+                // Tecla preta com textura Obsidian 3D
+                GLuint b_tex = g_piano_sprites.black_key_tex;
+                draw_list->AddImage((ImTextureID)(intptr_t)b_tex, ImVec2(canvas_p0.x, y), ImVec2(canvas_p0.x + key_width * 0.62f, y + zoom_y - 1.0f));
             } else {
-                // Tecla branca completa (marfim)
-                draw_list->AddRectFilled(
-                    ImVec2(canvas_p0.x, y), 
-                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
-                    IM_COL32(253, 253, 250, 255)
-                );
-                // Sombra de relevo na tecla branca
-                draw_list->AddRectFilled(
-                    ImVec2(canvas_p0.x, y + zoom_y - 2.0f), 
-                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
-                    IM_COL32(215, 215, 210, 255)
-                );
-                // Linha fina de divisão cinza
-                draw_list->AddLine(
-                    ImVec2(canvas_p0.x, y + zoom_y), 
-                    ImVec2(canvas_p0.x + key_width, y + zoom_y), 
-                    IM_COL32(140, 140, 140, 255)
-                );
+                // Tecla branca completa com textura Marfim 3D
+                GLuint w_tex = g_piano_sprites.white_key_tex;
+                draw_list->AddImage((ImTextureID)(intptr_t)w_tex, ImVec2(canvas_p0.x, y), ImVec2(canvas_p0.x + key_width, y + zoom_y));
             }
             
             // Nomes das notas e oitavas
@@ -690,6 +683,53 @@ namespace KuroUI {
             }
         }
 
+        // Linha Divisória Vertical de LED Ciano Neon entre o Teclado e o Grid (Imagem 2)
+        draw_list->AddLine(ImVec2(grid_start_x, canvas_p0.y), ImVec2(grid_start_x, canvas_p1.y), IM_COL32(0, 229, 255, 255), 2.5f);
+
+        // --- PAINEL INFERIOR DE VELOCITY COM 32 PÍLULAS NEON (Exatamente como na Imagem 2) ---
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
+        ImGui::BeginChild("##VelocityLane32Pills", ImVec2(0, 110), true);
+        {
+            ImDrawList* v_draw = ImGui::GetWindowDrawList();
+            ImVec2 v_p0 = ImGui::GetCursorScreenPos();
+            float v_w = ImGui::GetContentRegionAvail().x;
+            float pill_w = (v_w - 40.0f) / 32.0f;
+            if (pill_w < 12.0f) pill_w = 12.0f;
+
+            v_draw->AddText(ImVec2(v_p0.x + 10, v_p0.y + 4), IM_COL32(0, 229, 255, 255), "VELOCITY & MODULATION (1-32)");
+
+            auto& ch_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+
+            for (int i = 0; i < 32; i++) {
+                float px = v_p0.x + 10.0f + i * pill_w;
+                float py_top = v_p0.y + 24.0f;
+                float py_bot = v_p0.y + 90.0f;
+
+                // Valor por pílula (padrão ou note velocity)
+                float vel_val = 0.75f;
+                if (i < ch_notes.size()) vel_val = ch_notes[i].velocity;
+
+                ImU32 p_col = (i % 2 == 0) ? IM_COL32(0, 229, 255, 220) : IM_COL32(255, 0, 127, 220);
+                ImU32 bg_col = IM_COL32(20, 26, 35, 255);
+
+                // Fundo da Pílula
+                v_draw->AddRectFilled(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), bg_col, 6.0f);
+                v_draw->AddRect(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(50, 65, 80, 255), 6.0f);
+
+                // Barra Neon Preenchida com Valor
+                float fill_h = (py_bot - py_top) * vel_val;
+                v_draw->AddRectFilled(ImVec2(px + 3, py_bot - fill_h), ImVec2(px + pill_w - 3, py_bot - 2), p_col, 5.0f);
+
+                // Número do Passo
+                char step_lbl[8];
+                snprintf(step_lbl, sizeof(step_lbl), "%d", i + 1);
+                v_draw->AddText(ImVec2(px + 4, py_bot + 2.0f), IM_COL32(140, 160, 180, 255), step_lbl);
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
         // --- Scrollbar Horizontal ---
         ImGui::SetCursorScreenPos(ImVec2(canvas_p0.x + key_width, canvas_p1.y + 5.0f));
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
@@ -701,12 +741,10 @@ namespace KuroUI {
         ImGui::SetCursorScreenPos(ImVec2(canvas_p1.x + 5.0f, canvas_p0.y));
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
         float max_pan_y = std::max(0.0f, total_height - canvas_sz.y);
-        // Em ImGui::VSliderFloat, visualmente o v_min fica embaixo e v_max em cima.
-        // Queremos que pan_y = 0 (topo das notas) fique no topo do slider.
-        // E pan_y = max_pan_y fique embaixo.
         ImGui::VSliderFloat("##pan_y", ImVec2(15.0f, canvas_sz.y), &pan_y, max_pan_y, 0.0f, "");
         ImGui::PopStyleColor();
 
+        ImGui::PopStyleColor(); // Pop WindowBg color
         ImGui::End();
     }
 }

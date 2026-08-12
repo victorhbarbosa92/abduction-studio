@@ -104,10 +104,9 @@ add_custom_command(TARGET AbductionStudioV2 PRE_BUILD
     COMMENT "Anti-Lock: Encerrando AbductionStudioV2 em background..."
 )
 
-# Pós-processamento para Assinar Digitalmente o binário em nome de "Kuru" e copiar DLLs
+# Pós-processamento para copiar DLLs e assinar binário
 add_custom_command(TARGET AbductionStudioV2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
-    COMMAND powershell -Command "Unblock-File -Path $<TARGET_FILE:AbductionStudioV2>"
-    COMMAND powershell -Command "git add .; git commit -m 'Auto-Commit: Compilacao da DAW executada com sucesso.'; exit 0"
-    COMMENT "Copiando IA (ONNX), Desbloqueando Windows Security e Commit Local..."
+    COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/sign.ps1"
+    COMMENT "Copiando IA (ONNX) e Assinando Digitalmente com Certificado Kuru..."
 )

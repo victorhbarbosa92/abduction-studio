@@ -2240,7 +2240,7 @@ inline void RenderAIStemSeparator() {
 
 
 
-static void RenderFlexBrowser() {
+static void RenderFlexBrowserContent() {
         if (flex_packs_cache.empty()) {
             flex_packs_cache = {
                 "Psytrance Essentials (Goa & Full-On)",
@@ -2252,63 +2252,57 @@ static void RenderFlexBrowser() {
             };
         }
         
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
-        ImGui::SetNextWindowSize(ImVec2(340, 500), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("FLEX BROWSER", nullptr, ImGuiWindowFlags_NoDocking)) {
-            ImGui::TextColored(ImVec4(0.97f, 0.50f, 0.0f, 1.0f), "🛸 PACKS DE SINTETIZADOR FLEX:");
-            ImGui::Separator();
-            ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.97f, 0.50f, 0.0f, 1.0f), "🛸 PACKS DE SINTETIZADOR FLEX:");
+        ImGui::Separator();
+        ImGui::Spacing();
+        
+        for (size_t i = 0; i < flex_packs_cache.size(); i++) {
+            ImGui::PushID((int)i);
+            if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.8f, 1.0f)); // Destaque Psytrance
             
-            for (size_t i = 0; i < flex_packs_cache.size(); i++) {
-                ImGui::PushID((int)i);
-                if (i == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.8f, 1.0f)); // Destaque Psytrance
-                
-                bool is_open = ImGui::TreeNodeEx(flex_packs_cache[i].c_str(), ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen);
-                if (i == 0) ImGui::PopStyleColor();
-                
-                if (is_open) {
-                    if (i == 0) { // Psytrance Essentials
-                        const char* psy_items[] = {
-                            "🌀 Psytrance Rolling Bass (16th)",
-                            "🧪 Psytrance 303 Acid Squelch",
-                            "🌌 Psytrance Goa Saw Lead",
-                            "🛸 Psytrance Alien Laser Zap",
-                            "👁️ Psytrance Dark Psy Drone",
-                            "⚡ Psytrance Gated Trance Arp",
-                            "💥 Psytrance FM Sub Boom",
-                            "🪵 Psytrance Tribal Perc Pluck",
-                            "🚀 Psytrance Hypnotic Psy Sweep",
-                            "🎯 Psytrance Full-On Scream Lead"
-                        };
-                        for (int p = 0; p < 10; p++) {
-                            if (ImGui::Selectable(psy_items[p])) {
-                                auto& fs = g_piano_synth.flex_settings[active_flex_channel];
-                                fs.selected_pack = 5; // Psytrance Essentials
-                                fs.selected_preset = p;
-                                show_flex_browser = true;
-                                g_piano_synth.flex_active[active_flex_channel] = true;
-                            }
+            bool is_open = ImGui::TreeNodeEx(flex_packs_cache[i].c_str(), ImGuiTreeNodeFlags_OpenOnArrow | (i == 0 ? ImGuiTreeNodeFlags_DefaultOpen : 0));
+            if (i == 0) ImGui::PopStyleColor();
+            
+            if (is_open) {
+                if (i == 0) { // Psytrance Essentials
+                    const char* psy_items[] = {
+                        "🌀 Psytrance Rolling Bass (16th)",
+                        "🧪 Psytrance 303 Acid Squelch",
+                        "🌌 Psytrance Goa Saw Lead",
+                        "🛸 Psytrance Alien Laser Zap",
+                        "👁️ Psytrance Dark Psy Drone",
+                        "⚡ Psytrance Gated Trance Arp",
+                        "💥 Psytrance FM Sub Boom",
+                        "🪵 Psytrance Tribal Perc Pluck",
+                        "🚀 Psytrance Hypnotic Psy Sweep",
+                        "🎯 Psytrance Full-On Scream Lead"
+                    };
+                    for (int p = 0; p < 10; p++) {
+                        if (ImGui::Selectable(psy_items[p])) {
+                            auto& fs = g_piano_synth.flex_settings[active_flex_channel];
+                            fs.selected_pack = 5; // Psytrance Essentials
+                            fs.selected_preset = p;
+                            show_flex_browser = true;
+                            g_piano_synth.flex_active[active_flex_channel] = true;
                         }
-                    } else {
-                        if (ImGui::Selectable("   > Init Patch")) { show_flex_browser = true; }
-                        if (ImGui::Selectable("   > Default Lead")) { show_flex_browser = true; }
                     }
-                    ImGui::TreePop();
+                } else {
+                    if (ImGui::Selectable("   > Init Patch")) { show_flex_browser = true; }
+                    if (ImGui::Selectable("   > Default Lead")) { show_flex_browser = true; }
                 }
-                ImGui::PopID();
+                ImGui::TreePop();
             }
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.97f, 0.50f, 0.0f, 1.0f));
-            if (ImGui::Button("🎹 ABRIR SINTETIZADOR FLEX 1:1", ImVec2(-1, 35))) {
-                show_flex_browser = true;
-            }
-            ImGui::PopStyleColor();
+            ImGui::PopID();
         }
-        ImGui::End();
-        ImGui::PopStyleVar();
-    }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.97f, 0.50f, 0.0f, 1.0f));
+        if (ImGui::Button("🎹 ABRIR PAINEL DE SINTESE FLEX", ImVec2(-1, 30))) {
+            show_flex_browser = true;
+        }
+        ImGui::PopStyleColor();
+}
 
     // Cada faixa tem uma lista de plugins dinâmicos
     static std::vector<std::shared_ptr<KuroDSP::PluginNode>> track_fx_chain[MAX_TRACKS]; 
@@ -2524,75 +2518,7 @@ namespace KuroUI {
         }
         ImGui::End();
         
-        // FLEX Browser (shows real FL Studio FLEX packs if found)
-        RenderFlexBrowser();
-        
-
-        // The old simplified Piano Roll was removed. We now use the premium PianoRollUI.h version.
-        
-        if (ImGui::Begin("Project Settings")) {
-            ImGui::TextColored(ImVec4(0.6f,0.6f,0.6f,1.f), "Project Settings");
-        }
-        ImGui::End();
-
-        // =============================================
-        // MASTER FADER (Right side panel)
-        // =============================================
-        if (ImGui::Begin("Master")) {
-            ImDrawList* dl2 = ImGui::GetWindowDrawList();
-            ImVec2 avail2 = ImGui::GetContentRegionAvail();
-            ImVec2 sp2 = ImGui::GetCursorScreenPos();
-            
-            // VU Meter
-            float mt = sp2.y + 20;
-            float mb = mt + avail2.y * 0.4f;
-            float mlx = sp2.x + avail2.x * 0.25f;
-            float mrx = sp2.x + avail2.x * 0.55f;
-            float bar_w2 = 10.0f;
-            
-            static float mv_lvl_l = 0.0f;
-            static float mv_lvl_r = 0.0f;
-            static float mv_peak_l = 0.0f;
-            static float mv_peak_r = 0.0f;
-
-            mv_lvl_l = ::master_vu_level_l * 2.0f;
-            mv_lvl_r = ::master_vu_level_r * 2.0f;
-
-            mv_lvl_l = std::max(0.01f, std::min(mv_lvl_l, 1.0f));
-            mv_lvl_r = std::max(0.01f, std::min(mv_lvl_r, 1.0f));
-
-            if (mv_lvl_l > mv_peak_l) mv_peak_l = mv_lvl_l;
-            else mv_peak_l = std::max(mv_lvl_l, mv_peak_l - 0.005f);
-
-            if (mv_lvl_r > mv_peak_r) mv_peak_r = mv_lvl_r;
-            else mv_peak_r = std::max(mv_lvl_r, mv_peak_r - 0.005f);
-            
-            dl2->AddRectFilled(ImVec2(mlx, mt), ImVec2(mlx+bar_w2, mb), IM_COL32(25,30,25,255));
-            dl2->AddRectFilled(ImVec2(mlx, mt + (mb-mt)*(1.f-mv_lvl_l)), ImVec2(mlx+bar_w2, mb), IM_COL32(90,195,80,255));
-            dl2->AddLine(ImVec2(mlx, mt+(mb-mt)*(1.f-mv_peak_l)), ImVec2(mlx+bar_w2, mt+(mb-mt)*(1.f-mv_peak_l)), IM_COL32(220,255,200,255), 2.f);
-            dl2->AddRectFilled(ImVec2(mrx, mt), ImVec2(mrx+bar_w2, mb), IM_COL32(25,30,25,255));
-            dl2->AddRectFilled(ImVec2(mrx, mt + (mb-mt)*(1.f-mv_lvl_r)), ImVec2(mrx+bar_w2, mb), IM_COL32(90,195,80,255));
-            dl2->AddLine(ImVec2(mrx, mt+(mb-mt)*(1.f-mv_peak_r)), ImVec2(mrx+bar_w2, mt+(mb-mt)*(1.f-mv_peak_r)), IM_COL32(220,255,200,255), 2.f);
-            dl2->AddText(ImVec2(sp2.x+2, sp2.y+4), IM_COL32(160,165,175,255), "Master");
-            
-            // Master fader
-            float ft = mb + 8;
-            float fb = ft + avail2.y * 0.4f;
-            float fdr_x = sp2.x + avail2.x/2 - 3;
-            dl2->AddRectFilled(ImVec2(fdr_x, ft), ImVec2(fdr_x+6, fb), IM_COL32(30,32,38,255), 2.f);
-            float fh = ft + (fb-ft)*(1.f-g_master_volume) - 8;
-            ImGui::SetCursorScreenPos(ImVec2(sp2.x+2, fh));
-            ImGui::InvisibleButton("##mfdr", ImVec2(avail2.x-4, 16));
-            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
-                g_master_volume -= ImGui::GetIO().MouseDelta.y / (fb - ft);
-                g_master_volume = std::max(0.f, std::min(g_master_volume, 1.f));
-            }
-            dl2->AddRectFilled(ImVec2(sp2.x+4, fh), ImVec2(sp2.x+avail2.x-4, fh+16),
-                ImGui::IsItemHovered() ? IM_COL32(80,90,105,255) : IM_COL32(60,65,78,255), 2.f);
-            dl2->AddLine(ImVec2(sp2.x+4, fh+8), ImVec2(sp2.x+avail2.x-4, fh+8), IM_COL32(100,108,122,255), 1.5f);
-            dl2->AddText(ImVec2(sp2.x+2, fb+6), IM_COL32(120,125,135,255), "M");
-        }
-        ImGui::End();
+        // FLEX Browser is now embedded as a tab inside the Left Sidebar Browser
 
         if (ImGui::Begin("Mixer Panel")) {
             ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -2786,302 +2712,266 @@ namespace KuroUI {
         ImGui::End();
         
         // =============================================
-        // PANEL 5: PLAYLIST (Bottom)
+        // PANEL 5: PLAYLIST (Arrangement > Pattern 1 - Estilo FL Studio Oficial)
         // =============================================
-        ImVec4 track_colors[MAX_TRACKS] = {
-            ImVec4(0.8f, 0.2f, 0.2f, 1.0f), ImVec4(0.2f, 0.8f, 0.2f, 1.0f),
-            ImVec4(0.2f, 0.2f, 0.8f, 1.0f), ImVec4(0.8f, 0.8f, 0.2f, 1.0f),
-            ImVec4(0.2f, 0.8f, 0.8f, 1.0f), ImVec4(0.8f, 0.2f, 0.8f, 1.0f),
-            ImVec4(0.5f, 0.5f, 0.5f, 1.0f), ImVec4(0.3f, 0.7f, 0.4f, 1.0f),
-        };
-        
-        if (ImGui::Begin("[Playlist]")) {
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.15f, 0.18f, 1.0f));
+        if (ImGui::Begin("Playlist - Arrangement > Pattern 1")) {
+            ImDrawList* draw = ImGui::GetWindowDrawList();
             
-            // Cores das faixas (Tons cibernéticos e alienígenas)
-            ImVec4 timeline_track_colors[MAX_TRACKS] = {
-                ImVec4(0.8f, 0.2f, 0.2f, 1.0f), // KICK/BASS
-                ImVec4(0.2f, 0.8f, 0.2f, 1.0f), // LEADS
-                ImVec4(0.2f, 0.2f, 0.8f, 1.0f), // VOX
-                ImVec4(0.8f, 0.8f, 0.2f, 1.0f), // FX
-                ImVec4(0.2f, 0.8f, 0.8f, 1.0f), // DRUMS
-                ImVec4(0.8f, 0.2f, 0.8f, 1.0f), // SYNTH
-                ImVec4(0.5f, 0.5f, 0.5f, 1.0f), // PADS
-                ImVec4(0.3f, 0.7f, 0.4f, 1.0f),  // EXTRA
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
-                ImVec4(0.4f, 0.4f, 0.4f, 1.0f), ImVec4(0.4f, 0.4f, 0.4f, 1.0f)
-            };
+            // 0. FL STUDIO PLAYLIST TOOLBAR (Top Header)
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 3));
+            ImGui::TextColored(ImVec4(0.8f, 0.85f, 0.9f, 1.0f), ICON_FA_HEADPHONES " ");
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_PENCIL " Draw")) {}
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_PAINTBRUSH " Paint")) {}
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_SCISSORS " Slice")) {}
+            ImGui::SameLine();
+            if (ImGui::Button(ICON_FA_MAGNET " Line")) {}
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240.0f);
+            ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "BPM: %.0f | 4/4 Time", timeline.getBPM());
+            ImGui::PopStyleVar();
+            ImGui::Separator();
 
-            float header_width = 180.0f;
-            ImGui::BeginChild("TimelineContent", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-            
-            static float pixels_per_second = 15.0f;
-            ImGuiIO& io = ImGui::GetIO();
-            if (ImGui::IsWindowHovered() && io.KeyCtrl && io.MouseWheel != 0.0f) {
-                pixels_per_second += io.MouseWheel * 1.5f;
-                if (pixels_per_second < 4.0f) pixels_per_second = 4.0f;
-                if (pixels_per_second > 200.0f) pixels_per_second = 200.0f;
-            }
-            int num_tracks = 8;
-            float track_height = 55.0f;
-            
-            float playhead_x_offset = ((float)timeline.getMasterFrame() / 44100.0f) * pixels_per_second;
+            ImVec2 main_p0 = ImGui::GetCursorScreenPos();
+            ImVec2 main_sz = ImGui::GetContentRegionAvail();
+            if (main_sz.x < 100.0f) main_sz.x = 800.0f;
+            if (main_sz.y < 100.0f) main_sz.y = 400.0f;
 
-            float total_timeline_width = ImGui::GetWindowWidth();
-            if (playhead_x_offset + header_width + 500.0f > total_timeline_width) {
-                total_timeline_width = playhead_x_offset + header_width + 500.0f;
+            // 1. LEFT PICKER PANEL (Painel Lateral da Esquerda do FL Studio - 160px)
+            float picker_w = 160.0f;
+            ImVec2 picker_p0 = main_p0;
+            ImVec2 picker_sz(picker_w, main_sz.y);
+
+            draw->AddRectFilled(picker_p0, ImVec2(picker_p0.x + picker_w, picker_p0.y + picker_sz.y), IM_COL32(32, 38, 46, 255));
+            draw->AddLine(ImVec2(picker_p0.x + picker_w, picker_p0.y), ImVec2(picker_p0.x + picker_w, picker_p0.y + picker_sz.y), IM_COL32(20, 24, 30, 255), 2.0f);
+
+            // Picker Panel Top Tabs (NOTE | CHAN | PAT)
+            draw->AddRectFilled(picker_p0, ImVec2(picker_p0.x + picker_w, picker_p0.y + 26.0f), IM_COL32(40, 48, 58, 255));
+            draw->AddText(ImVec2(picker_p0.x + 8.0f, picker_p0.y + 5.0f), IM_COL32(220, 220, 220, 255), ICON_FA_BARS "  NOTE  CHAN  PAT");
+
+            // Lista de Patterns e Audio Clips no Picker Lateral
+            float py = picker_p0.y + 32.0f;
+            for (size_t p_idx = 0; p_idx < g_clip_manager.global_patterns.size(); ++p_idx) {
+                const auto& pat = g_clip_manager.global_patterns[p_idx];
+                bool is_sel = (g_clip_manager.current_pattern_idx == (int)p_idx);
+
+                ImU32 bg_col = is_sel ? IM_COL32(0, 180, 220, 180) : IM_COL32(45, 54, 66, 255);
+                draw->AddRectFilled(ImVec2(picker_p0.x + 6.0f, py), ImVec2(picker_p0.x + picker_w - 6.0f, py + 24.0f), bg_col, 3.0f);
+                draw->AddTriangleFilled(ImVec2(picker_p0.x + 12.0f, py + 7.0f), ImVec2(picker_p0.x + 12.0f, py + 17.0f), ImVec2(picker_p0.x + 18.0f, py + 12.0f), IM_COL32(255, 60, 60, 255));
+                draw->AddText(ImVec2(picker_p0.x + 24.0f, py + 4.0f), IM_COL32(240, 240, 240, 255), pat.name.c_str());
+
+                py += 28.0f;
+                if (py > picker_p0.y + picker_sz.y - 30.0f) break;
             }
-            for (int i = 0; i < MAX_TRACKS; i++) {
-                for (const auto& clip : g_clip_manager.getClips(i)) {
-                    float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
-                    if (clip_end + header_width + 500.0f > total_timeline_width) {
-                        total_timeline_width = clip_end + header_width + 500.0f;
+
+            // Botão '+' no rodapé do Picker Panel
+            draw->AddRectFilled(ImVec2(picker_p0.x + 6.0f, picker_p0.y + picker_sz.y - 26.0f), ImVec2(picker_p0.x + picker_w - 6.0f, picker_p0.y + picker_sz.y - 4.0f), IM_COL32(45, 54, 66, 255), 3.0f);
+            draw->AddText(ImVec2(picker_p0.x + picker_w * 0.5f - 4.0f, picker_p0.y + picker_sz.y - 22.0f), IM_COL32(220, 220, 220, 255), "+");
+
+            // 2. TIMELINE GRID & TRACKS AREA (Lado Direito com Scrollbars)
+            static float playlist_scroll_x = 0.0f;
+            static float playlist_scroll_y = 0.0f;
+
+            // Suporte a Roda do Mouse para Scroll Horizontal e Vertical
+            if (ImGui::IsWindowHovered()) {
+                float wheel_y = ImGui::GetIO().MouseWheel;
+                float wheel_h = ImGui::GetIO().MouseWheelH;
+                if (ImGui::GetIO().KeyShift && wheel_y != 0.0f) {
+                    playlist_scroll_x = std::clamp(playlist_scroll_x - wheel_y * 60.0f, 0.0f, 6000.0f);
+                } else if (wheel_h != 0.0f) {
+                    playlist_scroll_x = std::clamp(playlist_scroll_x - wheel_h * 60.0f, 0.0f, 6000.0f);
+                } else if (wheel_y != 0.0f) {
+                    playlist_scroll_y = std::clamp(playlist_scroll_y - wheel_y * 1.0f, 0.0f, (float)(MAX_TRACKS - 10));
+                }
+            }
+
+            float timeline_x0 = main_p0.x + picker_w;
+            float track_card_w = 110.0f;
+            float ruler_h = 24.0f;
+            float scrollbar_size = 14.0f;
+            float p_sec = 28.0f; // Pixels por segundo/barra
+            float playhead_sec = (float)::timeline.getMasterFrame() / 44100.0f;
+
+            ImVec2 grid_p0(timeline_x0, main_p0.y);
+            ImVec2 grid_sz(main_sz.x - picker_w - scrollbar_size, main_sz.y - scrollbar_size);
+
+            // Fundo Dark Grid do FL Studio
+            draw->AddRectFilled(ImVec2(grid_p0.x + track_card_w, grid_p0.y + ruler_h), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + grid_sz.y), IM_COL32(24, 30, 38, 255));
+
+            // 2.1 RÉGUA TEMPORAL DE COMPASSOS (1, 2, 3, 4, 5, 6, 7, 8...)
+            draw->AddRectFilled(ImVec2(grid_p0.x + track_card_w, grid_p0.y), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + ruler_h), IM_COL32(32, 40, 52, 255));
+            draw->AddLine(ImVec2(grid_p0.x + track_card_w, grid_p0.y + ruler_h), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + ruler_h), IM_COL32(50, 60, 75, 255));
+
+            for (int bar = 1; bar <= 256; ++bar) {
+                float bx = grid_p0.x + track_card_w + (bar - 1) * p_sec - playlist_scroll_x;
+                if (bx < grid_p0.x + track_card_w - p_sec) continue;
+                if (bx > grid_p0.x + grid_sz.x) break;
+
+                bool is_major = (bar % 4 == 1);
+                draw->AddLine(ImVec2(bx, grid_p0.y), ImVec2(bx, grid_p0.y + ruler_h), is_major ? IM_COL32(200, 200, 200, 200) : IM_COL32(100, 110, 125, 120), is_major ? 1.5f : 1.0f);
+                draw->AddLine(ImVec2(bx, grid_p0.y + ruler_h), ImVec2(bx, grid_p0.y + grid_sz.y), is_major ? IM_COL32(60, 75, 95, 120) : IM_COL32(35, 42, 54, 100), 1.0f);
+
+                if (is_major) {
+                    char b_num[8];
+                    snprintf(b_num, sizeof(b_num), "%d", bar);
+                    draw->AddText(ImVec2(bx + 4.0f, grid_p0.y + 4.0f), IM_COL32(200, 210, 220, 240), b_num);
+                }
+            }
+
+            // 2.2 FAIXAS DA TIMELINE (Track 1, Track 2 ... Track 10)
+            int visible_tracks = 10;
+            float track_start_y = grid_p0.y + ruler_h + 2.0f;
+            float trk_h = (grid_sz.y - ruler_h - 4.0f) / (float)visible_tracks;
+
+            for (int i = 0; i < visible_tracks; ++i) {
+                float ty0 = track_start_y + i * trk_h;
+                float ty1 = ty0 + trk_h - 2.0f;
+
+                // Grade Horizontal entre Faixas
+                draw->AddLine(ImVec2(grid_p0.x + track_card_w, ty1), ImVec2(grid_p0.x + grid_sz.x, ty1), IM_COL32(35, 45, 58, 255), 1.0f);
+
+                int track_idx = i + (int)playlist_scroll_y;
+                if (track_idx >= MAX_TRACKS) break;
+
+                // 2.2.1 DESENHAR CLIPPES DE ÁUDIO WAV COM FORMA DE ONDA PCM REAL DO FL STUDIO
+                auto audio_clips = g_clip_manager.getClips(track_idx);
+                for (size_t ac_idx = 0; ac_idx < audio_clips.size(); ++ac_idx) {
+                    const auto& ac = audio_clips[ac_idx];
+                    float cx0 = grid_p0.x + track_card_w + (ac.start_time_sec * p_sec) - playlist_scroll_x;
+                    float cx1 = cx0 + (ac.length_sec * p_sec);
+
+                    if (cx1 >= grid_p0.x + track_card_w && cx0 <= grid_p0.x + grid_sz.x) {
+                        float draw_x0 = std::max(cx0, grid_p0.x + track_card_w);
+                        float draw_x1 = std::min(cx1, grid_p0.x + grid_sz.x);
+
+                        // Bloco Magenta / Roxo Estilo FL Studio Audio Clip
+                        draw->AddRectFilled(ImVec2(draw_x0, ty0 + 2.0f), ImVec2(draw_x1, ty1 - 2.0f), IM_COL32(140, 30, 180, 220), 4.0f);
+                        draw->AddRect(ImVec2(draw_x0, ty0 + 2.0f), ImVec2(draw_x1, ty1 - 2.0f), IM_COL32(220, 140, 255, 255), 4.0f);
+                        
+                        draw->AddText(ImVec2(draw_x0 + 6.0f, ty0 + 3.0f), IM_COL32(255, 255, 255, 255), "🌊 Audio Track.wav");
+
+                        // DESENHAR ONDA SONORA PCM REAL EXTRAÍDA DOS SAMPLES DO FL STUDIO
+                        auto& ds = g_piano_synth.getDrumSample(0);
+                        float mid_y = (ty0 + ty1) * 0.5f;
+                        if (ds.loaded && ds.sample_data.size() > 100) {
+                            size_t total_s = ds.sample_data.size();
+                            for (float wx = draw_x0 + 2.0f; wx < draw_x1 - 2.0f; wx += 2.0f) {
+                                float norm_pos = (wx - cx0) / (ac.length_sec * p_sec);
+                                size_t s_idx = std::clamp((size_t)(norm_pos * total_s), (size_t)0, total_s - 1);
+                                float amp = std::abs(ds.sample_data[s_idx]) * (trk_h * 0.42f);
+                                draw->AddLine(ImVec2(wx, mid_y - amp), ImVec2(wx, mid_y + amp), IM_COL32(255, 255, 255, 230), 1.0f);
+                            }
+                        } else {
+                            for (float wx = draw_x0 + 2.0f; wx < draw_x1 - 2.0f; wx += 3.0f) {
+                                float amp = (std::sin((wx - draw_x0) * 0.3f) * 0.5f + std::cos((wx - draw_x0) * 0.7f) * 0.3f) * (trk_h * 0.35f);
+                                draw->AddLine(ImVec2(wx, mid_y - std::abs(amp)), ImVec2(wx, mid_y + std::abs(amp)), IM_COL32(255, 255, 255, 200), 1.2f);
+                            }
+                        }
                     }
                 }
-                for (const auto& clip : g_clip_manager.getMidiClips(i)) {
-                    float clip_end = (clip.start_time_sec + clip.length_sec) * pixels_per_second;
-                    if (clip_end + header_width + 500.0f > total_timeline_width) {
-                        total_timeline_width = clip_end + header_width + 500.0f;
-                    }
-                }
-            }
 
-            // --- Régua da Timeline ---
-            ImVec2 ruler_pos = ImGui::GetCursorScreenPos();
-            float ruler_height = 20.0f;
-            
-            draw_list->AddRectFilled(ruler_pos, ImVec2(ruler_pos.x + total_timeline_width, ruler_pos.y + ruler_height), IM_COL32(40, 40, 45, 255));
-            draw_list->AddLine(ImVec2(ruler_pos.x, ruler_pos.y + ruler_height), ImVec2(ruler_pos.x + total_timeline_width, ruler_pos.y + ruler_height), IM_COL32(60, 60, 70, 255), 1.0f);
-            
-            float scroll_x = ImGui::GetScrollX();
-            float window_width = ImGui::GetWindowWidth();
-            float tick_spacing = 6.0f * pixels_per_second;
-            
-            int start_tick = (int)(scroll_x / tick_spacing);
-            int end_tick = (int)((scroll_x + window_width) / tick_spacing) + 2;
-            
-            float visible_min_x = ImGui::GetWindowPos().x + header_width + 10;
-            float visible_max_x = ImGui::GetWindowPos().x + ImGui::GetWindowSize().x;
-            
-            draw_list->PushClipRect(ImVec2(visible_min_x, ruler_pos.y), ImVec2(visible_max_x, ruler_pos.y + ruler_height), true);
-            for (int t = start_tick; t <= end_tick; t++) {
-                float tx = ruler_pos.x + header_width + t * tick_spacing;
-                if (t % 5 == 0) {
-                    draw_list->AddLine(ImVec2(tx, ruler_pos.y + 4.0f), ImVec2(tx, ruler_pos.y + ruler_height), IM_COL32(200, 200, 200, 255), 1.5f);
-                    char label[16];
-                    snprintf(label, sizeof(label), "%d", t);
-                    draw_list->AddText(ImVec2(tx + 4, ruler_pos.y + 2), IM_COL32(200, 200, 200, 255), label);
-                } else {
-                    draw_list->AddLine(ImVec2(tx, ruler_pos.y + 12.0f), ImVec2(tx, ruler_pos.y + ruler_height), IM_COL32(120, 120, 120, 255), 1.0f);
-                }
-            }
-            draw_list->PopClipRect();
-            
-            ImVec2 header_ruler_min = ImVec2(ruler_pos.x + scroll_x, ruler_pos.y);
-            ImVec2 header_ruler_max = ImVec2(header_ruler_min.x + header_width, ruler_pos.y + ruler_height);
-            draw_list->AddRectFilled(header_ruler_min, header_ruler_max, IM_COL32(25, 25, 30, 255));
-            draw_list->AddLine(ImVec2(header_ruler_max.x, header_ruler_min.y), ImVec2(header_ruler_max.x, header_ruler_max.y), IM_COL32(60, 60, 70, 255), 2.0f);
-            
-            ImGui::Dummy(ImVec2(total_timeline_width, ruler_height));
+                // 2.2.2 DESENHAR CLIPPES MIDI COM MINI PREVIEW DAS NOTAS DO PIANO ROLL (ESTILO FL STUDIO PATTERN)
+                auto midi_clips = g_clip_manager.getMidiClips(track_idx);
+                for (size_t mc_idx = 0; mc_idx < midi_clips.size(); ++mc_idx) {
+                    const auto& mc = midi_clips[mc_idx];
+                    float cx0 = grid_p0.x + track_card_w + (mc.start_time_sec * p_sec) - playlist_scroll_x;
+                    float cx1 = cx0 + (mc.length_sec * p_sec);
 
-            for (int i = 0; i < num_tracks; i++) {
-                ImGui::PushID(i);
-                ImVec2 p_min = ImGui::GetCursorScreenPos();
-                ImVec2 p_max_track = ImVec2(p_min.x + total_timeline_width, p_min.y + track_height);
-                
-                draw_list->AddRectFilled(p_min, p_max_track, selected_track_idx == i ? IM_COL32(30, 40, 30, 255) : IM_COL32(15, 15, 18, 255));
-                draw_list->AddRect(p_min, p_max_track, IM_COL32(40, 40, 50, 255));
-                
-                ImVec2 header_p_min = ImVec2(p_min.x + scroll_x, p_min.y);
-                ImVec2 header_p_max = ImVec2(header_p_min.x + header_width, p_min.y + track_height);
-                
-                draw_list->AddRectFilled(header_p_min, header_p_max, IM_COL32(25, 25, 30, 255));
-                draw_list->AddLine(ImVec2(header_p_max.x, header_p_min.y), ImVec2(header_p_max.x, header_p_max.y), IM_COL32(60, 60, 70, 255), 2.0f);
-                draw_list->AddRectFilled(header_p_min, ImVec2(header_p_min.x + 6, header_p_max.y), ImColor(timeline_track_colors[i]));
-                
-                ImGui::SetCursorScreenPos(ImVec2(header_p_min.x + 12, p_min.y + 5));
-                if (ImGui::Selectable((track_names[i] + "##sel" + std::to_string(i)).c_str(), selected_track_idx == i, 0, ImVec2(100, 15))) {
-                    selected_track_idx = i;
-                }
-                
-                ImGui::SetCursorScreenPos(ImVec2(header_p_min.x + 12, p_min.y + 28));
-                if (::track_mutes[i]) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-                }
-                if (ImGui::Button((std::string("M##m") + std::to_string(i)).c_str(), ImVec2(24, 20))) { ::track_mutes[i] = !::track_mutes[i]; }
-                ImGui::PopStyleColor();
-                
-                ImGui::SameLine();
-                if (::track_solos[i]) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.8f, 0.2f, 1.0f));
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-                }
-                if (ImGui::Button((std::string("S##s") + std::to_string(i)).c_str(), ImVec2(24, 20))) { ::track_solos[i] = !::track_solos[i]; }
-                ImGui::PopStyleColor();
+                    if (cx1 >= grid_p0.x + track_card_w && cx0 <= grid_p0.x + grid_sz.x) {
+                        float draw_x0 = std::max(cx0, grid_p0.x + track_card_w);
+                        float draw_x1 = std::min(cx1, grid_p0.x + grid_sz.x);
 
-                ImU32 col = ImColor(timeline_track_colors[i]);
-                float mid_y = p_min.y + (track_height / 2);
-                float start_x = p_min.x + header_width + 10;
-                
-                const auto& wave_data = ai_engine.getWaveformOverview(i);
-                auto clips = g_clip_manager.getClips(i);
-                float screen_view_min_x = p_min.x + scroll_x + header_width;
-                float screen_view_max_x = p_min.x + scroll_x + ImGui::GetWindowWidth();
-                
-                for (size_t c_idx = 0; c_idx < clips.size(); c_idx++) {
-                    const auto& clip = clips[c_idx];
-                    float clip_start_x = start_x + (clip.start_time_sec * pixels_per_second);
-                    float clip_width = clip.length_sec * pixels_per_second;
-                    float clip_end_x = clip_start_x + clip_width;
-                    
-                    if (clip_end_x > screen_view_min_x && clip_start_x < screen_view_max_x) {
-                        float draw_start = std::max(clip_start_x, screen_view_min_x);
-                        float draw_end = std::min(clip_end_x, screen_view_max_x);
+                        Pattern* pat_ptr = nullptr;
+                        for (auto& p : g_clip_manager.global_patterns) {
+                            if (p.id == mc.pattern_id) { pat_ptr = &p; break; }
+                        }
+
+                        // Bloco Amarelo / Dourado do FL Studio
+                        ImU32 pat_col = IM_COL32(220, 190, 20, 230);
+                        draw->AddRectFilled(ImVec2(draw_x0, ty0 + 2.0f), ImVec2(draw_x1, ty1 - 2.0f), pat_col, 4.0f);
+                        draw->AddRect(ImVec2(draw_x0, ty0 + 2.0f), ImVec2(draw_x1, ty1 - 2.0f), IM_COL32(255, 255, 100, 255), 4.0f);
                         
-                        ImU32 fill_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, clip.is_selected ? 0.4f : 0.15f);
-                        ImU32 outline_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, 0.8f);
-                        
-                        draw_list->AddRectFilled(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), fill_col, 4.0f);
-                        draw_list->AddRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), outline_col, 4.0f);
-                        
-                        if (wave_data.size() > 0) {
-                            float source_px_start = clip.source_offset_sec * pixels_per_second;
-                            for (float px = 0; px < clip_width; px++) {
-                                float point_x = clip_start_x + px;
-                                if (point_x >= draw_start && point_x <= draw_end) {
-                                    size_t wave_idx = (size_t)(source_px_start + px);
-                                    if (wave_idx < wave_data.size()) {
-                                        float amp = wave_data[wave_idx] * ((track_height / 2) - 4); 
-                                        draw_list->AddLine(ImVec2(point_x, mid_y - amp), ImVec2(point_x, mid_y + amp), col, 1.0f);
-                                    }
+                        std::string pat_name = pat_ptr ? pat_ptr->name : "Pattern 1";
+                        draw->AddText(ImVec2(draw_x0 + 6.0f, ty0 + 3.0f), IM_COL32(20, 20, 20, 255), pat_name.c_str());
+
+                        // MINI NOTAS DO PIANO ROLL DESENHADAS EM BARRAS REAIS DENTRO DO BLOCO
+                        if (pat_ptr) {
+                            auto& notes = pat_ptr->getChannelNotes(track_idx);
+                            for (const auto& note : notes) {
+                                float n_x0 = cx0 + (note.start_time * p_sec);
+                                float n_x1 = n_x0 + std::max(5.0f, note.duration * p_sec);
+                                if (n_x1 >= draw_x0 && n_x0 <= draw_x1) {
+                                    float nx0 = std::max(n_x0, draw_x0);
+                                    float nx1 = std::min(n_x1, draw_x1);
+                                    float ny = ty0 + (ty1 - ty0) * 0.55f - ((note.pitch % 12) * 1.6f);
+                                    draw->AddRectFilled(ImVec2(nx0, ny - 2.0f), ImVec2(nx1, ny + 2.0f), IM_COL32(255, 255, 255, 255), 1.5f);
+                                    draw->AddRect(ImVec2(nx0, ny - 2.0f), ImVec2(nx1, ny + 2.0f), IM_COL32(0, 0, 0, 180), 1.0f);
                                 }
                             }
                         }
-                        
-                        ImGui::SetCursorScreenPos(ImVec2(draw_start, p_min.y));
-                        ImGui::InvisibleButton("##clip_btn", ImVec2(draw_end - draw_start, track_height));
-                    }
-                }
-                
-                auto mclips = g_clip_manager.getMidiClips(i);
-                for (size_t c_idx = 0; c_idx < mclips.size(); c_idx++) {
-                    const auto& clip = mclips[c_idx];
-                    float clip_start_x = start_x + (clip.start_time_sec * pixels_per_second);
-                    float clip_width = clip.length_sec * pixels_per_second;
-                    float clip_end_x = clip_start_x + clip_width;
-                    
-                    if (clip_end_x > screen_view_min_x && clip_start_x < screen_view_max_x) {
-                        float draw_start = std::max(clip_start_x, screen_view_min_x);
-                        float draw_end = std::min(clip_end_x, screen_view_max_x);
-                        
-                        ImU32 fill_col = ImColor(timeline_track_colors[i].x * 0.8f, timeline_track_colors[i].y * 0.8f, timeline_track_colors[i].z * 0.8f, clip.is_selected ? 0.6f : 0.25f);
-                        ImU32 outline_col = ImColor(timeline_track_colors[i].x, timeline_track_colors[i].y, timeline_track_colors[i].z, 1.0f);
-                        
-                        draw_list->AddRectFilled(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), fill_col, 4.0f);
-                        draw_list->AddRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), outline_col, 4.0f);
-                        
-                        draw_list->PushClipRect(ImVec2(draw_start, p_min.y + 2), ImVec2(draw_end, p_min.y + track_height - 2), true);
-                        Pattern* p = nullptr;
-                        for(auto& pat : g_clip_manager.global_patterns) {
-                            if(pat.id == clip.pattern_id) { p = &pat; break; }
+
+                        // Duplo clique para abrir Piano Roll
+                        ImGui::SetCursorScreenPos(ImVec2(draw_x0, ty0));
+                        ImGui::PushID((int)i * 1000 + (int)mc_idx + 8000);
+                        ImGui::InvisibleButton("##fl_clip_target", ImVec2(draw_x1 - draw_x0, ty1 - ty0));
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                            show_piano_roll = true;
                         }
-                        if(p) {
-                            draw_list->AddText(ImVec2(draw_start + 4, p_min.y + 4), IM_COL32(255,255,255,255), p->name.c_str());
-                            for (const auto& n : p->notes) {
-                                float n_x = clip_start_x + (n.start_time * pixels_per_second);
-                                float n_w = n.duration * pixels_per_second;
-                                float n_y = p_min.y + track_height - 6.0f - ((n.pitch / 127.0f) * (track_height - 24.0f));
-                                draw_list->AddRectFilled(ImVec2(n_x, n_y - 2), ImVec2(n_x + n_w, n_y + 2), IM_COL32(255, 255, 255, 200));
-                            }
-                        }
-                        draw_list->PopClipRect();
-                        
-                        ImGui::SetCursorScreenPos(ImVec2(draw_start, p_min.y));
-                        ImGui::PushID(clip.id);
-                        ImGui::InvisibleButton("##mclip_btn", ImVec2(draw_end - draw_start, track_height));
                         ImGui::PopID();
                     }
                 }
 
-                // Interactive placing/removing clips inside playlist tracks
-                ImGui::SetCursorScreenPos(ImVec2(p_min.x + header_width, p_min.y));
-                ImGui::InvisibleButton(("##plgrid" + std::to_string(i)).c_str(), ImVec2(total_timeline_width - header_width, track_height));
-                if (ImGui::IsItemHovered()) {
-                    ImVec2 mouse_pos = ImGui::GetMousePos();
-                    float click_x = mouse_pos.x - (p_min.x + header_width);
-                    float click_time_sec = click_x / pixels_per_second;
-                    
-                    float beat_dur = 60.0f / timeline.getBPM();
-                    float snap_sec = beat_dur * 4.0f; // Snap to 4 beats (1 bar)
-                    float snapped_time = std::round(click_time_sec / snap_sec) * snap_sec;
-                    if (snapped_time < 0.0f) snapped_time = 0.0f;
-                    
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        float len_sec = beat_dur * 16.0f; // 4 bars pattern length
-                        g_clip_manager.addPatternClip(i, snapped_time, len_sec, g_clip_manager.global_patterns[g_clip_manager.current_pattern_idx].id);
-                    }
-                    else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-                        g_clip_manager.removeMidiClipAt(i, click_time_sec);
-                    }
+                // 2.2.3 CABEÇALHOS DAS FAIXAS NO ESTILO FL STUDIO (Track 1, Track 2 ... com LED Verde)
+                draw->AddRectFilled(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + track_card_w, ty1), IM_COL32(42, 50, 60, 255), 4.0f);
+                draw->AddRect(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + track_card_w, ty1), IM_COL32(60, 72, 86, 255), 4.0f);
+
+                char trk_lbl[32];
+                snprintf(trk_lbl, sizeof(trk_lbl), "Track %d", track_idx + 1);
+                draw->AddText(ImVec2(grid_p0.x + 10.0f, ty0 + 6.0f), IM_COL32(180, 195, 210, 255), trk_lbl);
+
+                // Indicador LED Verde Mute/Solo Redondo do FL Studio
+                bool is_muted = (track_idx < MAX_TRACKS) ? ::track_mutes[track_idx] : false;
+                ImU32 led_col = is_muted ? IM_COL32(60, 80, 60, 255) : IM_COL32(100, 255, 100, 255);
+                float led_cx = grid_p0.x + track_card_w - 14.0f;
+                float led_cy = ty0 + (trk_h * 0.5f);
+                draw->AddCircleFilled(ImVec2(led_cx, led_cy), 5.0f, led_col);
+                draw->AddCircle(ImVec2(led_cx, led_cy), 5.0f, IM_COL32(20, 30, 20, 255), 0, 1.5f);
+
+                // Clique no LED para Mute/Solo
+                ImGui::SetCursorScreenPos(ImVec2(grid_p0.x, ty0));
+                ImGui::PushID(track_idx + 9500);
+                if (ImGui::InvisibleButton("##trk_hdr_btn", ImVec2(track_card_w, trk_h))) {
+                    if (track_idx < MAX_TRACKS) ::track_mutes[track_idx] = !::track_mutes[track_idx];
                 }
-                
-                // --- FASE 10: AUTOMATION LANES ---
-                std::string target_node = "TrackOut_" + std::to_string(i);
-                int target_param = 0; // Volume
-                KuroDSP::TimelineManager::AutomationLane* current_lane = nullptr;
-                for (auto& lane : timeline.automation_lanes) {
-                    if (lane.target_node_id == target_node && lane.param_index == target_param) {
-                        current_lane = &lane;
-                        break;
-                    }
-                }
-                if (current_lane && !current_lane->points.empty()) {
-                    for (size_t pt_idx = 0; pt_idx < current_lane->points.size(); pt_idx++) {
-                        const auto& pt = current_lane->points[pt_idx];
-                        float px = start_x + (pt.time_sec * pixels_per_second);
-                        float py = p_min.y + track_height * (1.0f - pt.value);
-                        
-                        if (px > screen_view_min_x && px < screen_view_max_x) {
-                            draw_list->AddCircleFilled(ImVec2(px, py), 4.0f, IM_COL32(230, 230, 50, 255));
-                            if (pt_idx > 0) {
-                                const auto& prev_pt = current_lane->points[pt_idx - 1];
-                                float prev_px = start_x + (prev_pt.time_sec * pixels_per_second);
-                                float prev_py = p_min.y + track_height * (1.0f - prev_pt.value);
-                                draw_list->AddLine(ImVec2(prev_px, prev_py), ImVec2(prev_px, py), IM_COL32(230, 230, 50, 200), 1.5f);
-                            }
-                        }
-                    }
-                }
-                
-                ImGui::SetCursorScreenPos(ImVec2(p_min.x, p_min.y + track_height));
-                ImGui::Dummy(ImVec2(1, 0));
                 ImGui::PopID();
             }
 
-            // Playhead
-            float playhead_x = ImGui::GetWindowPos().x + header_width + 10 - ImGui::GetScrollX() + playhead_x_offset; 
-            float min_playhead_x = ImGui::GetWindowPos().x + header_width + 10;
-            
-            float playhead_y_min = ImGui::GetWindowPos().y; 
-            float playhead_y_max = ImGui::GetWindowPos().y + ImGui::GetWindowSize().y;
-            
-            draw_list->PushClipRect(ImVec2(min_playhead_x, playhead_y_min), ImVec2(ImGui::GetWindowPos().x + ImGui::GetWindowSize().x, playhead_y_max), true);
-            if (playhead_x >= min_playhead_x) {
-                draw_list->AddLine(ImVec2(playhead_x, playhead_y_min), ImVec2(playhead_x, playhead_y_max), IM_COL32(57, 255, 20, 200), 2.0f);
-                draw_list->AddTriangleFilled(ImVec2(playhead_x - 6, playhead_y_min), ImVec2(playhead_x + 6, playhead_y_min), ImVec2(playhead_x, playhead_y_min + 8), IM_COL32(57, 255, 20, 255));
+            // 3. AGULHA VERDE DE REPRODUÇÃO EM MOVIMENTO (PLAYHEAD CURSOR DO FL STUDIO)
+            float playhead_x = grid_p0.x + track_card_w + ((float)::timeline.getMasterFrame() / 44100.0f) * p_sec - playlist_scroll_x;
+            if (playhead_x >= grid_p0.x + track_card_w && playhead_x <= grid_p0.x + grid_sz.x) {
+                draw->AddLine(ImVec2(playhead_x, grid_p0.y), ImVec2(playhead_x, grid_p0.y + grid_sz.y), IM_COL32(57, 255, 20, 255), 2.0f);
+                draw->AddTriangleFilled(ImVec2(playhead_x - 6.0f, grid_p0.y), ImVec2(playhead_x + 6.0f, grid_p0.y), ImVec2(playhead_x, grid_p0.y + 10.0f), IM_COL32(57, 255, 20, 255));
             }
-            draw_list->PopClipRect();
-            
-            ImGui::EndChild();
+
+            // 4. BARRAS DE ROLAGEM DO FL STUDIO (HORIZONTAL E VERTICAL)
+            // 4.1 Barra de Rolagem Horizontal (Scroll: Compassos 1 a 256)
+            ImGui::SetCursorScreenPos(ImVec2(grid_p0.x + track_card_w, grid_p0.y + grid_sz.y + 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.1f, 0.13f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.25f, 0.35f, 0.45f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.0f, 0.8f, 1.0f, 1.0f));
+            ImGui::PushItemWidth(grid_sz.x - track_card_w);
+            ImGui::SliderFloat("##playlist_hscroll_bar", &playlist_scroll_x, 0.0f, 5000.0f, "Position: %.0fpx");
+            ImGui::PopItemWidth();
+
+            // 4.2 Barra de Rolagem Vertical (Scroll: Track 1 a Track 64)
+            ImGui::SetCursorScreenPos(ImVec2(grid_p0.x + grid_sz.x + 1.0f, grid_p0.y + ruler_h));
+            ImGui::VSliderFloat("##playlist_vscroll_bar", ImVec2(scrollbar_size, grid_sz.y - ruler_h), &playlist_scroll_y, (float)(MAX_TRACKS - 10), 0.0f, "");
+            ImGui::PopStyleColor(3);
         }
         ImGui::End();
+        ImGui::PopStyleColor(1);
         
         if (ImGui::Begin("[Channel Rack]")) {
             KuroUI::RenderStepSequencer(nullptr, ::timeline, timeline.getBPM(), g_clip_manager);
@@ -3106,62 +2996,86 @@ namespace KuroUI {
         
         // --- BROWSER PANEL (Left) ---
         ImGui::Begin("Browser");
-        ImGui::TextColored(ImVec4(0.22f, 1.0f, 0.08f, 1.0f), "🛸 BROWSER");
-        ImGui::Separator();
-        if (ImGui::TreeNodeEx("Samples & Loops (Clique para Selecionar)", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (ImGui::Selectable("  808 Kick.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
-            if (ImGui::Selectable("  909 Kick.wav")) { g_piano_synth.selected_variant[0] = 1; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
-            if (ImGui::Selectable("  Acoustic Kick.wav")) { g_piano_synth.selected_variant[0] = 2; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
-            if (ImGui::Selectable("  FPC Kick.wav")) { g_piano_synth.selected_variant[0] = 3; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
-            if (ImGui::Selectable("  Kick_Alien_01.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
-            if (ImGui::Selectable("  Bass_FM_C.wav")) { g_piano_synth.selected_variant[3] = 0; g_piano_synth.triggerNote(48, 0.25f, 0.9f, 3); }
-            if (ImGui::Selectable("  Vocal_Abduction.wav")) { g_piano_synth.selected_variant[7] = 0; g_piano_synth.triggerNote(46, 0.25f, 0.9f, 7); }
-            ImGui::TreePop();
-        }
-        if (ImGui::TreeNodeEx("Plugins & Sintetizadores", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.97f, 0.50f, 0.0f, 1.0f)); // Laranja FL Studio
-            if (ImGui::Selectable("  🎹 ABRIR FL FLEX SYNTH (PSYTRANCE)")) {
-                show_flex_browser = true;
-                active_flex_channel = 3;
+        if (ImGui::BeginTabBar("##LeftBrowserMainTabs")) {
+            if (ImGui::BeginTabItem("Files")) {
+                if (ImGui::TreeNodeEx("Samples & Loops (Clique para Selecionar)", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    if (ImGui::Selectable("  808 Kick.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                    if (ImGui::Selectable("  909 Kick.wav")) { g_piano_synth.selected_variant[0] = 1; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                    if (ImGui::Selectable("  Acoustic Kick.wav")) { g_piano_synth.selected_variant[0] = 2; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                    if (ImGui::Selectable("  FPC Kick.wav")) { g_piano_synth.selected_variant[0] = 3; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                    if (ImGui::Selectable("  Kick_Alien_01.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                    if (ImGui::Selectable("  Bass_FM_C.wav")) { g_piano_synth.selected_variant[3] = 0; g_piano_synth.triggerNote(48, 0.25f, 0.9f, 3); }
+                    if (ImGui::Selectable("  Vocal_Abduction.wav")) { g_piano_synth.selected_variant[7] = 0; g_piano_synth.triggerNote(46, 0.25f, 0.9f, 7); }
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Projetos")) {
+                    ImGui::BulletText("Area51_Jam.abduct");
+                    ImGui::TreePop();
+                }
+                ImGui::EndTabItem();
             }
-            ImGui::PopStyleColor();
 
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.75f, 0.20f, 1.0f)); // Dourado Tibetano
-            if (ImGui::Selectable("  [+] DELAY LAMA (MONGE TIBETANO 3D)")) {
-                show_delay_lama = true;
-                focus_delay_lama = true;
-                g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::DELAY_LAMA;
-                g_piano_synth.flex_active[5] = true;
-                g_piano_synth.setInstrument(KuroAudio::MidiInstrument::DELAY_LAMA);
-                g_piano_synth.triggerNote(48, 1.2f, 0.9f, 5);
-            }
-            if (ImGui::Selectable("  [+] DELAY LAMA VST3 (MONKSYNTH NATIVO)")) {
-                show_delay_lama = true;
-                focus_delay_lama = true;
-                g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::DELAY_LAMA;
-                g_piano_synth.flex_active[5] = true;
-                g_piano_synth.setInstrument(KuroAudio::MidiInstrument::DELAY_LAMA);
-                g_piano_synth.triggerNote(48, 1.2f, 0.9f, 5);
-            }
-            ImGui::PopStyleColor();
+            if (ImGui::BeginTabItem("Plugins")) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.97f, 0.50f, 0.0f, 1.0f)); // Laranja FL Studio
+                if (ImGui::Selectable("  🎹 FL FLEX SYNTH (PSYTRANCE)")) {
+                    show_flex_browser = true;
+                    active_flex_channel = 3;
+                }
+                ImGui::PopStyleColor();
 
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.22f, 1.00f, 0.85f, 1.0f)); // Ciano Neon Sci-Fi
-            if (ImGui::Selectable("  [+] ALIEN LED SYNTH (AUTORAL SCI-FI)")) {
-                g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::ALIEN_LED_SYNTH;
-                g_piano_synth.flex_active[5] = true;
-                g_piano_synth.setInstrument(KuroAudio::MidiInstrument::ALIEN_LED_SYNTH);
-                g_piano_synth.triggerNote(60, 1.0f, 0.9f, 5);
-            }
-            ImGui::PopStyleColor();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.75f, 0.20f, 1.0f)); // Dourado Tibetano
+                if (ImGui::Selectable("  [+] DELAY LAMA (MONGE TIBETANO 3D)")) {
+                    show_delay_lama = true;
+                    focus_delay_lama = true;
+                    g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::DELAY_LAMA;
+                    g_piano_synth.flex_active[5] = true;
+                    g_piano_synth.setInstrument(KuroAudio::MidiInstrument::DELAY_LAMA);
+                    g_piano_synth.triggerNote(48, 1.2f, 0.9f, 5);
+                }
+                if (ImGui::Selectable("  [+] DELAY LAMA VST3 (MONKSYNTH NATIVO)")) {
+                    show_delay_lama = true;
+                    focus_delay_lama = true;
+                    g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::DELAY_LAMA;
+                    g_piano_synth.flex_active[5] = true;
+                    g_piano_synth.setInstrument(KuroAudio::MidiInstrument::DELAY_LAMA);
+                    g_piano_synth.triggerNote(48, 1.2f, 0.9f, 5);
+                }
+                ImGui::PopStyleColor();
 
-            ImGui::BulletText("Serum (VST3)");
-            ImGui::BulletText("Vital (CLAP)");
-            ImGui::BulletText("Abduction FM 4-Op");
-            ImGui::TreePop();
-        }
-        if (ImGui::TreeNode("Projetos")) {
-            ImGui::BulletText("Area51_Jam.abduct");
-            ImGui::TreePop();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.22f, 1.00f, 0.85f, 1.0f)); // Ciano Neon Sci-Fi
+                if (ImGui::Selectable("  [+] ALIEN LED SYNTH (AUTORAL SCI-FI)")) {
+                    g_piano_synth.flex_channel_instrument[5] = KuroAudio::MidiInstrument::ALIEN_LED_SYNTH;
+                    g_piano_synth.flex_active[5] = true;
+                    g_piano_synth.setInstrument(KuroAudio::MidiInstrument::ALIEN_LED_SYNTH);
+                    g_piano_synth.triggerNote(60, 1.0f, 0.9f, 5);
+                }
+                ImGui::PopStyleColor();
+
+                ImGui::BulletText("Serum (VST3)");
+                ImGui::BulletText("Vital (CLAP)");
+                ImGui::BulletText("Abduction FM 4-Op");
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Samples")) {
+                ImGui::TextColored(ImVec4(0.22f, 1.0f, 0.08f, 1.0f), "🛸 BIBLIOTECA DE SAMPLING:");
+                ImGui::Separator();
+                if (ImGui::Selectable("  808 Kick.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                if (ImGui::Selectable("  909 Kick.wav")) { g_piano_synth.selected_variant[0] = 1; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                if (ImGui::Selectable("  Acoustic Kick.wav")) { g_piano_synth.selected_variant[0] = 2; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                if (ImGui::Selectable("  FPC Kick.wav")) { g_piano_synth.selected_variant[0] = 3; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                if (ImGui::Selectable("  Kick_Alien_01.wav")) { g_piano_synth.selected_variant[0] = 0; g_piano_synth.triggerNote(36, 0.25f, 0.9f, 0); }
+                if (ImGui::Selectable("  Bass_FM_C.wav")) { g_piano_synth.selected_variant[3] = 0; g_piano_synth.triggerNote(48, 0.25f, 0.9f, 3); }
+                if (ImGui::Selectable("  Vocal_Abduction.wav")) { g_piano_synth.selected_variant[7] = 0; g_piano_synth.triggerNote(46, 0.25f, 0.9f, 7); }
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Flex Browser")) {
+                RenderFlexBrowserContent();
+                ImGui::EndTabItem();
+            }
+
+            ImGui::EndTabBar();
         }
         ImGui::End();
 
