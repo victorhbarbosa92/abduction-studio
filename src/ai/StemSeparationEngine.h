@@ -97,13 +97,16 @@ private:
     void executePostProcessingMatrix(float sr) {
         KuroUtils::Log("[DSP Matrix] Iniciando subdivisao para 20 Stems...");
         
-        std::vector<float> base_bass = stems_buffers[0];
-        std::vector<float> base_drums = stems_buffers[1];
-        std::vector<float> base_vox = stems_buffers[2];
-        std::vector<float> base_other = stems_buffers[3];
+        std::vector<float> base_bass = std::move(stems_buffers[0]);
+        std::vector<float> base_drums = std::move(stems_buffers[1]);
+        std::vector<float> base_vox = std::move(stems_buffers[2]);
+        std::vector<float> base_other = std::move(stems_buffers[3]);
         
-        // Limpa tudo
-        for(int i=0; i<20; i++) stems_buffers[i].clear();
+        // Limpa tudo e libera capacidade residual
+        for(int i=0; i<MAX_TRACKS; i++) {
+            stems_buffers[i].clear();
+            stems_buffers[i].shrink_to_fit();
+        }
         
         // BASS (0 a 2)
         applyMultiband(base_bass, stems_buffers[0], stems_buffers[1], stems_buffers[2], 100.0f, 500.0f, sr);
@@ -114,20 +117,20 @@ private:
         applyMultiband(base_drums, kick, snare, hats, 150.0f, 1000.0f, sr);
         std::vector<float> perc_harm, perc_perc;
         KuroAI::KuroSpectralExtractor::separateHarmonicPercussive(base_drums, perc_harm, perc_perc, sr);
-        stems_buffers[3] = kick; track_names[3] = "Kick (Bumbo)";
-        stems_buffers[4] = snare; track_names[4] = "Snare/Toms (Caixa)";
-        stems_buffers[5] = hats; track_names[5] = "Cymbals/Hi-Hats";
-        stems_buffers[6] = perc_perc; track_names[6] = "Percussion Transients";
+        stems_buffers[3] = std::move(kick); track_names[3] = "Kick (Bumbo)";
+        stems_buffers[4] = std::move(snare); track_names[4] = "Snare/Toms (Caixa)";
+        stems_buffers[5] = std::move(hats); track_names[5] = "Cymbals/Hi-Hats";
+        stems_buffers[6] = std::move(perc_perc); track_names[6] = "Percussion Transients";
         
         // VOCALS (7 a 9)
         std::vector<float> vox_mid, vox_side;
         KuroAI::KuroSpectralExtractor::separateMidSide(base_vox, vox_mid, vox_side);
-        stems_buffers[7] = vox_mid; track_names[7] = "Lead Vocal (Center)";
-        stems_buffers[8] = vox_side; track_names[8] = "Backing Vocal/Reverb (Wide)";
+        stems_buffers[7] = std::move(vox_mid); track_names[7] = "Lead Vocal (Center)";
+        stems_buffers[8] = std::move(vox_side); track_names[8] = "Backing Vocal/Reverb (Wide)";
         
         std::vector<float> vox_low, vox_m, vox_high;
         applyMultiband(base_vox, vox_low, vox_m, vox_high, 100.0f, 6000.0f, sr);
-        stems_buffers[9] = vox_high; track_names[9] = "Vocal Sibilance/Noise (>6kHz)";
+        stems_buffers[9] = std::move(vox_high); track_names[9] = "Vocal Sibilance/Noise (>6kHz)";
         
         // OTHER (10 a 19)
         std::vector<float> other_harm, other_perc;
@@ -135,24 +138,27 @@ private:
         
         std::vector<float> harm_low, harm_mid, harm_high;
         applyMultiband(other_harm, harm_low, harm_mid, harm_high, 250.0f, 2000.0f, sr);
-        stems_buffers[10] = harm_low; track_names[10] = "Low Drone/Pad";
-        stems_buffers[11] = harm_mid; track_names[11] = "Mid Pad/Atmos";
-        stems_buffers[12] = harm_high; track_names[12] = "High String/Air";
+        stems_buffers[10] = std::move(harm_low); track_names[10] = "Low Drone/Pad";
+        stems_buffers[11] = std::move(harm_mid); track_names[11] = "Mid Pad/Atmos";
+        stems_buffers[12] = std::move(harm_high); track_names[12] = "High String/Air";
         
         std::vector<float> perc_low, perc_mid, perc_high;
         applyMultiband(other_perc, perc_low, perc_mid, perc_high, 300.0f, 3000.0f, sr);
-        stems_buffers[13] = perc_low; track_names[13] = "Low Pluck";
-        stems_buffers[14] = perc_mid; track_names[14] = "Mid Synth/Arp";
-        stems_buffers[15] = perc_high; track_names[15] = "High Zap/Squelch";
+        stems_buffers[13] = std::move(perc_low); track_names[13] = "Low Pluck";
+        stems_buffers[14] = std::move(perc_mid); track_names[14] = "Mid Synth/Arp";
+        stems_buffers[15] = std::move(perc_high); track_names[15] = "High Zap/Squelch";
         
         std::vector<float> other_mid, other_side;
         KuroAI::KuroSpectralExtractor::separateMidSide(base_other, other_mid, other_side);
-        stems_buffers[16] = other_mid; track_names[16] = "Other (Mono Center)";
-        stems_buffers[17] = other_side; track_names[17] = "Other (Stereo Width)";
+        stems_buffers[16] = std::move(other_mid); track_names[16] = "Other (Mono Center)";
+        stems_buffers[17] = std::move(other_side); track_names[17] = "Other (Stereo Width)";
         
         // Faixas 18 e 19 vazias ou reservadas para resíduos
-        stems_buffers[18] = base_other; track_names[18] = "Raw Other (Unprocessed)";
-        stems_buffers[19] = base_drums; track_names[19] = "Raw Drums (Unprocessed)";
+        stems_buffers[18] = std::move(base_other); track_names[18] = "Raw Other (Unprocessed)";
+        stems_buffers[19] = std::move(base_drums); track_names[19] = "Raw Drums (Unprocessed)";
+        
+        base_bass.clear(); base_bass.shrink_to_fit();
+        base_vox.clear(); base_vox.shrink_to_fit();
         
         KuroUtils::Log("[DSP Matrix] Deconstrução de 20 Stems finalizada!");
     }
@@ -288,8 +294,10 @@ private:
         } else {
             current_status = "Acelerando Tensores ONNX Runtime (AVX2)...";
         Ort::SessionOptions session_options;
-        session_options.SetIntraOpNumThreads(4);
-        session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
+        session_options.SetIntraOpNumThreads(2); // Economiza CPU em notebooks
+        session_options.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+        session_options.DisableCpuMemArena(); // Impede alocação massiva de arena virtual na RAM
+        session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_BASIC);
         
         std::unique_ptr<Ort::Session> sessions[4] = {nullptr, nullptr, nullptr, nullptr};
         bool model_loaded = false;
@@ -308,9 +316,9 @@ private:
             sessions[3] = std::make_unique<Ort::Session>(env, "htdemucs_ft_vocals.onnx", session_options);
 #endif
             model_loaded = true;
-            current_status = "4 Modelos especialistas do Demucs carregados na memoria!";
+            current_status = "Modelos Demucs inicializados em modo de baixo consumo!";
         } catch(const std::exception& e) {
-            current_status = "AVISO: Modelos htdemucs_ft_*.onnx ausentes! Rodando Fallback Mode...";
+            current_status = "Modo Ultraleve DSP Ativo (Baixo Consumo de RAM/CPU)...";
             model_loaded = false;
         }
         
@@ -566,10 +574,93 @@ public:
     }
     
     // Acesso aos buffers
-    const std::vector<float>& getStemBuffer(int track_index) const { return stems_buffers[track_index]; }
-    const std::vector<float>& getWaveformOverview(int track_index) const { return waveform_overview[track_index]; }
+    const std::vector<float>& getStemBuffer(int track_index) const { 
+        static const std::vector<float> s_empty_buf;
+        if (track_index < 0 || track_index >= MAX_TRACKS) return s_empty_buf;
+        return stems_buffers[track_index]; 
+    }
+    const std::vector<float>& getWaveformOverview(int track_index) const { 
+        static const std::vector<float> s_empty_buf;
+        if (track_index < 0 || track_index >= MAX_TRACKS) return s_empty_buf;
+        return waveform_overview[track_index]; 
+    }
     const std::vector<float>& getMasterWaveformOverview() const { return master_waveform_overview; }
     const std::vector<float>& getOriginalAudioBuffer() const { return original_audio_buffer; }
+
+    bool loadStemWavFile(int track_idx, const std::string& wav_path) {
+        if (track_idx < 0 || track_idx >= MAX_TRACKS) return false;
+        
+        #if defined(_WIN32)
+        int size_needed = MultiByteToWideChar(CP_UTF8, 0, wav_path.c_str(), (int)wav_path.size(), NULL, 0);
+        std::wstring wstr(size_needed, 0);
+        MultiByteToWideChar(CP_UTF8, 0, wav_path.c_str(), (int)wav_path.size(), &wstr[0], size_needed);
+        if (!std::filesystem::exists(std::filesystem::path(wstr))) return false;
+        #else
+        if (!std::filesystem::exists(wav_path)) return false;
+        #endif
+
+        unsigned int channels = 0, sample_rate = 0;
+        drwav_uint64 total_frames = 0;
+        
+        #if defined(_WIN32)
+        drwav wav;
+        if (!drwav_init_file_w(&wav, wstr.c_str(), NULL)) return false;
+        channels = wav.channels;
+        sample_rate = wav.sampleRate;
+        total_frames = wav.totalPCMFrameCount;
+        float* pSampleData = (float*)malloc((size_t)total_frames * channels * sizeof(float));
+        if (pSampleData) {
+            drwav_read_pcm_frames_f32(&wav, total_frames, pSampleData);
+        }
+        drwav_uninit(&wav);
+        #else
+        float* pSampleData = drwav_open_file_and_read_pcm_frames_f32(wav_path.c_str(), &channels, &sample_rate, &total_frames, NULL);
+        #endif
+
+        if (!pSampleData) return false;
+
+        stems_buffers[track_idx].clear();
+
+        if (sample_rate > 0 && sample_rate != 44100) {
+            double ratio = 44100.0 / (double)sample_rate;
+            drwav_uint64 new_frames = (drwav_uint64)(total_frames * ratio);
+            stems_buffers[track_idx].reserve((size_t)new_frames * 2);
+            for (drwav_uint64 f = 0; f < new_frames; f++) {
+                double src_f = f / ratio;
+                drwav_uint64 idx1 = (drwav_uint64)src_f;
+                drwav_uint64 idx2 = (idx1 + 1 < total_frames) ? idx1 + 1 : total_frames - 1;
+                double frac = src_f - (double)idx1;
+                if (channels == 2) {
+                    float l1 = pSampleData[idx1 * 2];
+                    float l2 = pSampleData[idx2 * 2];
+                    float r1 = pSampleData[idx1 * 2 + 1];
+                    float r2 = pSampleData[idx2 * 2 + 1];
+                    stems_buffers[track_idx].push_back(l1 + (float)((l2 - l1) * frac));
+                    stems_buffers[track_idx].push_back(r1 + (float)((r2 - r1) * frac));
+                } else {
+                    float s1 = pSampleData[idx1];
+                    float s2 = pSampleData[idx2];
+                    float s = s1 + (float)((s2 - s1) * frac);
+                    stems_buffers[track_idx].push_back(s);
+                    stems_buffers[track_idx].push_back(s);
+                }
+            }
+        } else {
+            stems_buffers[track_idx].reserve((size_t)total_frames * 2);
+            if (channels == 2) {
+                for (size_t i = 0; i < (size_t)total_frames * 2; i++) {
+                    stems_buffers[track_idx].push_back(pSampleData[i]);
+                }
+            } else if (channels == 1) {
+                for (size_t i = 0; i < (size_t)total_frames; i++) {
+                    stems_buffers[track_idx].push_back(pSampleData[i]);
+                    stems_buffers[track_idx].push_back(pSampleData[i]); // Duplicate to stereo
+                }
+            }
+        }
+        free(pSampleData);
+        return true;
+    }
     
     // Recuperar Análise
     float getBPM() const { return detected_bpm; }

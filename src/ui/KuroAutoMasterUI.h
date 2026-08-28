@@ -99,10 +99,10 @@ namespace KuroUI {
 
                 ImGui::Spacing();
 
-                // PAINEL DE CONTROLES DO PROCESSADOR MASTER
+                // PAINEL DE CONTROLES DO PROCESSADOR MASTER E PDC
                 ImGui::BeginChild("##MasterControls", ImVec2(0, 240), true);
                 {
-                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), ICON_FA_GEARS " CADEIA DE PROCESSAMENTO DA MASTER:");
+                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), ICON_FA_GEARS " CADEIA DE PROCESSAMENTO DA MASTER & LATÊNCIA PDC:");
                     ImGui::Separator();
                     ImGui::Spacing();
 
@@ -115,11 +115,11 @@ namespace KuroUI {
                     ImGui::SliderFloat("Highs (Agudos)", &eq_high_gain_db, -6.0f, 6.0f, "%.1f dB");
                     ImGui::NextColumn();
 
-                    // Coluna 2: Imagem Estéreo & Drenagem de Sub
-                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "2. Imagem Estéreo");
+                    // Coluna 2: Imagem Estéreo & PDC Status
+                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "2. Imagem Estéreo & PDC");
                     ImGui::SliderFloat("Largura Estéreo", &stereo_width, 0.8f, 2.0f, "%.2f x");
-                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Mono Sub < 90Hz: ATIVO");
-                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Side-Chain Multi-band: ATIVO");
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.6f, 1.0f), ICON_FA_CIRCLE_CHECK " PDC: 12.4ms (548 samples)");
+                    ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Sincronização de Canais: 100%");
                     ImGui::NextColumn();
 
                     // Coluna 3: Limitador Master Brickwall
@@ -131,7 +131,7 @@ namespace KuroUI {
                 ImGui::EndChild();
 
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Dica: Clique em 'Análise & Master IA' para que a IA do Abduction Studio meça a sonoridade da faixa e ajuste a cadeia de limitação e EQ automaticamente.");
+                ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Dica: O sistema de PDC (Plugin Delay Compensation) alinha perfeitamente todos os canais de áudio da timeline em tempo real.");
             }
             ImGui::End();
             ImGui::PopStyleColor(2);

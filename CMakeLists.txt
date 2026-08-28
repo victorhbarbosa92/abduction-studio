@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(MSVC)
-    add_compile_options(/arch:AVX2 /fp:fast /FS /MP)
+    add_compile_options(/O2 /Oi /Ot /fp:fast /FS /MP /arch:AVX2 /Zi)
 else()
     add_compile_options(-mavx2 -O3 -ffast-math)
 endif()
@@ -79,8 +79,7 @@ add_executable(AbductionStudioV2
 )
 
 if(MSVC)
-    # console app for debugging
-    # set_target_properties(AbductionStudioV2 PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+    set_target_properties(AbductionStudioV2 PROPERTIES LINK_FLAGS "/DEBUG /MAP:AbductionStudioV2.map")
 endif()
 
 target_include_directories(AbductionStudioV2 PRIVATE 
@@ -107,6 +106,8 @@ add_custom_command(TARGET AbductionStudioV2 PRE_BUILD
 # Pós-processamento para copiar DLLs e assinar binário
 add_custom_command(TARGET AbductionStudioV2 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/cloud_stem_extractor.py" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/edm_stem_extractor.py" "$<TARGET_FILE_DIR:AbductionStudioV2>/"
     COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_SOURCE_DIR}/sign.ps1"
-    COMMENT "Copiando IA (ONNX) e Assinando Digitalmente com Certificado Kuru..."
+    COMMENT "Copiando IA (ONNX), Scripts de Nuvem e Assinando Digitalmente com Certificado Kuru..."
 )

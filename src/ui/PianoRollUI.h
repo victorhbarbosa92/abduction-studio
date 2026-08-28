@@ -19,20 +19,253 @@ namespace KuroUI {
 
     enum class PianoRollTool { Draw, Paint, Erase, Mute, Slice, Select };
 
+    inline bool IsPitchInScale(int pitch, int root_idx, int scale_type) {
+        if (scale_type <= 0) return true; // Scale Highlighting Off
+        int note_degree = ((pitch - root_idx) % 12 + 12) % 12;
+        static const int scale_masks[] = {
+            0b111111111111, // 0: Off
+            0b101010110101, // 1: Major (0, 2, 4, 5, 7, 9, 11)
+            0b010110101101, // 2: Natural Minor (0, 2, 3, 5, 7, 8, 10)
+            0b100110101101, // 3: Harmonic Minor (0, 2, 3, 5, 7, 8, 11)
+            0b101010101101, // 4: Melodic Minor (0, 2, 3, 5, 7, 9, 11)
+            0b011010101101, // 5: Dorian (0, 2, 3, 5, 7, 9, 10)
+            0b010110101110, // 6: Phrygian (0, 1, 3, 5, 7, 8, 10)
+            0b101010100101, // 7: Lydian (0, 2, 4, 6, 7, 9, 11)
+            0b011010110101, // 8: Mixolydian (0, 2, 4, 5, 7, 9, 10)
+            0b010010101001, // 9: Pentatonic Minor (0, 3, 5, 7, 10)
+            0b010010111001, // 10: Blues (0, 3, 5, 6, 7, 10)
+        };
+        if (scale_type >= 0 && scale_type < (int)(sizeof(scale_masks)/sizeof(scale_masks[0]))) {
+            return (scale_masks[scale_type] & (1 << note_degree)) != 0;
+        }
+        return true;
+    }
+
+    inline void ApplyStrumming(std::vector<KuroDSP::MidiNote>& notes, float strum_step_sec = 0.025f, bool ascending = true, float vel_decay = 0.05f) {
+        if (notes.empty()) return;
+        std::vector<int> target_indices;
+        for (size_t i = 0; i < notes.size(); i++) {
+            if (notes[i].is_selected) target_indices.push_back((int)i);
+        }
+        if (target_indices.empty()) {
+            for (size_t i = 0; i < notes.size(); i++) target_indices.push_back((int)i);
+        }
+
+        std::vector<std::vector<int>> chord_groups;
+        std::vector<bool> processed(target_indices.size(), false);
+
+        for (size_t i = 0; i < target_indices.size(); i++) {
+            if (processed[i]) continue;
+            std::vector<int> group;
+            group.push_back(target_indices[i]);
+            processed[i] = true;
+            float base_time = notes[target_indices[i]].start_time;
+
+            for (size_t j = i + 1; j < target_indices.size(); j++) {
+                if (!processed[j] && std::abs(notes[target_indices[j]].start_time - base_time) < 0.06f) {
+                    group.push_back(target_indices[j]);
+                    processed[j] = true;
+                }
+            }
+            chord_groups.push_back(group);
+        }
+
+        for (auto& group : chord_groups) {
+            if (group.size() < 2) continue;
+            std::sort(group.begin(), group.end(), [&](int a, int b) {
+                return ascending ? (notes[a].pitch < notes[b].pitch) : (notes[a].pitch > notes[b].pitch);
+            });
+            float base_start = notes[group[0]].start_time;
+            for (size_t k = 0; k < group.size(); k++) {
+                int idx = group[k];
+                notes[idx].start_time = base_start + k * strum_step_sec;
+                notes[idx].velocity = std::clamp(notes[idx].velocity * (1.0f - k * vel_decay), 0.1f, 1.0f);
+            }
+        }
+    }
+
+    inline void ApplyChop(std::vector<KuroDSP::MidiNote>& notes, int sub_count = 4, bool vel_ramp = true) {
+        if (notes.empty() || sub_count <= 1) return;
+        std::vector<KuroDSP::MidiNote> new_notes;
+        bool any_selected = false;
+        for (auto& check : notes) if (check.is_selected) { any_selected = true; break; }
+
+        for (auto& n : notes) {
+            if (any_selected && !n.is_selected) {
+                new_notes.push_back(n);
+                continue;
+            }
+            float sub_dur = n.duration / (float)sub_count;
+            for (int i = 0; i < sub_count; i++) {
+                KuroDSP::MidiNote sub_n = n;
+                sub_n.start_time = n.start_time + i * sub_dur;
+                sub_n.duration = sub_dur * 0.92f;
+                if (vel_ramp) {
+                    float factor = 0.35f + 0.65f * ((float)(i + 1) / (float)sub_count);
+                    sub_n.velocity = std::clamp(n.velocity * factor, 0.1f, 1.0f);
+                }
+                new_notes.push_back(sub_n);
+            }
+        }
+        notes = new_notes;
+    }
+
+    // ── FL STUDIO RIFF MACHINE & ARPEGGIATOR MOTOR ──────────────────────────────
+    inline void ApplyRiffMachine(std::vector<KuroDSP::MidiNote>& notes, int genre_style, int pattern_type, int octave_span, float gate_length, float bpm, int channel_idx) {
+        notes.clear();
+        float beat_sec = 60.0f / (bpm > 20.0f ? bpm : 140.0f);
+        float step_sec = beat_sec * 0.25f; // 1/16th note
+
+        // Escalas base para geração musical (ex: Root C3 = 48 ou A3 = 57)
+        int root = (genre_style == 0) ? 36 : (genre_style == 1) ? 57 : (genre_style == 2) ? 60 : 48; // C2, A3, C4, C3
+        
+        // Padrões de Riff Machine Inspirados no FL Studio
+        std::vector<int> pitch_seq;
+        std::vector<float> vel_seq;
+        std::vector<bool> gate_seq;
+
+        if (genre_style == 0) { // 👽 Psytrance Rolling & Arp
+            pitch_seq = { 0, 0, 0, 0,  12, 0, 3, 0,  7, 0, 10, 12,  15, 12, 10, 7 };
+            vel_seq   = { 0.95f, 0.75f, 0.80f, 0.75f,  0.90f, 0.75f, 0.85f, 0.75f,  0.92f, 0.75f, 0.85f, 0.90f,  0.95f, 0.85f, 0.80f, 0.75f };
+            gate_seq  = { false, true, true, true,   true, true, true, true,    true, true, true, true,     true, true, true, true }; // Kick offbeat
+        } else if (genre_style == 1) { // 🚀 Synthwave 80s Darksynth
+            pitch_seq = { 0, 0, 7, 7,  12, 12, 10, 10,  8, 8, 7, 7,  5, 5, 3, 3 };
+            vel_seq   = { 0.9f, 0.8f, 0.85f, 0.8f,  0.95f, 0.8f, 0.9f, 0.8f,  0.85f, 0.8f, 0.85f, 0.8f,  0.8f, 0.75f, 0.8f, 0.75f };
+            gate_seq  = { true, true, true, true,   true, true, true, true,   true, true, true, true,   true, true, true, true };
+        } else if (genre_style == 2) { // 🎹 Melodic Techno / Progressive House
+            pitch_seq = { 0, 12, 7, 15,  3, 10, 14, 7,  0, 12, 8, 15,  5, 12, 10, 7 };
+            vel_seq   = { 0.95f, 0.70f, 0.85f, 0.65f,  0.90f, 0.70f, 0.85f, 0.65f,  0.95f, 0.70f, 0.85f, 0.65f,  0.90f, 0.70f, 0.85f, 0.65f };
+            gate_seq  = { true, true, true, true,   true, true, true, true,   true, true, true, true,   true, true, true, true };
+        } else { // 🔥 Trap Hi-Hat / Melodic Bell Motif
+            pitch_seq = { 0, 0, 12, 0,  7, 0, 0, 10,  12, 12, 15, 12,  10, 7, 5, 3 };
+            vel_seq   = { 0.9f, 0.6f, 0.85f, 0.6f,  0.9f, 0.6f, 0.6f, 0.85f,  0.95f, 0.8f, 0.9f, 0.8f,  0.85f, 0.8f, 0.75f, 0.7f };
+            gate_seq  = { true, true, true, true,   true, true, true, true,   true, true, true, true,   true, true, true, true };
+        }
+
+        // Gera 16 passos rítmicos perfeitamente alinhados ao tempo
+        for (int step = 0; step < 16; ++step) {
+            if (!gate_seq[step]) continue;
+
+            int oct_offset = (pattern_type == 1) ? ((step % (octave_span + 1)) * 12) : 0;
+            int final_pitch = std::clamp(root + pitch_seq[step] + oct_offset, 20, 110);
+            float s_time = step * step_sec;
+            float dur = step_sec * std::clamp(gate_length, 0.1f, 1.2f);
+            float vel = vel_seq[step];
+
+            KuroDSP::MidiNote n(final_pitch, s_time, dur, vel, 1.0f, channel_idx);
+            notes.push_back(n);
+        }
+    }
+
+    // ── AI NOTE INPAINTING & GENERATIVE MUTATION MOTOR (SUNO STUDIO / FL HYBRID) ──
+    inline void ApplyAINoteInpainting(std::vector<KuroDSP::MidiNote>& notes, int mode, float energy_pct, int root_idx, int scale_type, float bpm, int channel_idx) {
+        float beat_sec = 60.0f / (bpm > 20.0f ? bpm : 140.0f);
+        if (notes.empty()) {
+            int base_pitch = (channel_idx == 1 || channel_idx == 2) ? 36 : 60;
+            for (int b = 0; b < 16; b++) {
+                float t = b * (beat_sec * 0.25f);
+                notes.push_back(KuroDSP::MidiNote(base_pitch, t, beat_sec * 0.22f, 0.85f, 1.0f, channel_idx));
+            }
+        }
+
+        bool any_sel = std::any_of(notes.begin(), notes.end(), [](const KuroDSP::MidiNote& x){ return x.is_selected; });
+        float energy_norm = std::clamp(energy_pct * 0.01f, 0.05f, 1.0f);
+
+        if (mode == 0) { // 1. Melodic Arp Mutation
+            std::vector<int> scale_degrees;
+            for (int p = 36; p <= 96; p++) {
+                if (IsPitchInScale(p, root_idx, scale_type)) scale_degrees.push_back(p);
+            }
+            if (scale_degrees.empty()) scale_degrees = {60, 62, 64, 65, 67, 69, 71, 72};
+
+            for (auto& n : notes) {
+                if (any_sel && !n.is_selected) continue;
+                int jump = (int)((rand() % 7 - 3) * energy_norm * 3.0f);
+                int target_p = std::clamp(n.pitch + jump, 36, 96);
+                int best_p = scale_degrees[0];
+                int best_diff = 999;
+                for (int sp : scale_degrees) {
+                    int diff = std::abs(sp - target_p);
+                    if (diff < best_diff) { best_diff = diff; best_p = sp; }
+                }
+                n.pitch = best_p;
+                n.velocity = std::clamp(0.70f + 0.30f * ((float)(rand() % 100) / 100.0f) * energy_norm, 0.4f, 1.0f);
+            }
+        } else if (mode == 1) { // 2. Psy Bassline Groove Morph
+            for (size_t i = 0; i < notes.size(); i++) {
+                if (any_sel && !notes[i].is_selected) continue;
+                int step = (int)(i % 4);
+                if (step == 0) notes[i].velocity = 0.95f;
+                else {
+                    notes[i].velocity = 0.75f + 0.15f * energy_norm;
+                    if (energy_norm > 0.5f && (i % 8 == 7)) notes[i].pitch += 12;
+                }
+                notes[i].duration = std::min(notes[i].duration, beat_sec * 0.20f);
+            }
+        } else if (mode == 2) { // 3. Chord Progression Voicing
+            std::vector<KuroDSP::MidiNote> added_chords;
+            for (auto& n : notes) {
+                if (any_sel && !n.is_selected) continue;
+                int third = n.pitch + 4;
+                int fifth = n.pitch + 7;
+                if (scale_type > 0) {
+                    if (!IsPitchInScale(third, root_idx, scale_type)) third--;
+                    if (!IsPitchInScale(fifth, root_idx, scale_type)) fifth--;
+                }
+                KuroDSP::MidiNote n3 = n; n3.pitch = std::clamp(third, 20, 110); n3.velocity *= 0.85f;
+                KuroDSP::MidiNote n5 = n; n5.pitch = std::clamp(fifth, 20, 110); n5.velocity *= 0.80f;
+                added_chords.push_back(n3);
+                added_chords.push_back(n5);
+            }
+            for (const auto& ac : added_chords) notes.push_back(ac);
+        } else if (mode == 3) { // 4. Humanize & Swing Groove
+            for (auto& n : notes) {
+                if (any_sel && !n.is_selected) continue;
+                float micro_shift = ((float)(rand() % 100 - 50) / 1000.0f) * 0.035f * energy_norm;
+                n.start_time = std::max(0.0f, n.start_time + micro_shift);
+                n.velocity = std::clamp(n.velocity + ((float)(rand() % 40 - 20) / 100.0f) * energy_norm, 0.3f, 1.0f);
+            }
+        }
+    }
+
     inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, ClipManager& clip_manager, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
         if (!*open) return;
         static int active_ch_idx = 0;
-        if (track_idx >= 0 && track_idx < 8) active_ch_idx = track_idx;
-        int ch_idx = std::clamp(active_ch_idx, 0, 7);
+        static int last_opened_track_idx = -1;
+        if (track_idx >= 0 && track_idx < 16) {
+            active_ch_idx = track_idx;
+        }
+        int ch_idx = std::clamp(active_ch_idx, 0, 15);
 
         static int current_snap_option = 0; // Default to 4/4 (1/4 note)
         static PianoRollTool current_tool = PianoRollTool::Draw;
         static int current_stamp_idx = 0;
+        static int current_root_note = 0;  // 0=C
+        static int current_scale_type = 0; // 0=Off
+        static bool open_strum_modal = false;
+        static bool open_chop_modal = false;
+        static bool open_riff_modal = false;
+        static bool open_ai_inpainting_modal = false;
+        static int bottom_lane_mode = 0;   // 0=Velocity, 1=Pan, 2=Pitch Offset
 
-        ImGui::SetNextWindowSize(ImVec2(1000, 680), ImGuiCond_FirstUseEver);
+        // Estado do Piano Roll (Definidos antes para acesso pelo botão FIT)
+        static float pan_x = 0.0f;
+        static float pan_y = 1200.0f; // Centrado nas oitavas médias
+        static float zoom_x = 100.0f; // Pixels por segundo
+        static float zoom_y = 24.0f;  // Pixels por tecla (ideal para ver 2.5 oitavas)
+        static bool request_auto_fit = false;
+        static bool is_dragging_pr_h = false;
+        static bool is_dragging_pr_v = false;
+
+        if (track_idx != last_opened_track_idx) {
+            last_opened_track_idx = track_idx;
+            request_auto_fit = true;
+        }
+
+        ImGui::SetNextWindowSize(ImVec2(1050, 720), ImGuiCond_FirstUseEver);
         ImGuiWindowFlags pr_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoFocusOnAppearing;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.07f, 0.09f, 1.0f));
-        if (!ImGui::Begin("Piano Roll", open, pr_flags)) {
+        if (!ImGui::Begin("Piano Roll###GlobalPianoRollWindow", open, pr_flags)) {
             ImGui::PopStyleColor();
             ImGui::End();
             return;
@@ -43,86 +276,289 @@ namespace KuroUI {
         ImVec2 window_sz = ImGui::GetWindowSize();
         ImVec2 window_p1 = ImVec2(window_p0.x + window_sz.x, window_p0.y + window_sz.y);
 
-        // Moldura Externa de Neon Ciano Reluzente (Exatamente como no Mockup da Imagem 2)
+        // Moldura Externa de Neon Ciano Reluzente
         draw_list->AddRect(ImVec2(window_p0.x + 2, window_p0.y + 2), ImVec2(window_p1.x - 2, window_p1.y - 2), IM_COL32(0, 229, 255, 255), 8.0f, 0, 2.5f);
 
-        // --- RACK DE CONTROLE E POTENCIÔMETROS NO TOPO (Imagem 2) ---
+        // --- RACK DE CONTROLE E VISUALIZADOR DE ESTRUTURA NO TOPO ---
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.14f, 1.0f));
-        ImGui::BeginChild("##TopControlRack", ImVec2(0, 48), true);
+        ImGui::BeginChild("##TopControlRack", ImVec2(0, 52), true);
         {
             ImDrawList* rack_draw = ImGui::GetWindowDrawList();
             ImVec2 r_p0 = ImGui::GetCursorScreenPos();
 
-            // Knobs Rotativos com Anéis LED (Tempo, Velocity, Snap)
-            auto draw_knob = [&](ImVec2 pos, const char* label, float val, const char* val_str, ImU32 led_col) {
-                rack_draw->AddCircleFilled(pos, 14.0f, IM_COL32(25, 32, 42, 255));
-                rack_draw->AddCircle(pos, 14.0f, IM_COL32(60, 75, 95, 255), 0, 1.5f);
-                float angle = -2.2f + val * 4.4f;
-                ImVec2 pt(pos.x + std::cos(angle) * 10.0f, pos.y + std::sin(angle) * 10.0f);
-                rack_draw->AddLine(pos, pt, led_col, 2.5f);
-                rack_draw->AddText(ImVec2(pos.x - 18.0f, pos.y + 16.0f), IM_COL32(180, 200, 220, 255), label);
-                rack_draw->AddText(ImVec2(pos.x - 14.0f, pos.y - 26.0f), led_col, val_str);
-            };
+            // Botões de Transporte (Play / Stop)
+            ImGui::SetCursorScreenPos(ImVec2(r_p0.x + 8, r_p0.y + 8));
+            if (ImGui::Button("▶", ImVec2(30, 30))) { ::is_playing = true; } ImGui::SameLine();
+            if (ImGui::Button("■", ImVec2(30, 30))) { ::is_playing = false; } ImGui::SameLine();
 
-            draw_knob(ImVec2(r_p0.x + 35, r_p0.y + 24), "Tempo", 0.6f, "120.0", IM_COL32(0, 229, 255, 255));
-            draw_knob(ImVec2(r_p0.x + 115, r_p0.y + 24), "Velocity", 0.8f, "104", IM_COL32(0, 229, 255, 255));
+            // 1. Target Channel Selector com Tag Colorida
+            extern std::string track_names[20];
+            extern int selected_track_idx;
+            char ch_combo_label[64];
+            int cur_c = std::clamp(ch_idx, 0, 15);
+            snprintf(ch_combo_label, sizeof(ch_combo_label), "%02d. %s", cur_c + 1, ::track_names[cur_c].c_str());
+            
+            ImGui::SetNextItemWidth(190);
+            if (ImGui::BeginCombo("##pr_channel_select", ch_combo_label)) {
+                for (int t = 0; t < 16; t++) {
+                    bool is_sel = (ch_idx == t);
+                    char t_lbl[64];
+                    snprintf(t_lbl, sizeof(t_lbl), "%02d. %s", t + 1, ::track_names[t].c_str());
+                    if (ImGui::Selectable(t_lbl, is_sel)) {
+                        ch_idx = t;
+                        active_ch_idx = t;
+                        selected_track_idx = t;
+                        request_auto_fit = true;
+                    }
+                    if (is_sel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::SameLine(0, 6);
 
-            // Botões de Transportador (Play, Stop, Record, Loop)
-            ImGui::SetCursorScreenPos(ImVec2(r_p0.x + 180, r_p0.y + 10));
-            if (ImGui::Button("▶", ImVec2(28, 28))) { ::is_playing = true; } ImGui::SameLine();
-            if (ImGui::Button("■", ImVec2(28, 28))) { ::is_playing = false; } ImGui::SameLine();
-            if (ImGui::Button("●", ImVec2(28, 28))) {} ImGui::SameLine();
-            if (ImGui::Button("🔄", ImVec2(28, 28))) {} ImGui::SameLine();
+            // 2. Target Pattern Selector
+            int cur_p = clip_manager.current_pattern_idx;
+            char pat_combo_label[64];
+            if (cur_p >= 0 && cur_p < (int)clip_manager.global_patterns.size()) {
+                snprintf(pat_combo_label, sizeof(pat_combo_label), "%s", clip_manager.global_patterns[cur_p].name.c_str());
+            } else {
+                snprintf(pat_combo_label, sizeof(pat_combo_label), "Pattern 1");
+            }
 
-            // Seletor de Snap & Instrumento
-            ImGui::SetNextItemWidth(110);
+            ImGui::SetNextItemWidth(115);
+            if (ImGui::BeginCombo("##pr_pattern_select", pat_combo_label)) {
+                for (int p = 0; p < (int)clip_manager.global_patterns.size(); p++) {
+                    bool is_sel = (cur_p == p);
+                    if (ImGui::Selectable(clip_manager.global_patterns[p].name.c_str(), is_sel)) {
+                        clip_manager.current_pattern_idx = p;
+                        request_auto_fit = true;
+                    }
+                    if (is_sel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::SameLine(0, 6);
+
+            // Seletor de Snap
+            ImGui::SetNextItemWidth(80);
             const char* snap_options[] = { "(1/16)", "(1/8)", "(1/4)", "(Free)" };
-            ImGui::Combo("##snap_combo", &current_snap_option, snap_options, IM_ARRAYSIZE(snap_options)); ImGui::SameLine();
+            ImGui::Combo("##snap_combo", &current_snap_option, snap_options, IM_ARRAYSIZE(snap_options)); ImGui::SameLine(0, 6);
 
-            // Transcritor IA WAV -> MIDI
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.70f, 0.90f, 1.0f));
-            if (ImGui::Button("🤖 WAV -> MIDI (IA)")) {
-                auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
-                notes.clear();
-                float beat_step = 0.125f;
-                int pitches[16] = {36, 36, 36, 36, 36, 36, 36, 38, 36, 36, 36, 36, 36, 36, 38, 40};
-                for (int step = 0; step < 16; ++step) {
-                    if (step % 4 == 0) continue;
-                    KuroDSP::MidiNote n;
-                    n.pitch = pitches[step];
-                    n.start_time = step * beat_step;
-                    n.duration = 0.10f;
-                    n.velocity = 0.85f + ((rand() % 15) / 100.0f);
-                    n.channel = ch_idx;
-                    notes.push_back(n);
+            // Botão Mágico FIT NOTAS (Centraliza automaticamente a tela nas notas deste instrumento)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.35f, 0.45f, 1.0f));
+            if (ImGui::Button("🔍 FIT NOTAS") || request_auto_fit) {
+                request_auto_fit = false;
+                if (!clip_manager.global_patterns.empty() && clip_manager.current_pattern_idx < (int)clip_manager.global_patterns.size()) {
+                    auto& cur_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    if (!cur_notes.empty()) {
+                        int min_p = 127, max_p = 0;
+                        float min_t = 1e9f;
+                        for (const auto& n : cur_notes) {
+                            min_p = (std::min)(min_p, n.pitch);
+                            max_p = (std::max)(max_p, n.pitch);
+                            min_t = (std::min)(min_t, n.start_time);
+                        }
+                        int center_pitch = (min_p + max_p) / 2;
+                        int row = (120 - 1) - center_pitch;
+                        pan_y = std::max(0.0f, row * zoom_y - 200.0f);
+                        if (min_t < 1e8f) {
+                            pan_x = std::max(0.0f, min_t * zoom_x - 30.0f);
+                        }
+                    } else {
+                        pan_y = (120 - 1 - 48) * zoom_y - 200.0f; // C3 padrão
+                    }
                 }
             }
-            ImGui::PopStyleColor(); ImGui::SameLine();
+            ImGui::PopStyleColor(); ImGui::SameLine(0, 8);
 
-            // Seletor de Templates de Tracks Prontas (Psytrance, Synthwave, Melodic Techno, Tech House)
-            ImGui::SetNextItemWidth(170);
-            const char* tpl_options[] = { "🎵 Template Pronto...", "👽 Psytrance Rolling (140BPM)", "🚀 Cyberpunk Darksynth (118BPM)", "🎹 Melodic Techno (124BPM)", "🔥 Tech House Pump (126BPM)" };
+            // Seletor de Templates de Tracks Prontas
+            ImGui::SetNextItemWidth(140);
+            const char* tpl_options[] = { "🎵 Templates...", "👽 Psytrance Rolling", "🚀 Cyberpunk Darksynth", "🎹 Melodic Techno", "🔥 Tech House Pump" };
             static int selected_tpl = 0;
             if (ImGui::Combo("##track_templates", &selected_tpl, tpl_options, IM_ARRAYSIZE(tpl_options))) {
                 if (selected_tpl > 0) {
                     float new_bpm = bpm;
                     clip_manager.loadTrackTemplate(selected_tpl - 1, new_bpm);
                     selected_tpl = 0;
+                    request_auto_fit = true;
                 }
             }
+
+            // HUD do Tempo e Seção da Música (Canto Direito do Top Control Rack)
+            uint64_t m_frame = timeline_mgr.getMasterFrame();
+            float cur_time_sec = (float)m_frame / 44100.0f;
+            float bar_len_sec = (60.0f / (bpm > 20.0f ? bpm : 140.0f)) * 4.0f;
+            int cur_bar = 1 + (int)(cur_time_sec / bar_len_sec);
+            int cur_sec = (int)cur_time_sec;
+            int cur_ms = (int)((cur_time_sec - cur_sec) * 10.0f);
+
+            const char* sec_tag = "INTRO";
+            ImU32 sec_col = IM_COL32(255, 215, 0, 255);
+            if (cur_bar >= 9 && cur_bar < 17) { sec_tag = "BUILD-UP 1"; sec_col = IM_COL32(0, 200, 255, 255); }
+            else if (cur_bar >= 17 && cur_bar < 33) { sec_tag = "DROP"; sec_col = IM_COL32(180, 0, 255, 255); }
+            else if (cur_bar >= 33 && cur_bar < 49) { sec_tag = "BREAKDOWN"; sec_col = IM_COL32(255, 140, 0, 255); }
+            else if (cur_bar >= 49) { sec_tag = "MAIN DROP 2"; sec_col = IM_COL32(255, 0, 128, 255); }
+
+            char hud_buf[64];
+            snprintf(hud_buf, sizeof(hud_buf), "%02d:%02d.%d | Bar %d [%s]", cur_sec / 60, cur_sec % 60, cur_ms, cur_bar, sec_tag);
+            
+            float hud_w = 210.0f;
+            ImVec2 hud_p0(r_p0.x + ImGui::GetContentRegionAvail().x + 190.0f - hud_w, r_p0.y + 6.0f);
+            ImVec2 hud_p1(hud_p0.x + hud_w, hud_p0.y + 36.0f);
+            rack_draw->AddRectFilled(hud_p0, hud_p1, IM_COL32(12, 18, 28, 240), 4.0f);
+            rack_draw->AddRect(hud_p0, hud_p1, sec_col, 4.0f, 0, 1.5f);
+            rack_draw->AddText(ImVec2(hud_p0.x + 8.0f, hud_p0.y + 9.0f), sec_col, hud_buf);
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
         
         ImGui::Separator();
 
-        // --- Estado do Piano Roll ---
-        static float pan_x = 0.0f;
-        static float pan_y = 2750.0f; // Centrado perfeitamente nas oitavas C3-C5 (onde estão as notas!)
-        static float zoom_x = 100.0f; // 100 pixels por segundo (zoom musical ideal)
-        static float zoom_y = 45.0f;  // pixels por tecla (aumentado para melhor legibilidade)
-        
+        // --- BARRA SECUNDÁRIA DE FERRAMENTAS E ESCALAS (FL STUDIO STYLE) ---
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.07f, 0.09f, 0.12f, 1.0f));
+        ImGui::BeginChild("##SubToolBarFL", ImVec2(0, 32), false, ImGuiWindowFlags_NoScrollbar);
+        {
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0f);
+            
+            // 1. Destaque de Escalas (Scale Highlighting)
+            ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "🎼 Escala Guia:"); ImGui::SameLine();
+            const char* root_names[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+            ImGui::SetNextItemWidth(55);
+            ImGui::Combo("##scale_root", &current_root_note, root_names, IM_ARRAYSIZE(root_names)); ImGui::SameLine();
+
+            const char* scale_names[] = { "Desativada", "Maior (Major)", "Menor (Minor)", "Harmônica Menor", "Melódica Menor", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Pentatônica", "Blues" };
+            ImGui::SetNextItemWidth(140);
+            ImGui::Combo("##scale_type", &current_scale_type, scale_names, IM_ARRAYSIZE(scale_names)); ImGui::SameLine();
+
+            ImGui::TextDisabled("|"); ImGui::SameLine();
+
+            // 2. Ferramentas FL Studio (Strum, Chop, Quantize)
+            if (ImGui::Button("🎸 Strum (Alt+S)")) { open_strum_modal = true; } 
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Simular dedilhado de guitarra/violão em acordes (Alt+S)");
+            ImGui::SameLine();
+
+            if (ImGui::Button("✂️ Chop (Alt+U)")) { open_chop_modal = true; } 
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Subdividir notas em rolls rápidos de Trap (Alt+U)");
+            ImGui::SameLine();
+
+            if (ImGui::Button("🚀 Riff Machine (Alt+R)")) { open_riff_modal = true; } 
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Gerador Inteligente de Melodias, Riffs e Arpeggios Estilo FL Studio (Alt+R)");
+            ImGui::SameLine();
+
+            if (ImGui::Button("⚡ Quantize (Ctrl+Q)")) {
+                auto& notes_q = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                float b_dur = 60.0f / bpm;
+                float div = (current_snap_option == 0) ? 1.0f : (current_snap_option == 1) ? 2.0f : (current_snap_option == 2) ? 4.0f : 8.0f;
+                float s_step = b_dur / div;
+                bool any_sel = std::any_of(notes_q.begin(), notes_q.end(), [](const KuroDSP::MidiNote& x){ return x.is_selected; });
+                for (auto& n : notes_q) {
+                    if (any_sel && !n.is_selected) continue;
+                    n.start_time = std::round(n.start_time / s_step) * s_step;
+                }
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Quantizar notas selecionadas para a grade atual (Ctrl+Q)");
+
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.85f, 0.95f));
+            if (ImGui::Button("✨ AI Inpaint (Mutar)")) { open_ai_inpainting_modal = true; }
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("AI Note Inpainting: Variação e mutação generativa de melodias, acordes e baixo (Suno / FL)");
+
+            // --- MODAL DO AI NOTE INPAINTING (SUNO / FL) ---
+            if (open_ai_inpainting_modal) {
+                ImGui::OpenPopup("AINoteInpaintingModal");
+                open_ai_inpainting_modal = false;
+            }
+
+            if (ImGui::BeginPopupModal("AINoteInpaintingModal", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextColored(ImVec4(0.8f, 0.4f, 1.0f, 1.0f), "✨ PIANO ROLL AI NOTE INPAINTING & MUTATION");
+                ImGui::TextDisabled("Mutação generativa de notas selecionadas ou padrão atual no tom da escala");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                static int ai_mode = 0;
+                static float ai_energy = 75.0f;
+                static bool ai_has_gen = false;
+                static std::vector<KuroDSP::MidiNote> backup_orig_notes;
+
+                const char* ai_modes[] = { "🎹 Melodic Arp Mutation", "⚡ Psy Bassline Groove Morph", "🎼 Chord Progression Voicing", "🥁 Humanize & Swing Groove" };
+                ImGui::Combo("Modo de Mutação", &ai_mode, ai_modes, IM_ARRAYSIZE(ai_modes));
+
+                ImGui::SliderFloat("Nível de Energia (1% a 100%)", &ai_energy, 1.0f, 100.0f, "%.0f%%");
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                if (ImGui::Button("⚡ MUTAR NOTAS COM IA", ImVec2(200, 32))) {
+                    auto& pattern_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    backup_orig_notes = pattern_notes;
+                    ApplyAINoteInpainting(pattern_notes, ai_mode, ai_energy, current_root_note, current_scale_type, bpm, ch_idx);
+                    ai_has_gen = true;
+                }
+
+                if (ai_has_gen) {
+                    ImGui::SameLine();
+                    if (ImGui::Button("↩ Desfazer (Original)", ImVec2(160, 32))) {
+                        auto& pattern_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                        pattern_notes = backup_orig_notes;
+                        ai_has_gen = false;
+                    }
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Fechar", ImVec2(90, 32))) {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+
+            // --- MODAL DA RIFF MACHINE ---
+            if (open_riff_modal) {
+                ImGui::OpenPopup("RiffMachineModal");
+                open_riff_modal = false;
+            }
+
+            if (ImGui::BeginPopupModal("RiffMachineModal", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "🎹 FL STUDIO RIFF MACHINE & AUTO-ARPEGGIATOR");
+                ImGui::TextDisabled("Gera automaticamente melodias, arpejos de psytrance, darksynth e hooks de trap");
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                static int rm_genre = 0;
+                static int rm_pattern = 1;
+                static int rm_octaves = 2;
+                static float rm_gate = 0.85f;
+
+                const char* rm_genres[] = { "👽 Psytrance Rolling Arp", "🚀 Synthwave 80s Darksynth", "🎹 Melodic Techno Motif", "🔥 Trap Melodic Pluck" };
+                ImGui::Combo("Estilo de Riff", &rm_genre, rm_genres, IM_ARRAYSIZE(rm_genres));
+
+                const char* rm_patterns[] = { "Linear / Reto", "Arp Up/Down Oitavado", "Salto de Terças", "Caos Rítmico" };
+                ImGui::Combo("Movimento do Arpeggio", &rm_pattern, rm_patterns, IM_ARRAYSIZE(rm_patterns));
+
+                ImGui::SliderInt("Extensão de Oitavas", &rm_octaves, 1, 3);
+                ImGui::SliderFloat("Gate (Tamanho da Nota)", &rm_gate, 0.2f, 1.0f, "%.2f");
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                if (ImGui::Button("⚡ GERAR RIFF NOVO", ImVec2(180, 32))) {
+                    auto& pattern_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                    ApplyRiffMachine(pattern_notes, rm_genre, rm_pattern, rm_octaves, rm_gate, bpm, ch_idx);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Fechar", ImVec2(100, 32))) {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+
         static int interacting_note_idx = -1; // Índice da nota sendo modificada
         static int interaction_mode = 0;      // 0=nenhum, 1=movendo, 2=redimensionando, 3=agulha, 4=painting, 5=erasing, 6=slicing, 7=selecting
         static float last_painted_time = -1.0f;
@@ -138,29 +574,51 @@ namespace KuroUI {
         if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
         ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
         
-        // Fundo do Canvas & Moldura Neon Ciano Dupla (Exatamente como na Imagem 2)
+        // Fundo do Canvas & Moldura Neon Ciano Dupla
         draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(12, 16, 23, 255));
         draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(0, 229, 255, 255), 4.0f, 0, 2.0f);
         
-        // --- Controles de Navegação ---
+        // --- Controles de Navegação Estilo FL Studio (Mouse Wheel, Shift, Ctrl) ---
         ImGuiIO& io = ImGui::GetIO();
         if (ImGui::IsWindowHovered()) {
-            // Zoom X
-            if (io.KeyCtrl && io.MouseWheel != 0.0f) {
-                zoom_x += io.MouseWheel * 10.0f;
-                if (zoom_x < 10.0f) zoom_x = 10.0f;
+            if (io.KeyCtrl && io.KeyShift && io.MouseWheel != 0.0f) {
+                // Zoom Y (Altura das Teclas)
+                zoom_y = (std::clamp)(zoom_y + io.MouseWheel * 2.0f, 12.0f, 60.0f);
+            } else if (io.KeyCtrl && io.MouseWheel != 0.0f) {
+                // Zoom X (Tempo)
+                zoom_x = (std::clamp)(zoom_x + io.MouseWheel * 12.0f, 15.0f, 300.0f);
+            } else if (io.KeyShift && io.MouseWheel != 0.0f) {
+                // Scroll Horizontal no Tempo
+                pan_x = (std::max)(0.0f, pan_x - io.MouseWheel * 60.0f);
+            } else if (io.MouseWheel != 0.0f) {
+                // Scroll Vertical nas Oitavas
+                pan_y = (std::clamp)(pan_y - io.MouseWheel * 35.0f, 0.0f, 120.0f * zoom_y - canvas_sz.y);
             }
-            // Zoom Y
-            if (io.KeyAlt && io.MouseWheel != 0.0f) {
-                zoom_y += io.MouseWheel * 2.0f;
-                if (zoom_y < 5.0f) zoom_y = 5.0f;
-            }
-            // Pan (Middle Mouse ou Shift+Drag)
+            // Pan com Botão do Meio
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) {
-                pan_x -= io.MouseDelta.x;
-                pan_y -= io.MouseDelta.y;
-                if (pan_x < 0.0f) pan_x = 0.0f;
-                if (pan_y < 0.0f) pan_y = 0.0f;
+                pan_x = (std::max)(0.0f, pan_x - io.MouseDelta.x);
+                pan_y = (std::max)(0.0f, pan_y - io.MouseDelta.y);
+            }
+
+            // Atalhos de Edição no Piano Roll: Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+A
+            if (io.KeyCtrl) {
+                if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
+                    clip_manager.undo();
+                } else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
+                    clip_manager.redo();
+                } else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
+                    clip_manager.copySelection(ch_idx);
+                } else if (ImGui::IsKeyPressed(ImGuiKey_X, false)) {
+                    clip_manager.cutSelection(ch_idx);
+                } else if (ImGui::IsKeyPressed(ImGuiKey_V, false)) {
+                    float key_w = 90.0f;
+                    float m_time = (io.MousePos.x - ((canvas_p0.x + key_w) - pan_x)) / zoom_x;
+                    clip_manager.pasteClipboard(ch_idx, (std::max)(0.0f, m_time));
+                } else if (ImGui::IsKeyPressed(ImGuiKey_A, false)) {
+                    for (auto& n : clip_manager.getCurrentPattern().getChannelNotes(ch_idx)) {
+                        n.is_selected = true;
+                    }
+                }
             }
         }
 
@@ -181,7 +639,7 @@ namespace KuroUI {
         // --- Desenhar Grade de Fundo (Horizontal e Vertical) ---
         draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), canvas_p1, true);
         
-        // 1. Horizontal (Faixas das Teclas - Branco/Preto)
+        // 1. Horizontal (Faixas das Teclas - Branco/Preto com Scale Highlighting Guia)
         for (int i = 0; i < num_keys; i++) {
             int pitch = start_pitch + (num_keys - 1 - i);
             float y = canvas_p0.y - pan_y + i * zoom_y;
@@ -189,8 +647,16 @@ namespace KuroUI {
             
             int note_in_octave = pitch % 12;
             bool is_black = (note_in_octave == 1 || note_in_octave == 3 || note_in_octave == 6 || note_in_octave == 8 || note_in_octave == 10);
+            bool in_scale = IsPitchInScale(pitch, current_root_note, current_scale_type);
             
-            ImU32 bg_col = is_black ? IM_COL32(22, 22, 26, 255) : IM_COL32(32, 32, 38, 255);
+            ImU32 bg_col;
+            if (current_scale_type > 0 && in_scale) {
+                bg_col = is_black ? IM_COL32(26, 42, 54, 255) : IM_COL32(38, 56, 72, 255); // Highlight Cyan Tint para notas da escala
+            } else if (current_scale_type > 0 && !in_scale) {
+                bg_col = is_black ? IM_COL32(12, 12, 15, 255) : IM_COL32(18, 18, 22, 255); // Tom escurecido fora da escala
+            } else {
+                bg_col = is_black ? IM_COL32(22, 22, 26, 255) : IM_COL32(32, 32, 38, 255);
+            }
             draw_list->AddRectFilled(ImVec2(grid_start_x, y), ImVec2(canvas_p1.x, y + zoom_y), bg_col);
             draw_list->AddLine(ImVec2(grid_start_x, y + zoom_y), ImVec2(canvas_p1.x, y + zoom_y), IM_COL32(15, 15, 18, 255), 1.0f);
         }
@@ -212,27 +678,15 @@ namespace KuroUI {
 
         // --- Área de Clique (Grid) ---
         ImGui::SetCursorScreenPos(ImVec2(grid_start_x, canvas_p0.y));
-        ImGui::InvisibleButton("##pianoroll_grid", ImVec2(canvas_sz.x - key_width, canvas_sz.y));
+        ImGui::InvisibleButton("##pianoroll_grid", ImVec2(canvas_sz.x - key_width - 12.0f, canvas_sz.y - 12.0f));
         bool is_grid_hovered = ImGui::IsItemHovered();
 
         std::lock_guard<std::mutex> lock(timeline_mgr.timeline_mutex);
         auto& notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
 
-        if (notes.empty()) {
-            // Sequência Demonstrativa Idêntica ao Mockup da Imagem 2
-            notes.push_back(KuroDSP::MidiNote(48, 0.00f, 0.40f, 0.95f, 1.0f, ch_idx)); // C3
-            notes.push_back(KuroDSP::MidiNote(52, 0.45f, 0.40f, 0.88f, 1.0f, ch_idx)); // E3
-            notes.push_back(KuroDSP::MidiNote(48, 0.90f, 0.40f, 0.90f, 1.0f, ch_idx)); // C3
-            notes.push_back(KuroDSP::MidiNote(57, 1.40f, 0.70f, 0.85f, 1.0f, ch_idx)); // A Minor 7
-            notes.push_back(KuroDSP::MidiNote(60, 1.40f, 0.70f, 0.80f, 1.0f, ch_idx));
-            notes.push_back(KuroDSP::MidiNote(64, 1.40f, 0.70f, 0.80f, 1.0f, ch_idx));
-            notes.push_back(KuroDSP::MidiNote(60, 2.20f, 0.70f, 0.92f, 1.0f, ch_idx)); // C Major
-            notes.push_back(KuroDSP::MidiNote(64, 2.20f, 0.70f, 0.85f, 1.0f, ch_idx));
-            notes.push_back(KuroDSP::MidiNote(67, 2.20f, 0.70f, 0.85f, 1.0f, ch_idx));
-        }
-
         // --- Interação do Mouse com Notas (Estilo FL Studio) ---
-        if (is_grid_hovered) {
+        bool is_in_pr_sb = is_dragging_pr_h || is_dragging_pr_v;
+        if (is_grid_hovered && !is_in_pr_sb) {
             ImVec2 mouse_pos = ImGui::GetMousePos();
             float time_sec = (mouse_pos.x - grid_start_x + pan_x) / zoom_x;
             float time_snapped = std::round(time_sec / snap_step) * snap_step;
@@ -503,13 +957,6 @@ namespace KuroUI {
                 
                 // Brilho de Relevo Glassmorphism 3D no topo da nota
                 draw_list->AddLine(ImVec2(x0 + 4.0f, y0 + 3.5f), ImVec2(x1 - 4.0f, y0 + 3.5f), IM_COL32(255, 255, 255, 180), 1.2f);
-                
-                // Tag de Acorde / Nome da Nota acima do bloco (Exatamente como na Imagem 2)
-                if (note.pitch == 57 && note.start_time >= 1.3f) {
-                    draw_list->AddText(ImVec2(x0, y0 - 14.0f), IM_COL32(255, 0, 127, 255), "A Minor 7");
-                } else if (note.pitch == 60 && note.start_time >= 2.1f) {
-                    draw_list->AddText(ImVec2(x0, y0 - 14.0f), IM_COL32(0, 229, 255, 255), "C Major");
-                }
 
                 // Nome da Nota/Oitava impresso dentro do bloco
                 if (x1 - x0 > 20.0f && zoom_y >= 12.0f) {
@@ -535,12 +982,13 @@ namespace KuroUI {
             draw_list->AddRect(p0, p1, IM_COL32(255, 255, 255, 150), 0.0f, 0, 1.0f);
         }
 
-        // --- Régua do Tempo e Agulha (Playhead) ---
-        draw_list->AddRectFilled(canvas_p0, ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), IM_COL32(40, 40, 45, 255));
-        draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + 20.0f), ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), IM_COL32(60, 60, 70, 255), 1.0f);
+        // --- Régua do Tempo, Marcadores de Estrutura e Agulha (Playhead) ---
+        float pr_ruler_h = 26.0f;
+        draw_list->AddRectFilled(canvas_p0, ImVec2(canvas_p1.x, canvas_p0.y + pr_ruler_h), IM_COL32(22, 28, 38, 255));
+        draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + pr_ruler_h), ImVec2(canvas_p1.x, canvas_p0.y + pr_ruler_h), IM_COL32(35, 50, 70, 255), 1.5f);
         
-        // Desenhar os ticks da régua do Piano Roll (Musical)
-        draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), ImVec2(canvas_p1.x, canvas_p0.y + 20.0f), true);
+        // Desenhar os ticks da régua do Piano Roll e Marcadores Estruturais
+        draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), ImVec2(canvas_p1.x, canvas_p0.y + pr_ruler_h), true);
         
         float ruler_bar_duration = beat_duration * 4.0f;
         for (float t = 0.0f; (grid_start_x - pan_x) + t * zoom_x < canvas_p1.x + 1000.0f; t += beat_duration) {
@@ -550,31 +998,171 @@ namespace KuroUI {
             bool is_bar = std::fmod(t, ruler_bar_duration) < 0.01f;
             if (is_bar) {
                 // Major tick: Compasso (Bar)
-                draw_list->AddLine(ImVec2(tx, canvas_p0.y + 4.0f), ImVec2(tx, canvas_p0.y + 20.0f), IM_COL32(200, 200, 200, 255), 1.5f);
+                draw_list->AddLine(ImVec2(tx, canvas_p0.y + 6.0f), ImVec2(tx, canvas_p0.y + pr_ruler_h), IM_COL32(200, 220, 240, 255), 1.5f);
                 char label[16];
                 int bar_num = (int)(std::round(t / ruler_bar_duration)) + 1;
                 snprintf(label, sizeof(label), "%d", bar_num);
-                draw_list->AddText(ImVec2(tx + 4, canvas_p0.y + 2), IM_COL32(200, 200, 200, 255), label);
+                draw_list->AddText(ImVec2(tx + 4, canvas_p0.y + 4), IM_COL32(180, 210, 235, 255), label);
             } else {
                 // Minor tick: Batida (Beat)
-                draw_list->AddLine(ImVec2(tx, canvas_p0.y + 12.0f), ImVec2(tx, canvas_p0.y + 20.0f), IM_COL32(120, 120, 120, 255), 1.0f);
+                draw_list->AddLine(ImVec2(tx, canvas_p0.y + 16.0f), ImVec2(tx, canvas_p0.y + pr_ruler_h), IM_COL32(80, 100, 125, 255), 1.0f);
             }
         }
+
+        // Marcadores de Estrutura da Música Dinâmicos e Arrastáveis (FL Studio Time Markers)
+        struct DynamicSongMarker { float bar; std::string name; ImU32 col; };
+        static std::vector<DynamicSongMarker> s_dyn_markers = {
+            { 1.0f, "INTRO", IM_COL32(255, 215, 0, 220) },
+            { 17.0f, "BUILD-UP", IM_COL32(0, 200, 255, 220) },
+            { 33.0f, "DROP 1", IM_COL32(180, 0, 255, 220) },
+            { 65.0f, "BREAKDOWN", IM_COL32(255, 140, 0, 220) },
+            { 97.0f, "MAIN DROP", IM_COL32(255, 0, 128, 220) },
+            { 129.0f, "OUTRO", IM_COL32(0, 229, 255, 220) }
+        };
+
+        static int dragging_marker_idx = -1;
+        static int edit_marker_idx = -1;
+        static char marker_name_buf[64] = "";
+
+        for (size_t m_idx = 0; m_idx < s_dyn_markers.size(); ++m_idx) {
+            auto& st = s_dyn_markers[m_idx];
+            float st_time = (st.bar - 1.0f) * ruler_bar_duration;
+            float st_x = grid_start_x - pan_x + st_time * zoom_x;
+            
+            if (st_x >= grid_start_x - 120.0f && st_x < canvas_p1.x) {
+                ImVec2 tag_p0(st_x + 10.0f, canvas_p0.y + 3.0f);
+                ImVec2 tag_p1(st_x + 95.0f, canvas_p0.y + 22.0f);
+                bool hovered_tag = ImGui::IsMouseHoveringRect(tag_p0, tag_p1);
+
+                // Arrasto do marcador para ajustar ao tempo exato da música
+                if (hovered_tag && ImGui::IsMouseClicked(0)) {
+                    dragging_marker_idx = (int)m_idx;
+                }
+                if (dragging_marker_idx == (int)m_idx) {
+                    if (ImGui::IsMouseDown(0)) {
+                        float rel_mouse_x = ImGui::GetIO().MousePos.x - (grid_start_x - pan_x);
+                        float new_time = (std::max)(0.0f, rel_mouse_x / zoom_x);
+                        st.bar = (std::max)(1.0f, (std::round)(new_time / ruler_bar_duration) + 1.0f);
+                    } else {
+                        dragging_marker_idx = -1;
+                    }
+                }
+
+                // Menu de edição com clique direito ou duplo-clique
+                if (hovered_tag && (ImGui::IsMouseClicked(1) || ImGui::IsMouseDoubleClicked(0))) {
+                    edit_marker_idx = (int)m_idx;
+                    strncpy(marker_name_buf, st.name.c_str(), sizeof(marker_name_buf) - 1);
+                    ImGui::OpenPopup("##EditMarkerPopup");
+                }
+
+                draw_list->AddRectFilled(tag_p0, tag_p1, st.col, 3.0f);
+                draw_list->AddText(ImVec2(st_x + 14.0f, canvas_p0.y + 4.0f), IM_COL32(0, 0, 0, 255), st.name.c_str());
+                // Linha vertical guia na grade
+                draw_list->AddLine(ImVec2(st_x, canvas_p0.y + pr_ruler_h), ImVec2(st_x, canvas_p1.y), st.col, 1.0f);
+            }
+        }
+
+        if (ImGui::BeginPopup("##EditMarkerPopup")) {
+            ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "🏷️ Editar Marcador de Seção");
+            ImGui::Separator();
+            ImGui::SetNextItemWidth(180);
+            if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+            if (ImGui::InputText("##marker_name_inp", marker_name_buf, sizeof(marker_name_buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                if (edit_marker_idx >= 0 && edit_marker_idx < (int)s_dyn_markers.size()) {
+                    s_dyn_markers[edit_marker_idx].name = marker_name_buf;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::Button("Salvar", ImVec2(80, 22))) {
+                if (edit_marker_idx >= 0 && edit_marker_idx < (int)s_dyn_markers.size()) {
+                    s_dyn_markers[edit_marker_idx].name = marker_name_buf;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Excluir", ImVec2(80, 22))) {
+                if (edit_marker_idx >= 0 && edit_marker_idx < (int)s_dyn_markers.size()) {
+                    s_dyn_markers.erase(s_dyn_markers.begin() + edit_marker_idx);
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
         draw_list->PopClipRect();
         
         // Cabeçalho da Régua (canto superior esquerdo fixo acima do teclado)
-        draw_list->AddRectFilled(canvas_p0, ImVec2(grid_start_x, canvas_p0.y + 20.0f), IM_COL32(25, 25, 30, 255));
-        draw_list->AddLine(ImVec2(grid_start_x, canvas_p0.y), ImVec2(grid_start_x, canvas_p0.y + 20.0f), IM_COL32(60, 60, 70, 255), 2.0f);
+        draw_list->AddRectFilled(canvas_p0, ImVec2(grid_start_x, canvas_p0.y + pr_ruler_h), IM_COL32(18, 24, 34, 255));
+        draw_list->AddLine(ImVec2(grid_start_x, canvas_p0.y), ImVec2(grid_start_x, canvas_p0.y + pr_ruler_h), IM_COL32(35, 50, 70, 255), 2.0f);
+        draw_list->AddText(ImVec2(canvas_p0.x + 8.0f, canvas_p0.y + 6.0f), IM_COL32(0, 229, 255, 255), "🎹 PIANO ROLL");
 
         float playhead_time = (float)(*current_sample_ptr) / 44100.0f;
         float playhead_x = grid_start_x - pan_x + playhead_time * zoom_x;
         
-        // Clip playhead inside the grid area
+        // Laser Playhead vermelho / ciano brilhante
         draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), canvas_p1, true);
         if (playhead_x >= grid_start_x && playhead_x < canvas_p1.x) {
-            draw_list->AddLine(ImVec2(playhead_x, canvas_p0.y), ImVec2(playhead_x, canvas_p1.y), IM_COL32(255, 50, 50, 255), 2.0f);
-            draw_list->AddTriangleFilled(ImVec2(playhead_x - 6, canvas_p0.y), ImVec2(playhead_x + 6, canvas_p0.y), ImVec2(playhead_x, canvas_p0.y + 10), IM_COL32(255, 50, 50, 255));
+            draw_list->AddLine(ImVec2(playhead_x, canvas_p0.y), ImVec2(playhead_x, canvas_p1.y), IM_COL32(0, 255, 255, 255), 2.0f);
+            draw_list->AddTriangleFilled(ImVec2(playhead_x - 7, canvas_p0.y), ImVec2(playhead_x + 7, canvas_p0.y), ImVec2(playhead_x, canvas_p0.y + 12), IM_COL32(0, 255, 255, 255));
         }
+
+        // Scrollbars Interativas do Piano Roll
+        ImVec2 pr_mouse = ImGui::GetIO().MousePos;
+
+        // 1. Horizontal Scrollbar
+        float pr_total_w = 400.0f * zoom_x; // 400 segundos de timeline
+        float pr_view_w = canvas_sz.x - key_width;
+        float pr_max_scroll_x = (std::max)(0.0f, pr_total_w - pr_view_w);
+        if (pr_max_scroll_x > 0.0f) {
+            float h_x0 = grid_start_x + 2.0f;
+            float h_x1 = canvas_p1.x - 12.0f;
+            float h_y0 = canvas_p1.y - 8.0f;
+            float h_y1 = canvas_p1.y - 1.0f;
+            float h_w = h_x1 - h_x0;
+            float h_thumb_w = (std::clamp)(h_w * (pr_view_w / pr_total_w), 30.0f, h_w);
+            float h_thumb_x0 = h_x0 + (pan_x / pr_max_scroll_x) * (h_w - h_thumb_w);
+            
+            bool h_hovered = ImGui::IsMouseHoveringRect(ImVec2(h_x0, h_y0), ImVec2(h_x1, h_y1));
+            if (h_hovered && ImGui::IsMouseClicked(0)) is_dragging_pr_h = true;
+            if (is_dragging_pr_h) {
+                if (ImGui::IsMouseDown(0)) {
+                    float norm = (std::clamp)((pr_mouse.x - h_x0 - h_thumb_w * 0.5f) / (h_w - h_thumb_w), 0.0f, 1.0f);
+                    pan_x = norm * pr_max_scroll_x;
+                } else {
+                    is_dragging_pr_h = false;
+                }
+            }
+            draw_list->AddRectFilled(ImVec2(h_x0, h_y0), ImVec2(h_x1, h_y1), IM_COL32(10, 16, 24, 200), 3.0f);
+            draw_list->AddRectFilled(ImVec2(h_thumb_x0, h_y0), ImVec2(h_thumb_x0 + h_thumb_w, h_y1), is_dragging_pr_h ? IM_COL32(0, 255, 255, 255) : (h_hovered ? IM_COL32(0, 229, 255, 230) : IM_COL32(0, 180, 220, 190)), 3.0f);
+        }
+
+        // 2. Vertical Scrollbar
+        float pr_total_h = 120.0f * zoom_y;
+        float pr_view_h = canvas_sz.y;
+        float pr_max_scroll_y = (std::max)(0.0f, pr_total_h - pr_view_h);
+        if (pr_max_scroll_y > 0.0f) {
+            float v_x0 = canvas_p1.x - 8.0f;
+            float v_x1 = canvas_p1.x - 1.0f;
+            float v_y0 = canvas_p0.y + pr_ruler_h + 2.0f;
+            float v_y1 = canvas_p1.y - 10.0f;
+            float v_h = v_y1 - v_y0;
+            float v_thumb_h = (std::clamp)(v_h * (pr_view_h / pr_total_h), 24.0f, v_h);
+            float v_thumb_y0 = v_y0 + (pan_y / pr_max_scroll_y) * (v_h - v_thumb_h);
+            
+            bool v_hovered = ImGui::IsMouseHoveringRect(ImVec2(v_x0, v_y0), ImVec2(v_x1, v_y1));
+            if (v_hovered && ImGui::IsMouseClicked(0)) is_dragging_pr_v = true;
+            if (is_dragging_pr_v) {
+                if (ImGui::IsMouseDown(0)) {
+                    float norm = (std::clamp)((pr_mouse.y - v_y0 - v_thumb_h * 0.5f) / (v_h - v_thumb_h), 0.0f, 1.0f);
+                    pan_y = norm * pr_max_scroll_y;
+                } else {
+                    is_dragging_pr_v = false;
+                }
+            }
+            draw_list->AddRectFilled(ImVec2(v_x0, v_y0), ImVec2(v_x1, v_y1), IM_COL32(10, 16, 24, 200), 3.0f);
+            draw_list->AddRectFilled(ImVec2(v_x0, v_thumb_y0), ImVec2(v_x1, v_thumb_y0 + v_thumb_h), is_dragging_pr_v ? IM_COL32(0, 255, 255, 255) : (v_hovered ? IM_COL32(0, 229, 255, 230) : IM_COL32(0, 180, 220, 190)), 3.0f);
+        }
+
         draw_list->PopClipRect();
         
         draw_list->PopClipRect(); // Pop of main canvas clipping
@@ -686,49 +1274,219 @@ namespace KuroUI {
         // Linha Divisória Vertical de LED Ciano Neon entre o Teclado e o Grid (Imagem 2)
         draw_list->AddLine(ImVec2(grid_start_x, canvas_p0.y), ImVec2(grid_start_x, canvas_p1.y), IM_COL32(0, 229, 255, 255), 2.5f);
 
-        // --- PAINEL INFERIOR DE VELOCITY COM 32 PÍLULAS NEON (Exatamente como na Imagem 2) ---
+        // --- PAINEL INFERIOR MULTI-PROPRIEDADE (VELOCITY, PAN, PITCH OFFSET) ---
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
-        ImGui::BeginChild("##VelocityLane32Pills", ImVec2(0, 110), true);
+        ImGui::BeginChild("##BottomMultiPropLane", ImVec2(0, 125), true);
         {
             ImDrawList* v_draw = ImGui::GetWindowDrawList();
             ImVec2 v_p0 = ImGui::GetCursorScreenPos();
             float v_w = ImGui::GetContentRegionAvail().x;
-            float pill_w = (v_w - 40.0f) / 32.0f;
-            if (pill_w < 12.0f) pill_w = 12.0f;
-
-            v_draw->AddText(ImVec2(v_p0.x + 10, v_p0.y + 4), IM_COL32(0, 229, 255, 255), "VELOCITY & MODULATION (1-32)");
+            
+            // Radios de alternância do rodapé
+            ImGui::SetCursorScreenPos(ImVec2(v_p0.x + 10, v_p0.y + 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 2));
+            if (ImGui::RadioButton("📊 Velocity", bottom_lane_mode == 0)) bottom_lane_mode = 0; ImGui::SameLine();
+            if (ImGui::RadioButton("🎧 Pan", bottom_lane_mode == 1)) bottom_lane_mode = 1; ImGui::SameLine();
+            if (ImGui::RadioButton("🎵 Pitch Offset", bottom_lane_mode == 2)) bottom_lane_mode = 2;
+            ImGui::PopStyleVar();
 
             auto& ch_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
 
-            for (int i = 0; i < 32; i++) {
+            int display_count = std::max(32, (int)ch_notes.size());
+            float pill_w = (v_w - 40.0f) / (float)display_count;
+            if (pill_w < 12.0f) pill_w = 12.0f;
+
+            for (int i = 0; i < display_count; i++) {
                 float px = v_p0.x + 10.0f + i * pill_w;
-                float py_top = v_p0.y + 24.0f;
-                float py_bot = v_p0.y + 90.0f;
-
-                // Valor por pílula (padrão ou note velocity)
-                float vel_val = 0.75f;
-                if (i < ch_notes.size()) vel_val = ch_notes[i].velocity;
-
-                ImU32 p_col = (i % 2 == 0) ? IM_COL32(0, 229, 255, 220) : IM_COL32(255, 0, 127, 220);
-                ImU32 bg_col = IM_COL32(20, 26, 35, 255);
+                float py_top = v_p0.y + 30.0f;
+                float py_bot = v_p0.y + 98.0f;
+                float py_mid = (py_top + py_bot) * 0.5f;
 
                 // Fundo da Pílula
-                v_draw->AddRectFilled(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), bg_col, 6.0f);
+                v_draw->AddRectFilled(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(20, 26, 35, 255), 6.0f);
                 v_draw->AddRect(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(50, 65, 80, 255), 6.0f);
 
-                // Barra Neon Preenchida com Valor
-                float fill_h = (py_bot - py_top) * vel_val;
-                v_draw->AddRectFilled(ImVec2(px + 3, py_bot - fill_h), ImVec2(px + pill_w - 3, py_bot - 2), p_col, 5.0f);
+                if (i < (int)ch_notes.size()) {
+                    auto& n = ch_notes[i];
+                    ImVec2 mouse_pos = ImGui::GetMousePos();
+                    bool hovered = (mouse_pos.x >= px + 2 && mouse_pos.x <= px + pill_w - 2 && mouse_pos.y >= py_top && mouse_pos.y <= py_bot);
+                    
+                    // Interatividade: Drag do mouse altera propriedade diretamente!
+                    if (hovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                        float norm_y = std::clamp(1.0f - (mouse_pos.y - py_top) / (py_bot - py_top), 0.0f, 1.0f);
+                        if (bottom_lane_mode == 0) {
+                            n.velocity = norm_y;
+                        } else if (bottom_lane_mode == 1) {
+                            n.pan = norm_y;
+                        } else if (bottom_lane_mode == 2) {
+                            n.pitch_offset = (norm_y - 0.5f) * 24.0f; // -12 a +12 semitons
+                        }
+                    }
 
-                // Número do Passo
-                char step_lbl[8];
-                snprintf(step_lbl, sizeof(step_lbl), "%d", i + 1);
-                v_draw->AddText(ImVec2(px + 4, py_bot + 2.0f), IM_COL32(140, 160, 180, 255), step_lbl);
+                    if (bottom_lane_mode == 0) { // Velocity
+                        float fill_h = (py_bot - py_top) * std::clamp(n.velocity, 0.0f, 1.0f);
+                        ImU32 p_col = n.is_selected ? IM_COL32(255, 200, 0, 240) : (i % 2 == 0 ? IM_COL32(0, 229, 255, 220) : IM_COL32(255, 0, 127, 220));
+                        v_draw->AddRectFilled(ImVec2(px + 3, py_bot - fill_h), ImVec2(px + pill_w - 3, py_bot - 2), p_col, 5.0f);
+                    } else if (bottom_lane_mode == 1) { // Pan
+                        v_draw->AddLine(ImVec2(px + 2, py_mid), ImVec2(px + pill_w - 2, py_mid), IM_COL32(100, 120, 140, 255), 1.0f);
+                        float pan_y = py_mid - (n.pan - 0.5f) * (py_bot - py_top) * 0.9f;
+                        ImU32 pan_col = (n.pan < 0.48f) ? IM_COL32(0, 255, 150, 220) : ((n.pan > 0.52f) ? IM_COL32(255, 180, 0, 220) : IM_COL32(200, 200, 200, 255));
+                        v_draw->AddLine(ImVec2(px + pill_w * 0.5f, py_mid), ImVec2(px + pill_w * 0.5f, pan_y), pan_col, 3.0f);
+                        v_draw->AddCircleFilled(ImVec2(px + pill_w * 0.5f, pan_y), 3.5f, pan_col);
+                    } else if (bottom_lane_mode == 2) { // Pitch Offset
+                        v_draw->AddLine(ImVec2(px + 2, py_mid), ImVec2(px + pill_w - 2, py_mid), IM_COL32(100, 120, 140, 255), 1.0f);
+                        float poff_norm = std::clamp(n.pitch_offset / 24.0f, -0.5f, 0.5f);
+                        float poff_y = py_mid - poff_norm * (py_bot - py_top) * 0.9f;
+                        ImU32 poff_col = (n.pitch_offset < -0.1f) ? IM_COL32(0, 180, 255, 220) : ((n.pitch_offset > 0.1f) ? IM_COL32(255, 50, 120, 220) : IM_COL32(200, 200, 200, 255));
+                        v_draw->AddLine(ImVec2(px + pill_w * 0.5f, py_mid), ImVec2(px + pill_w * 0.5f, poff_y), poff_col, 3.0f);
+                        v_draw->AddCircleFilled(ImVec2(px + pill_w * 0.5f, poff_y), 3.5f, poff_col);
+                    }
+
+                    // Nome da Nota no rodapé
+                    const char* note_names[] = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+                    char step_lbl[8];
+                    snprintf(step_lbl, sizeof(step_lbl), "%s%d", note_names[n.pitch % 12], (n.pitch / 12) - 1);
+                    v_draw->AddText(ImVec2(px + 3, py_bot + 2.0f), IM_COL32(140, 160, 180, 255), step_lbl);
+                } else {
+                    // Pílula Vazia de preenchimento do grid
+                    char step_lbl[8];
+                    snprintf(step_lbl, sizeof(step_lbl), "%d", i + 1);
+                    v_draw->AddText(ImVec2(px + 4, py_bot + 2.0f), IM_COL32(80, 90, 100, 255), step_lbl);
+                }
             }
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
+
+        // --- Atalhos Globais de Teclado (FL Studio Shortcuts) ---
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows)) {
+            if (io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_S, false)) open_strum_modal = true;
+            if (io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_U, false)) open_chop_modal = true;
+            if (io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_R, false)) open_riff_modal = true;
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false)) {
+                for (auto& n : notes) n.is_selected = true;
+            }
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Q, false)) {
+                float beat_duration = 60.0f / bpm;
+                float divisor = (current_snap_option == 0) ? 1.0f : (current_snap_option == 1) ? 2.0f : (current_snap_option == 2) ? 4.0f : 8.0f;
+                float snap_step = beat_duration / divisor;
+                bool any_sel = std::any_of(notes.begin(), notes.end(), [](const KuroDSP::MidiNote& x){ return x.is_selected; });
+                for (auto& n : notes) {
+                    if (any_sel && !n.is_selected) continue;
+                    n.start_time = std::round(n.start_time / snap_step) * snap_step;
+                }
+            }
+
+            // Ctrl + B: Quick Duplicate (FL Studio style)
+            if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B, false)) {
+                bool any_sel = std::any_of(notes.begin(), notes.end(), [](const KuroDSP::MidiNote& x){ return x.is_selected; });
+                float min_t = 1e9f, max_t = 0.0f;
+                for (const auto& n : notes) {
+                    if (!any_sel || n.is_selected) {
+                        if (n.start_time < min_t) min_t = n.start_time;
+                        if (n.start_time + n.duration > max_t) max_t = n.start_time + n.duration;
+                    }
+                }
+                if (max_t > 0.0f) {
+                    float beat_dur = 60.0f / (bpm > 20.0f ? bpm : 140.0f);
+                    float bar_dur = beat_dur * 4.0f;
+                    float offset = std::ceil((max_t - min_t) / bar_dur) * bar_dur;
+                    if (offset < bar_dur) offset = bar_dur;
+                    
+                    std::vector<KuroDSP::MidiNote> cloned;
+                    for (auto& n : notes) {
+                        if (!any_sel || n.is_selected) {
+                            KuroDSP::MidiNote cn = n;
+                            cn.start_time += offset;
+                            cn.is_selected = true;
+                            cloned.push_back(cn);
+                            n.is_selected = false;
+                        }
+                    }
+                    for (const auto& cn : cloned) notes.push_back(cn);
+                }
+            }
+
+            // Delete / Backspace: Apagar Selecionadas
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) || ImGui::IsKeyPressed(ImGuiKey_Backspace, false)) {
+                notes.erase(std::remove_if(notes.begin(), notes.end(), [](const KuroDSP::MidiNote& x){ return x.is_selected; }), notes.end());
+            }
+
+            // Up / Down Arrow: Transposição de Semitom ou Oitava (com Shift)
+            if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
+                int shift_semi = io.KeyShift ? 12 : 1;
+                for (auto& n : notes) {
+                    if (n.is_selected) {
+                        n.pitch = std::clamp(n.pitch + shift_semi, 0, 127);
+                        g_piano_synth.triggerNote(n.pitch, 0.25f, 0.85f, ch_idx);
+                    }
+                }
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false)) {
+                int shift_semi = io.KeyShift ? 12 : 1;
+                for (auto& n : notes) {
+                    if (n.is_selected) {
+                        n.pitch = std::clamp(n.pitch - shift_semi, 0, 127);
+                        g_piano_synth.triggerNote(n.pitch, 0.25f, 0.85f, ch_idx);
+                    }
+                }
+            }
+        }
+
+        // --- POPUP MODAL: STRUMMING GENERATOR (Alt + S) ---
+        if (open_strum_modal) {
+            ImGui::OpenPopup("🎸 Strumming Generator (FL Style)");
+            open_strum_modal = false;
+        }
+        if (ImGui::BeginPopupModal("🎸 Strumming Generator (FL Style)", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static float strum_ms = 25.0f;
+            static bool strum_asc = true;
+            static float strum_vel_decay = 0.05f;
+
+            ImGui::Text("Simule um dedilhado natural de violão/guitarra em acordes.");
+            ImGui::Separator();
+            ImGui::SliderFloat("Atraso do Strum (ms)", &strum_ms, 5.0f, 100.0f, "%.1f ms");
+            ImGui::Checkbox("Ordem Crescente de Pitch", &strum_asc);
+            ImGui::SliderFloat("Atenuação de Velocity", &strum_vel_decay, 0.0f, 0.2f, "%.2f");
+
+            ImGui::Spacing();
+            if (ImGui::Button("Aplicar Strum", ImVec2(130, 0))) {
+                ApplyStrumming(notes, strum_ms / 1000.0f, strum_asc, strum_vel_decay);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancelar", ImVec2(100, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        // --- POPUP MODAL: CHOP / ROLL GENERATOR (Alt + U) ---
+        if (open_chop_modal) {
+            ImGui::OpenPopup("✂️ Chop / Roll Generator (FL Style)");
+            open_chop_modal = false;
+        }
+        if (ImGui::BeginPopupModal("✂️ Chop / Roll Generator (FL Style)", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            static int chop_subdivisions = 4;
+            static bool chop_vel_ramp = true;
+
+            ImGui::Text("Subdivida notas longas em rolls rápidos para Hi-Hats de Trap ou Synths.");
+            ImGui::Separator();
+            ImGui::SliderInt("Subdivisões por Nota", &chop_subdivisions, 2, 16);
+            ImGui::Checkbox("Crescendo de Velocity (Ramp)", &chop_vel_ramp);
+
+            ImGui::Spacing();
+            if (ImGui::Button("Aplicar Chop", ImVec2(130, 0))) {
+                ApplyChop(notes, chop_subdivisions, chop_vel_ramp);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancelar", ImVec2(100, 0))) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
 
         // --- Scrollbar Horizontal ---
         ImGui::SetCursorScreenPos(ImVec2(canvas_p0.x + key_width, canvas_p1.y + 5.0f));

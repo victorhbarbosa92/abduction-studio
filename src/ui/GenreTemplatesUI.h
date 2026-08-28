@@ -4,12 +4,14 @@
 #include "../core/TimelineManager.h"
 #include "../core/ClipManager.h"
 #include "../audio/SynthEngine.h"
+#include "../plugin_manager/KuroSamplerNode.h"
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <filesystem>
 
 extern KuroAudio::SynthEngine g_piano_synth;
+extern std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
 
 namespace KuroUI {
 
@@ -27,6 +29,17 @@ namespace KuroUI {
 
     inline std::vector<SubgenreTemplate> GetSubgenreTemplates() {
         return {
+            {
+                "perception_astral_portal_140bpm",
+                "Perception - The Astral Portal (Brazilian Progressive Psytrance 140 BPM)",
+                "Brazilian Progressive Psytrance",
+                "[PERCEPTION SIGNATURE]",
+                140.0f,
+                "rolling16",
+                {"Perception (Brazil)", "Groundbass", "Tijah", "Twelve Sessions", "Mandragora"},
+                "Produção autêntica no estilo de Perception com 16 PISTAS SIMULTÂNEAS: Kick com transient click estalando e sub 52Hz, Rolling Bass Sub + Mid-Saw com oitavas síncopadas, Brazilian tribal percs, FM squelches, screaming Acid Lead em F#m, counter-arp matrix, SuperSaw poly lead widescreen, cordas sinfônicas, piano Steinway e vocal mantra chants em 96 compassos!",
+                IM_COL32(0, 240, 255, 255)
+            },
             {
                 "vini_vici_adhana",
                 "Vini Vici & Astrix - Adhana (Original Audio Track)",
@@ -106,7 +119,13 @@ namespace KuroUI {
         std::string target_wav_path = "";
         std::string track_display_name = "";
 
-        if (tmpl.id == "vini_vici_adhana") {
+        if (tmpl.id == "cyber_horizon_128bpm" || tmpl.id == "psytrance_2min_track") {
+            float out_b = 128.0f;
+            clip_manager.loadTrackTemplate(0, out_b);
+            timeline.setBPM(out_b);
+            return;
+        }
+        else if (tmpl.id == "vini_vici_adhana") {
             target_wav_path = "C:\\NovaDAW\\tracks\\Vini_Vici_Astrix_Adhana.wav";
             if (!std::filesystem::exists(target_wav_path)) target_wav_path = "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\NovaDAW\\tracks\\Vini_Vici_Astrix_Adhana.wav";
             track_display_name = "Vini_Vici_Astrix_Adhana.wav";
@@ -124,33 +143,24 @@ namespace KuroUI {
             track_display_name = "Memento Mori - The Unsung Warrior.wav";
         }
 
-        // 4. Preencher TODAS AS 8 FAIXAS da Playlist com Clippes de Áudio WAV e MIDI (0:00 a 3:45m)
+        // 4. Preencher TODAS AS 8 FAIXAS da Playlist com Áudio WAV Master Real e Trilha de Produção
         if (!target_wav_path.empty()) {
-            g_piano_synth.getDrumSample(0).load(target_wav_path);
+            // Restaura o Kick oficial para o canal 0
+            g_piano_synth.drum_variants[0][0].load(std::string(g_piano_synth.FL_KICKS_DIR) + "808 Kick.wav");
+            
+            // Carrega a música real no player de áudio master global
+            if (g_global_sampler) {
+                g_global_sampler->loadSample(target_wav_path);
+                g_global_sampler->stop(); // Fica em stop aguardando o clique do Play
+            }
             
             // Faixa 0: Áudio WAV Real
             AudioClip ac; ac.id = clip_manager.next_id++; ac.start_time_sec = 0.0f; ac.length_sec = 210.0f; ac.source_offset_sec = 0.0f; ac.is_selected = false;
             clip_manager.track_clips[0].push_back(ac);
 
-            // Pattern de Transcrição MIDI dos Stems
-            Pattern p_stems; p_stems.id = 1; p_stems.name = "01. AI Transcribed MIDI Notes"; p_stems.color = tmpl.accent_color;
-            int pitches[16] = {49, 52, 56, 61, 63, 64, 61, 64, 66, 64, 63, 61, 59, 61, 56, 61};
-            for (int i = 0; i < 16; ++i) {
-                p_stems.getChannelNotes(5).push_back(KuroDSP::MidiNote(pitches[i], i * 0.125f, 0.10f, 0.90f, 1.0f, 5));
-                p_stems.getChannelNotes(3).push_back(KuroDSP::MidiNote(25, i * 0.125f, 0.08f, 0.92f, 1.0f, 3));
-            }
-            clip_manager.global_patterns.push_back(p_stems);
-
-            for (int b = 0; b < 14; ++b) {
-                MidiClip mc; mc.id = clip_manager.next_id++; mc.start_time_sec = b * 16.0f; mc.length_sec = 16.0f; mc.pattern_id = 1; mc.is_selected = false;
-                clip_manager.track_midi_clips[1].push_back(mc);
-                clip_manager.track_midi_clips[2].push_back(mc);
-                clip_manager.track_midi_clips[6].push_back(mc);
-            }
-            AudioClip ac_vox; ac_vox.id = clip_manager.next_id++; ac_vox.start_time_sec = 12.0f; ac_vox.length_sec = 180.0f; ac_vox.source_offset_sec = 0.0f; ac_vox.is_selected = false;
-            clip_manager.track_clips[3].push_back(ac_vox);
-            AudioClip ac_fx; ac_fx.id = clip_manager.next_id++; ac_fx.start_time_sec = 0.0f; ac_fx.length_sec = 210.0f; ac_fx.source_offset_sec = 0.0f; ac_fx.is_selected = false;
-            clip_manager.track_clips[7].push_back(ac_fx);
+            // Pattern limpo (sem MIDI artificial por cima)
+            Pattern p_clean; p_clean.id = 1; p_clean.name = "Pattern 1 (Clean Master)"; p_clean.color = tmpl.accent_color;
+            clip_manager.global_patterns.push_back(p_clean);
         }
         else { // Darude - Sandstorm / Synthesized Hit Tracks
             Pattern p_intro; p_intro.id = 1; p_intro.name = "01. Sandstorm Build-Up Roll"; p_intro.color = tmpl.accent_color;

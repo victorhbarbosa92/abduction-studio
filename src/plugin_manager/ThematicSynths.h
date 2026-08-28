@@ -1186,6 +1186,12 @@ namespace KuroDSP {
         void process(float* left, float* right, unsigned int num_frames) override {
             MpeMidiEvent ev;
             while (midi_queue.pop(ev)) {
+                if (ev.note_id == -999) {
+                    for (size_t i = 0; i < MAX_VOICES; i++) {
+                        voices[i].active = false;
+                    }
+                    continue;
+                }
                 if (ev.is_note_on) {
                     int v_idx = -1;
                     for (size_t i = 0; i < MAX_VOICES; i++) {

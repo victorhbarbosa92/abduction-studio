@@ -89,43 +89,24 @@ public:
         ss << "}\n";
 
         std::string configData = ss.str();
-        remove(filepath.c_str());
-        mz_bool status = mz_zip_add_mem_to_archive_file_in_place(filepath.c_str(), "project.json", configData.c_str(), configData.size(), "", 0, MZ_BEST_COMPRESSION);
-        
-        if (!status) {
-            std::cerr << "[ProjectManager] Erro fatal ao zipar o projeto .kuro usando miniz!\n";
+        std::ofstream out(filepath);
+        if (out.is_open()) {
+            out << configData;
+            out.close();
+            std::cout << "[ProjectManager] Projeto salvo com sucesso: " << filepath << "\n";
         } else {
-            std::cout << "[ProjectManager] Projeto Portátil salvo com sucesso em formato ZIP (JSON): " << filepath << "\n";
+            std::cerr << "[ProjectManager] Erro ao salvar o projeto em: " << filepath << "\n";
         }
     }
 
     static void LoadProject(const std::string& filepath) {
-        mz_zip_archive zip_archive;
-        memset(&zip_archive, 0, sizeof(zip_archive));
-        
-        if (!mz_zip_reader_init_file(&zip_archive, filepath.c_str(), 0)) {
-            std::cerr << "[ProjectManager] Arquivo .kuro nao encontrado ou invalido.\n";
+        std::ifstream in(filepath);
+        if (!in.is_open()) {
+            std::cerr << "[ProjectManager] Arquivo .kuro nao encontrado ou invalido: " << filepath << "\n";
             return;
         }
-        
-        int file_index = mz_zip_reader_locate_file(&zip_archive, "project.json", NULL, 0);
-        if (file_index < 0) {
-            std::cerr << "[ProjectManager] project.json ausente no arquivo .kuro!\n";
-            mz_zip_reader_end(&zip_archive);
-            return;
-        }
-        
-        size_t uncomp_size;
-        void* p = mz_zip_reader_extract_to_heap(&zip_archive, file_index, &uncomp_size, 0);
-        if (!p) {
-            std::cerr << "[ProjectManager] Erro ao extrair project.json\n";
-            mz_zip_reader_end(&zip_archive);
-            return;
-        }
-        
-        std::string json(static_cast<const char*>(p), uncomp_size);
-        mz_free(p);
-        mz_zip_reader_end(&zip_archive);
+        std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        in.close();
         
         // 1. BPM
         float bpm = JSON::parseFloat(json, "bpm", 140.0f);

@@ -7,6 +7,8 @@
 #include "../core/MidiNote.h"
 #include "KuroWave.h"
 
+extern int channel_tracks[MAX_TRACKS];
+
 struct SamplerSettings {
     float pan = 0.0f;
     float vol = 0.8f;
@@ -147,9 +149,9 @@ struct FlexSettings {
 
 extern float track_linear_volumes[MAX_TRACKS];
 extern bool is_playing;
-extern float dummy_vol[8];
-extern float dummy_pan[8];
-extern float track_vu_levels[8];
+extern float dummy_vol[MAX_TRACKS];
+extern float dummy_pan[MAX_TRACKS];
+extern float track_vu_levels[MAX_TRACKS];
 
 inline float g_delay_lama_vowel_x = 0.50f; // 0.0=OOH, 0.25=OW, 0.50=AH, 0.75=AYH, 1.0=EEH
 inline float g_delay_lama_pitch_y = 0.0f;  // -1.0 to +1.0 semitones
@@ -320,20 +322,30 @@ namespace KuroAudio {
 
             switch (inst) {
 
-            // --- ACOUSTIC PIANO: Corda percutida com harmônicos naturais e decaimento ---
+            // --- ACOUSTIC PIANO: Grand Piano Steinway (Uníssono Triplo de Cordas & Tábua Harmônica) ---
             case MidiInstrument::ACOUSTIC_PIANO: {
-                // Fundamental + 4 harmônicos com decaimento progressivo
-                wave  = std::sin(KURO_TWO_PI * freq * t);
-                wave += 0.50f * std::sin(KURO_TWO_PI * freq * 2.0f * t) * std::exp(-1.0f * t);
-                wave += 0.25f * std::sin(KURO_TWO_PI * freq * 3.0f * t) * std::exp(-2.0f * t);
-                wave += 0.12f * std::sin(KURO_TWO_PI * freq * 4.0f * t) * std::exp(-3.0f * t);
-                wave += 0.06f * std::sin(KURO_TWO_PI * freq * 5.0f * t) * std::exp(-4.0f * t);
+                // Uníssono triplo de cordas com micro-desafinação natural de piano acústico
+                float w1 = std::sin(KURO_TWO_PI * freq * t);
+                float w2 = std::sin(KURO_TWO_PI * freq * 1.0008f * t);
+                float w3 = std::sin(KURO_TWO_PI * freq * 0.9992f * t);
+                wave = (w1 + w2 + w3) * 0.33f;
                 
-                // Ataque do martelo (click percussivo)
-                wave += 0.3f * std::sin(KURO_TWO_PI * freq * 8.0f * t) * std::exp(-40.0f * t);
+                // Harmônicos naturais da corda com decaimento físico progressivo
+                wave += 0.45f * std::sin(KURO_TWO_PI * freq * 2.0f * t) * std::exp(-0.8f * t);
+                wave += 0.28f * std::sin(KURO_TWO_PI * freq * 3.0f * t) * std::exp(-1.4f * t);
+                wave += 0.15f * std::sin(KURO_TWO_PI * freq * 4.0f * t) * std::exp(-2.2f * t);
+                wave += 0.08f * std::sin(KURO_TWO_PI * freq * 5.0f * t) * std::exp(-3.2f * t);
+                wave += 0.04f * std::sin(KURO_TWO_PI * freq * 6.0f * t) * std::exp(-4.5f * t);
                 
-                env = std::exp(-1.5f * t);
-                if (t > duration) env *= std::exp(-12.0f * (t - duration));
+                // Ataque de martelo feltro/madeira
+                wave += 0.25f * std::sin(KURO_TWO_PI * (freq * 7.5f + 120.0f) * t) * std::exp(-45.0f * t);
+                
+                // Ressonância da tábua harmônica de madeira (Soundboard resonance)
+                float soundboard = std::sin(KURO_TWO_PI * 140.0f * t) * 0.12f * std::exp(-10.0f * t);
+                wave += soundboard;
+                
+                env = std::exp(-0.75f * t); // Sustain longo e cantado
+                if (t > duration) env *= std::exp(-10.0f * (t - duration));
                 break;
             }
 
@@ -442,20 +454,27 @@ namespace KuroAudio {
                 break;
             }
 
-            // --- NYLON GUITAR: Pluck suave, harmônicos pares fracos ---
+            // --- NYLON GUITAR: Violão Clássico de Nylon (Pluck Quente & Tampo Harmônico) ---
             case MidiInstrument::NYLON_GUITAR: {
-                wave  = std::sin(KURO_TWO_PI * freq * t);
-                wave += 0.15f * std::sin(KURO_TWO_PI * freq * 2.0f * t); // Harmônico par fraco
-                wave += 0.35f * std::sin(KURO_TWO_PI * freq * 3.0f * t);
-                wave += 0.08f * std::sin(KURO_TWO_PI * freq * 4.0f * t);
-                wave += 0.20f * std::sin(KURO_TWO_PI * freq * 5.0f * t) * std::exp(-3.0f * t);
+                float fundamental = std::sin(KURO_TWO_PI * freq * t);
+                float h2 = 0.20f * std::sin(KURO_TWO_PI * freq * 2.0f * t);
+                float h3 = 0.40f * std::sin(KURO_TWO_PI * freq * 3.0f * t);
+                float h4 = 0.10f * std::sin(KURO_TWO_PI * freq * 4.0f * t);
+                float h5 = 0.25f * std::sin(KURO_TWO_PI * freq * 5.0f * t) * std::exp(-2.0f * t);
+                float h7 = 0.12f * std::sin(KURO_TWO_PI * freq * 7.0f * t) * std::exp(-4.0f * t);
+                wave = fundamental + h2 + h3 + h4 + h5 + h7;
                 
-                env = std::exp(-2.0f * t);
-                if (t > duration) env *= std::exp(-10.0f * (t - duration));
+                // Ataque de unha/polegar com ressonância de madeira do violão
+                wave += 0.35f * std::sin(KURO_TWO_PI * (freq * 8.0f + 300.0f) * t) * std::exp(-40.0f * t);
+                wave += 0.15f * std::sin(KURO_TWO_PI * 190.0f * t) * std::exp(-15.0f * t);
+                
+                wave *= 0.65f;
+                env = std::exp(-1.4f * t);
+                if (t > duration) env *= std::exp(-12.0f * (t - duration));
                 break;
             }
 
-            // --- STEEL GUITAR: Pluck brilhante, mais harmônicos agudos ---
+            // --- STEEL GUITAR: Violão Folk de Aço (Brilho e Ataque de Palheta) ---
             case MidiInstrument::STEEL_GUITAR: {
                 wave  = std::sin(KURO_TWO_PI * freq * t);
                 wave += 0.45f * std::sin(KURO_TWO_PI * freq * 2.0f * t);
@@ -464,53 +483,55 @@ namespace KuroAudio {
                 wave += 0.15f * std::sin(KURO_TWO_PI * freq * 5.0f * t);
                 wave += 0.10f * std::sin(KURO_TWO_PI * freq * 6.0f * t);
                 
-                // Pick attack
-                wave += 0.3f * std::sin(KURO_TWO_PI * freq * 9.0f * t) * std::exp(-35.0f * t);
+                wave += 0.35f * std::sin(KURO_TWO_PI * (freq * 9.0f + 500.0f) * t) * std::exp(-35.0f * t);
+                wave *= 0.60f;
                 
-                env = std::exp(-2.5f * t);
+                env = std::exp(-1.8f * t);
                 if (t > duration) env *= std::exp(-10.0f * (t - duration));
                 break;
             }
 
-            // --- ELECTRIC BASS: Fundamental potente, sub-harmônico ---
+            // --- ELECTRIC BASS: Baixo Elétrico & Acústico Encorpado (Peso e Pegada) ---
             case MidiInstrument::ELECTRIC_BASS: {
-                wave  = 1.0f * std::sin(KURO_TWO_PI * freq * t);         // Fundamental forte
-                wave += 0.5f * std::sin(KURO_TWO_PI * freq * 0.5f * t);  // Sub
-                wave += 0.3f * std::sin(KURO_TWO_PI * freq * 2.0f * t);
-                wave += 0.1f * std::sin(KURO_TWO_PI * freq * 3.0f * t);
+                float fundamental = std::sin(KURO_TWO_PI * freq * t);
+                float sub = 0.60f * std::sin(KURO_TWO_PI * (freq * 0.5f) * t);
+                float h2 = 0.40f * std::sin(KURO_TWO_PI * freq * 2.0f * t);
+                float h3 = 0.20f * std::sin(KURO_TWO_PI * freq * 3.0f * t);
+                float h4 = 0.10f * std::sin(KURO_TWO_PI * freq * 4.0f * t);
+                wave = fundamental + sub + h2 + h3 + h4;
                 
-                // Pick/finger attack
-                wave += 0.4f * std::sin(KURO_TWO_PI * freq * 6.0f * t) * std::exp(-25.0f * t);
-                wave *= 0.5f;
+                // Ataque de dedo/slap
+                wave += 0.45f * std::sin(KURO_TWO_PI * (freq * 6.0f + 80.0f) * t) * std::exp(-30.0f * t);
+                wave *= 0.55f;
                 
-                env = std::exp(-1.5f * t);
+                env = std::exp(-1.1f * t);
                 if (t > duration) env *= std::exp(-8.0f * (t - duration));
                 break;
             }
 
-            // --- VIOLIN: Onda rica (sawtooth filtrada) com vibrato ---
+            // --- VIOLIN: Violino Solo Expressivo (Atrito de Arco & Vibrato Natural) ---
             case MidiInstrument::VIOLIN: {
-                // Vibrato natural do violinista
-                float vib = freq * (1.0f + 0.005f * std::sin(KURO_TWO_PI * 5.5f * t));
+                float vib_amount = std::min(1.0f, t * 2.5f) * 0.006f;
+                float vib = freq * (1.0f + vib_amount * std::sin(KURO_TWO_PI * 5.6f * t));
                 
-                // Sawtooth com harmônicos (corda friccionada pelo arco)
                 wave  = std::sin(KURO_TWO_PI * vib * t);
-                wave += 0.50f * std::sin(KURO_TWO_PI * vib * 2.0f * t);
-                wave += 0.33f * std::sin(KURO_TWO_PI * vib * 3.0f * t);
-                wave += 0.25f * std::sin(KURO_TWO_PI * vib * 4.0f * t);
+                wave += 0.55f * std::sin(KURO_TWO_PI * vib * 2.0f * t);
+                wave += 0.38f * std::sin(KURO_TWO_PI * vib * 3.0f * t);
+                wave += 0.28f * std::sin(KURO_TWO_PI * vib * 4.0f * t);
                 wave += 0.20f * std::sin(KURO_TWO_PI * vib * 5.0f * t);
-                wave += 0.16f * std::sin(KURO_TWO_PI * vib * 6.0f * t);
-                wave *= 0.35f;
+                wave += 0.15f * std::sin(KURO_TWO_PI * vib * 6.0f * t);
                 
-                // Attack lento do arco
-                float attack = 0.08f;
+                float bow_noise = std::sin(KURO_TWO_PI * 3450.0f * t + 2.0f * std::sin(KURO_TWO_PI * 87.0f * t)) * 0.04f;
+                wave = (wave * 0.38f) + bow_noise;
+                
+                float attack = 0.06f;
                 env = 1.0f;
                 if (t < attack) env = t / attack;
-                if (t > duration) env = std::max(0.0f, 1.0f - (t - duration) * 10.0f);
+                if (t > duration) env = std::max(0.0f, 1.0f - (t - duration) * 8.0f);
                 break;
             }
 
-            // --- CELLO: Como violino mas mais grave e encorpado ---
+            // --- CELLO: Violoncelo Orquestral Grave ---
             case MidiInstrument::CELLO: {
                 float vib = freq * (1.0f + 0.004f * std::sin(KURO_TWO_PI * 5.0f * t));
                 
@@ -519,32 +540,35 @@ namespace KuroAudio {
                 wave += 0.40f * std::sin(KURO_TWO_PI * vib * 3.0f * t);
                 wave += 0.30f * std::sin(KURO_TWO_PI * vib * 4.0f * t);
                 wave += 0.20f * std::sin(KURO_TWO_PI * vib * 5.0f * t);
-                wave *= 0.35f;
+                wave *= 0.38f;
                 
-                float attack = 0.10f;
+                float attack = 0.08f;
                 env = 1.0f;
                 if (t < attack) env = t / attack;
                 if (t > duration) env = std::max(0.0f, 1.0f - (t - duration) * 8.0f);
                 break;
             }
 
-            // --- STRING ENSEMBLE: Múltiplas cordas com chorus e detuning ---
+            // --- STRING ENSEMBLE: Orquestra Sinfônica de Cordas (5-Voice Unison & Detuning) ---
             case MidiInstrument::STRING_ENSEMBLE: {
-                // 3 "instrumentos" levemente desafinados
-                for (int s = -1; s <= 1; s++) {
-                    float f = freq * (1.0f + s * 0.003f);
-                    float vib = f * (1.0f + 0.003f * std::sin(KURO_TWO_PI * (4.5f + s * 0.3f) * t));
-                    
-                    wave += std::sin(KURO_TWO_PI * vib * t);
-                    wave += 0.45f * std::sin(KURO_TWO_PI * vib * 2.0f * t);
-                    wave += 0.25f * std::sin(KURO_TWO_PI * vib * 3.0f * t);
+                float s_sum = 0.0f;
+                float detunes[5] = {-0.004f, -0.002f, 0.0f, 0.002f, 0.004f};
+                float vib_rates[5] = {4.8f, 5.2f, 5.0f, 5.5f, 4.5f};
+                for (int i = 0; i < 5; ++i) {
+                    float f = freq * (1.0f + detunes[i]);
+                    float vib = f * (1.0f + 0.0035f * std::sin(KURO_TWO_PI * vib_rates[i] * t));
+                    float w = std::sin(KURO_TWO_PI * vib * t);
+                    w += 0.50f * std::sin(KURO_TWO_PI * vib * 2.0f * t);
+                    w += 0.30f * std::sin(KURO_TWO_PI * vib * 3.0f * t);
+                    w += 0.18f * std::sin(KURO_TWO_PI * vib * 4.0f * t);
+                    s_sum += w;
                 }
-                wave *= 0.15f;
+                wave = s_sum * 0.15f;
                 
-                float attack = 0.15f;
+                float attack = 0.10f;
                 env = 1.0f;
                 if (t < attack) env = t / attack;
-                if (t > duration) env = std::max(0.0f, 1.0f - (t - duration) * 6.0f);
+                if (t > duration) env = std::max(0.0f, 1.0f - (t - duration) * 4.0f);
                 break;
             }
 
@@ -822,19 +846,27 @@ namespace KuroAudio {
 
     public:
         MidiInstrument current_instrument = MidiInstrument::ACOUSTIC_PIANO;
-        MidiInstrument flex_channel_instrument[8] = {
-            MidiInstrument::ELECTRIC_BASS,
-            MidiInstrument::ACOUSTIC_PIANO,
-            MidiInstrument::ACOUSTIC_PIANO,
-            MidiInstrument::ELECTRIC_BASS,
-            MidiInstrument::SYNTH_SAW,
-            MidiInstrument::LEAD_SYNTH,
-            MidiInstrument::ACOUSTIC_PIANO,
-            MidiInstrument::ACOUSTIC_PIANO
+        MidiInstrument flex_channel_instrument[MAX_TRACKS] = {
+            MidiInstrument::ACOUSTIC_PIANO,   // Ch 0: Kick
+            MidiInstrument::SUB_BASS,         // Ch 1: Sub Bass
+            MidiInstrument::SYNTH_SAW,        // Ch 2: Mid Bass
+            MidiInstrument::ACOUSTIC_PIANO,   // Ch 3: Snare/Clap
+            MidiInstrument::ACOUSTIC_PIANO,   // Ch 4: Open Hat
+            MidiInstrument::ACOUSTIC_PIANO,   // Ch 5: Closed Hat
+            MidiInstrument::MARIMBA,          // Ch 6: Tribal Perc
+            MidiInstrument::FM_SYNTH,         // Ch 7: FM Squelch
+            MidiInstrument::SYNTH_SAW,        // Ch 8: Acid Lead
+            MidiInstrument::TRANCE_LEAD,      // Ch 9: Counter-Arp Pluck
+            MidiInstrument::FULLON_LEAD,      // Ch 10: SuperSaw Lead
+            MidiInstrument::PAD_SYNTH,        // Ch 11: Dark Sub Drone
+            MidiInstrument::STRING_ENSEMBLE,  // Ch 12: Symphonic Strings
+            MidiInstrument::ACOUSTIC_PIANO,   // Ch 13: Steinway Piano
+            MidiInstrument::CHOIR,            // Ch 14: Vocal Mantra Chants
+            MidiInstrument::SWEEP_PAD         // Ch 15: Snare Roll & FX
         };
-        SamplerSettings sampler_settings[8];
-        FlexSettings flex_settings[8];
-        bool flex_active[8] = { false };
+        SamplerSettings sampler_settings[MAX_TRACKS];
+        FlexSettings flex_settings[MAX_TRACKS];
+        bool flex_active[MAX_TRACKS] = { false, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true };
 
         static float getSamplerEnvelope(const SamplerSettings& s, float t, float duration) {
             if (!s.env_enabled) return 1.0f;
@@ -871,13 +903,16 @@ namespace KuroAudio {
         // 3 variantes por canal de bateria: [canal][variante]
         // Canal 0=Kick, 1=Snare, 2=HiHat, 3=Clap, 4=OpenHat, 5=Tom, 6=Crash, 7=Cowbell
         static constexpr int MAX_DRUM_VARIANTS = 4;
-        DrumSample drum_variants[8][MAX_DRUM_VARIANTS];  // 8 canais × 4 variantes
-        int selected_variant[8] = { 0 };                 // Variante ativa por canal
+        DrumSample drum_variants[MAX_TRACKS][MAX_DRUM_VARIANTS];  // 20 canais × 4 variantes
+        int selected_variant[MAX_TRACKS] = { 0 };                 // Variante ativa por canal
         DrumSample* drum_samples = nullptr; // Aponta para drum_variants[ch][selected_variant[ch]]
 
-        // Mantidos para compatibilidade — redirecionam para drum_variants
+        // Mantidos para compatibilidade — redirecionam para drum_variants de forma 100% segura
         DrumSample& getDrumSample(int ch) {
-            return drum_variants[ch][selected_variant[ch]];
+            static DrumSample s_empty_drum;
+            if (ch < 0 || ch >= MAX_TRACKS) return s_empty_drum;
+            int v = std::clamp(selected_variant[ch], 0, MAX_DRUM_VARIANTS - 1);
+            return drum_variants[ch][v];
         }
 
         DrumSample strings_sample;
@@ -885,6 +920,9 @@ namespace KuroAudio {
         DrumSample cello_sample;
         DrumSample harpsichord_sample;
         DrumSample choir_sample;
+        DrumSample piano_sample;
+        DrumSample bass_sample;
+        DrumSample pad_sample;
 
         // ── SFX SAMPLES ────────────────────────────────────────────────────
         struct SfxEntry { std::string name; DrumSample sample; };
@@ -903,84 +941,88 @@ namespace KuroAudio {
         const char* crash_variant_names[MAX_DRUM_VARIANTS] = {"808 Crash", "909 Crash", "Grv Crash", "Grv Ride"};
 
         SynthEngine() : sample_rate(44100.0f), current_type(SynthType::PIANO) {
+            auto load_sample_file = [](DrumSample& ds, const std::string& local_path, const std::string& fallback_fl_path) {
+                ds.load(local_path);
+                if (!ds.loaded && !fallback_fl_path.empty()) {
+                    ds.load(fallback_fl_path);
+                }
+            };
+
             // ── Kicks (canal 0) ────
-            drum_variants[0][0].load(std::string(FL_KICKS_DIR) + "808 Kick.wav");
-            drum_variants[0][1].load(std::string(FL_KICKS_DIR) + "909 Kick.wav");
-            drum_variants[0][2].load(std::string(FL_KICKS_DIR) + "Grv Kick Acoustic 01.wav");
-            drum_variants[0][3].load(std::string(FL_KICKS_DIR) + "FPC 1 Kick.wav");
+            load_sample_file(drum_variants[0][0], "assets/samples/adhana_signature/Adhana_Astrix_Kick_Punch_01.wav", "assets/samples/Psytrance_Kick_140BPM.wav");
+            load_sample_file(drum_variants[0][1], "assets/samples/Psytrance_Kick_140BPM.wav", "assets/samples/Real_Drums/Punch_909_Kick.wav");
+            load_sample_file(drum_variants[0][2], "assets/samples/Real_Drums/Punch_909_Kick.wav", std::string(FL_KICKS_DIR) + "Monster Kick 002.wav");
+            load_sample_file(drum_variants[0][3], "assets/samples/Slap_Punch_Kick.wav", std::string(FL_KICKS_DIR) + "909 Kick.wav");
 
             // ── Snares (canal 1) ───
-            drum_variants[1][0].load(std::string(FL_SNARES_DIR) + "808 Snare.wav");
-            drum_variants[1][1].load(std::string(FL_SNARES_DIR) + "909 Snare.wav");
-            drum_variants[1][2].load(std::string(FL_SNARES_DIR) + "FPC Snare 1.wav");
-            drum_variants[1][3].load(std::string(FL_SNARES_DIR) + "Grv Snareclap 01.wav");
+            load_sample_file(drum_variants[1][0], "assets/samples/Real_Drums/Real_Acoustic_Snare.wav", std::string(FL_SNARES_DIR) + "Grv Snareclap 01.wav");
+            load_sample_file(drum_variants[1][1], "assets/samples/Real_Drums/Real_808_Snare.wav", std::string(FL_SNARES_DIR) + "808 Snare.wav");
+            load_sample_file(drum_variants[1][2], "assets/samples/Real_Drums/Studio_Snare_Warm.wav", std::string(FL_SNARES_DIR) + "FPC Snare 1.wav");
+            load_sample_file(drum_variants[1][3], "assets/samples/808_Crisp_Clap.wav", std::string(FL_SNARES_DIR) + "909 Snare.wav");
 
             // ── Hi-Hats (canal 2) ─
-            drum_variants[2][0].load(std::string(FL_HATS_DIR) + "808 CH.wav");
-            drum_variants[2][1].load(std::string(FL_HATS_DIR) + "909 CH 1.wav");
-            drum_variants[2][2].load(std::string(FL_HATS_DIR) + "Grv CH 01.wav");
-            drum_variants[2][3].load(std::string(FL_HATS_DIR) + "808 OH.wav");
+            load_sample_file(drum_variants[2][0], "assets/samples/Real_Drums/Real_Acoustic_HiHat_Closed.wav", std::string(FL_HATS_DIR) + "Grv CH 01.wav");
+            load_sample_file(drum_variants[2][1], "assets/samples/Real_Drums/Real_Acoustic_HiHat_Open.wav", std::string(FL_HATS_DIR) + "808 OH.wav");
+            load_sample_file(drum_variants[2][2], "assets/samples/Closed_Metal_Hat.wav", std::string(FL_HATS_DIR) + "808 CH.wav");
+            load_sample_file(drum_variants[2][3], "assets/samples/Open_Psy_Hat.wav", std::string(FL_HATS_DIR) + "909 CH 1.wav");
 
-            // ── Clap (canal 3) ────
-            drum_variants[3][0].load(std::string(FL_SNARES_DIR) + "707 Rim.wav");
-            drum_variants[3][1].load(std::string(FL_SNARES_DIR) + "909 Rim.wav");
-            drum_variants[3][2].load(std::string(FL_SNARES_DIR) + "FPC Rim.wav");
-            drum_variants[3][3].load(std::string(FL_SNARES_DIR) + "Stick Rim 1.wav");
+            // ── Clap / Rim (canal 3) ────
+            load_sample_file(drum_variants[3][0], "assets/samples/Real_Drums/Real_Acoustic_Snare.wav", std::string(FL_SNARES_DIR) + "707 Rim.wav");
+            load_sample_file(drum_variants[3][1], "assets/samples/808_Crisp_Clap.wav", std::string(FL_SNARES_DIR) + "909 Rim.wav");
+            load_sample_file(drum_variants[3][2], "assets/samples/Ghost_Snare_Click.wav", std::string(FL_SNARES_DIR) + "FPC Rim.wav");
+            load_sample_file(drum_variants[3][3], "assets/samples/EDM_Smash_Clap.wav", std::string(FL_SNARES_DIR) + "Stick Rim 1.wav");
 
-            // ── Open Hat (canal 4) 
-            drum_variants[4][0].load(std::string(FL_HATS_DIR) + "808 OH.wav");
-            drum_variants[4][1].load(std::string(FL_HATS_DIR) + "909 OH.wav");
-            drum_variants[4][2].load(std::string(FL_HATS_DIR) + "Grv OH 01.wav");
-            drum_variants[4][3].load(std::string(FL_HATS_DIR) + "AMX OH.wav");
+            // ── Open Hat / Cymbals (canal 4) 
+            load_sample_file(drum_variants[4][0], "assets/samples/Real_Drums/Real_Acoustic_HiHat_Open.wav", std::string(FL_HATS_DIR) + "808 OH.wav");
+            load_sample_file(drum_variants[4][1], "assets/samples/Open_Psy_Hat.wav", std::string(FL_HATS_DIR) + "909 OH.wav");
+            load_sample_file(drum_variants[4][2], "assets/samples/Real_Drums/Real_Acoustic_HiHat_Closed.wav", std::string(FL_HATS_DIR) + "Grv OH 01.wav");
+            load_sample_file(drum_variants[4][3], "assets/samples/Shaker_Groove_High.wav", std::string(FL_HATS_DIR) + "AMX OH.wav");
 
-            // ── Tom (canal 5) ─────
-            drum_variants[5][0].load(std::string(FL_CYM_DIR)   + "909 Ride.wav");
-            drum_variants[5][1].load(std::string(FL_CYM_DIR)   + "707 Ride.wav");
-            drum_variants[5][2].load(std::string(FL_CYM_DIR)   + "Grv Ride 01.wav");
-            drum_variants[5][3].load(std::string(FL_CYM_DIR)   + "Linn Ride.wav");
+            // ── Ride (canal 5) ─────
+            load_sample_file(drum_variants[5][0], "assets/samples/Real_Drums/Real_Acoustic_Ride.wav", std::string(FL_CYM_DIR) + "Grv Ride 01.wav");
+            load_sample_file(drum_variants[5][1], "assets/samples/Real_Drums/Real_Acoustic_Crash.wav", std::string(FL_CYM_DIR) + "909 Ride.wav");
+            load_sample_file(drum_variants[5][2], "assets/samples/Real_Drums/Real_Acoustic_HiHat_Open.wav", std::string(FL_CYM_DIR) + "707 Ride.wav");
+            load_sample_file(drum_variants[5][3], "assets/samples/Closed_Metal_Hat.wav", std::string(FL_CYM_DIR) + "Linn Ride.wav");
 
             // ── Crash (canal 6) ───
-            drum_variants[6][0].load(std::string(FL_CYM_DIR)   + "909 Crash.wav");
-            drum_variants[6][1].load(std::string(FL_CYM_DIR)   + "808 Crash.wav");
-            drum_variants[6][2].load(std::string(FL_CYM_DIR)   + "Grv Crash 01.wav");
-            drum_variants[6][3].load(std::string(FL_CYM_DIR)   + "Thin Crash.wav");
+            load_sample_file(drum_variants[6][0], "assets/samples/Real_Drums/Real_Acoustic_Crash.wav", std::string(FL_CYM_DIR) + "Grv Crash 01.wav");
+            load_sample_file(drum_variants[6][1], "assets/samples/Real_Drums/Real_Acoustic_Ride.wav", std::string(FL_CYM_DIR) + "909 Crash.wav");
+            load_sample_file(drum_variants[6][2], "assets/samples/Cyber_Sub_Impact.wav", std::string(FL_CYM_DIR) + "808 Crash.wav");
+            load_sample_file(drum_variants[6][3], "assets/samples/White_Noise_Sweep_Up.wav", std::string(FL_CYM_DIR) + "Thin Crash.wav");
 
-            // ── Cowbell/Perc (canal 7) 
-            drum_variants[7][0].load(std::string(FL_HATS_DIR)  + "Clank CH 1.wav");
-            drum_variants[7][1].load(std::string(FL_HATS_DIR)  + "Ice Hat 1.wav");
-            drum_variants[7][2].load(std::string(FL_HATS_DIR)  + "Ice Hat 3.wav");
-            drum_variants[7][3].load(std::string(FL_HATS_DIR)  + "Jung Hat 1.wav");
+            // ── Perc / SFX (canal 7) 
+            load_sample_file(drum_variants[7][0], "assets/samples/Real_SFX/FX_Choir_Swell.wav", std::string(FL_HATS_DIR) + "Clank CH 1.wav");
+            load_sample_file(drum_variants[7][1], "assets/samples/Real_SFX/SFX_Bass_Sweep.wav", std::string(FL_HATS_DIR) + "Ice Hat 1.wav");
+            load_sample_file(drum_variants[7][2], "assets/samples/Psy_Click_Perc.wav", std::string(FL_HATS_DIR) + "Ice Hat 3.wav");
+            load_sample_file(drum_variants[7][3], "assets/samples/Psy_Zap_Laser.wav", std::string(FL_HATS_DIR) + "Jung Hat 1.wav");
 
             // ── SFX Library ───────────────────────────────────────────────
             const std::vector<std::pair<std::string,std::string>> sfx_files = {
+                {"Choir Swell",    "assets/samples/Real_SFX/FX_Choir_Swell.wav"},
+                {"Bass Sweep Drop","assets/samples/Real_SFX/SFX_Bass_Sweep.wav"},
+                {"Drone Strings",  "assets/samples/Real_SFX/FX_Drone_Strings_Rev.wav"},
+                {"Cyber Impact",   "assets/samples/Cyber_Sub_Impact.wav"},
+                {"Noise Sweep",    "assets/samples/White_Noise_Sweep_Up.wav"},
+                {"Downlifter",     "assets/samples/Alien_Downlifter_Sweep.wav"},
+                {"303 Saw Hit",    "assets/samples/Acid_303_Saw_Hit.wav"},
                 {"Blackhole",      std::string(FL_SFX_DIR) + "FX Blackhole.wav"},
-                {"Choir Swell",    std::string(FL_SFX_DIR) + "FX Choir Swell.wav"},
-                {"Drone Strings",  std::string(FL_SFX_DIR) + "FX Drone Strings Rev.wav"},
-                {"Echo FM",        std::string(FL_SFX_DIR) + "FX Echo FM.wav"},
-                {"Holo Drone",     std::string(FL_SFX_DIR) + "FX Holo Drone.wav"},
-                {"Long Metal",     std::string(FL_SFX_DIR) + "FX Long Metal.wav"},
                 {"Mech Growl",     std::string(FL_SFX_DIR) + "FX Mech Growl.wav"},
-                {"Piano Nightmare",std::string(FL_SFX_DIR) + "FX Piano Nightmare.wav"},
-                {"Bass Sweep Drop",std::string(FL_SFX_DIR) + "SFX Bass Sweep Drop.wav"},
-                {"Big Square Drop",std::string(FL_SFX_DIR) + "SFX Big Square Drop.wav"},
-                {"Crunchy Bass",   std::string(FL_SFX_DIR) + "SFX Crunchy Bass.wav"},
-                {"Electro Drop",   std::string(FL_SFX_DIR) + "SFX Electro Drop.wav"},
-                {"Electro Shock",  std::string(FL_SFX_DIR) + "SFX Electro Shock.wav"},
                 {"SubBass Drop",   std::string(FL_SFX_DIR) + "SFX SubBass Drop.wav"},
-                {"Thunder Sheet",  std::string(FL_SFX_DIR) + "SFX Thunder Sheet.wav"},
-                {"Wobble Drop",    std::string(FL_SFX_DIR) + "SFX Wobble Drop.wav"},
             };
             for (auto& [name, path] : sfx_files) {
                 sfx_library.push_back({name, {}});
                 sfx_library.back().sample.load(path);
             }
 
-            // ── Instrumentos Cromáticos ────────────────────────────────────
-            strings_sample.load("C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_3c_Long.wav");
-            guitar_sample.load("C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Guitar\\Guitar\\Acoustic Guitar 01\\ACOUSTICG 1_A3.wav");
-            cello_sample.load("C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_Cell_C4.wav");
-            harpsichord_sample.load("C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_Harpsy_C4.wav");
-            choir_sample.load("C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Choirs\\CHR_Aah_A3.wav");
+            // ── Instrumentos Cromáticos Reais (Sample Bank Enriquecido) ───────────
+            load_sample_file(strings_sample, "assets/samples/Real_Strings/Symphonic_Strings_Section.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_3c_Long.wav");
+            load_sample_file(guitar_sample, "assets/samples/Real_Guitar/ACOUSTICG 1_A3.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Guitar\\Guitar\\Acoustic Guitar 01\\ACOUSTICG 1_A3.wav");
+            load_sample_file(cello_sample, "assets/samples/Real_Strings/Real_Cello_Solo.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_Cell_C4.wav");
+            load_sample_file(harpsichord_sample, "assets/samples/Real_Strings/Real_Harpsichord.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\STR_Harpsy_C4.wav");
+            load_sample_file(choir_sample, "assets/samples/Real_Choir/Real_Choir_Aah_A3.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Choirs\\CHR_Aah_A3.wav");
+            load_sample_file(piano_sample, "assets/samples/Real_Piano/Gz_C4ogg.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Piano\\Piano 2\\Gz_C4ogg.wav");
+            load_sample_file(bass_sample, "assets/samples/Real_Bass/Real_Bass_Deep_C2.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Bass\\BASS_EfEm_C2.wav");
+            load_sample_file(pad_sample, "assets/samples/Real_Strings/Orchestral_Pad_Strings.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\DNC_OrionString.wav");
         }
 
         void setSampleRate(float sr) { sample_rate = sr; }
@@ -995,6 +1037,9 @@ namespace KuroAudio {
 
         void triggerNote(int pitch, float duration, float velocity = 0.8f, int track_idx = 5) {
             std::lock_guard<std::mutex> lock(synth_mutex);
+            if (active_voices.size() >= 64) {
+                active_voices.erase(active_voices.begin());
+            }
             if (track_idx >= 0 && track_idx < 8) {
                 if (sampler_settings[track_idx].cut_self) {
                     for (auto& v : active_voices) {
@@ -1044,15 +1089,6 @@ namespace KuroAudio {
                 float sample_l = 0.0f;
                 float sample_r = 0.0f;
                 float current_time = global_time_sec + (i * dt);
-
-                // Checa quais notas devem começar a tocar
-                for (auto& note : notes) {
-                    if (current_time < note.start_time) { note.is_playing = false; }
-                    if (!note.is_playing && current_time >= note.start_time && current_time < note.start_time + note.duration) {
-                        note.is_playing = true;
-                        active_voices.push_back({note.pitch, 0.0f, 0.0f, note.duration, note.velocity, true});
-                    }
-                }
 
                  // Processa vozes ativas
                  for (auto& voice : active_voices) {
@@ -1256,34 +1292,47 @@ namespace KuroAudio {
                               float wave2 = (std::sin(KURO_TWO_PI * f2 * t) >= 0.0f) ? 1.0f : -1.0f;
                               s = (wave1 + wave2) * 0.3f * std::exp(-15.0f * t);
                           } else {
-                              // Mapeia instrumentos cromáticos baseados em samples do FL Studio
+                              MidiInstrument target_inst = (voice.track_idx >= 0 && voice.track_idx < MAX_TRACKS) ? flex_channel_instrument[voice.track_idx] : current_instrument;
+
                               DrumSample* ds = nullptr;
                               int base_pitch = 60;
                               bool loop = false;
 
-                              if (current_instrument == MidiInstrument::STRING_ENSEMBLE) {
+                              if (target_inst == MidiInstrument::ACOUSTIC_PIANO || target_inst == MidiInstrument::HONKY_TONK) {
+                                  ds = &piano_sample; base_pitch = 60; loop = false;
+                              } else if (target_inst == MidiInstrument::ELECTRIC_BASS || target_inst == MidiInstrument::SUB_BASS) {
+                                  ds = &bass_sample; base_pitch = 36; loop = false;
+                              } else if (target_inst == MidiInstrument::PAD_SYNTH || target_inst == MidiInstrument::SWEEP_PAD) {
+                                  ds = &pad_sample; base_pitch = 48; loop = true;
+                              } else if (target_inst == MidiInstrument::STRING_ENSEMBLE || target_inst == MidiInstrument::VIOLIN) {
                                   ds = &strings_sample; base_pitch = 48; loop = true;
-                              } else if (current_instrument == MidiInstrument::NYLON_GUITAR) {
+                              } else if (target_inst == MidiInstrument::NYLON_GUITAR || target_inst == MidiInstrument::STEEL_GUITAR) {
                                   ds = &guitar_sample; base_pitch = 57; loop = false;
-                              } else if (current_instrument == MidiInstrument::CELLO) {
+                              } else if (target_inst == MidiInstrument::CELLO) {
                                   ds = &cello_sample; base_pitch = 60; loop = true;
-                              } else if (current_instrument == MidiInstrument::HARPSICHORD) {
+                              } else if (target_inst == MidiInstrument::HARPSICHORD || target_inst == MidiInstrument::CLAVINET) {
                                   ds = &harpsichord_sample; base_pitch = 60; loop = false;
-                              } else if (current_instrument == MidiInstrument::MARIMBA || current_instrument == MidiInstrument::CELESTA) {
+                              } else if (target_inst == MidiInstrument::MARIMBA || target_inst == MidiInstrument::CELESTA || target_inst == MidiInstrument::CHOIR) {
                                   ds = &choir_sample; base_pitch = 57; loop = true;
                               }
 
-                              if (ds && ds->loaded) {
+                              if (ds && ds->loaded && !ds->sample_data.empty()) {
                                   float ratio = std::pow(2.0f, (voice.pitch - base_pitch) / 12.0f);
                                   uint64_t frame_idx = (uint64_t)(voice.current_time * ds->sample_rate * ratio);
                                   if (loop) {
                                       if (ds->total_frames > 0) {
                                           frame_idx = frame_idx % ds->total_frames;
-                                          s = ds->sample_data[frame_idx * ds->channels];
+                                          size_t sample_idx = frame_idx * ds->channels;
+                                          if (sample_idx < ds->sample_data.size()) {
+                                              s = ds->sample_data[sample_idx];
+                                          }
                                       }
                                   } else {
                                       if (frame_idx < ds->total_frames) {
-                                          s = ds->sample_data[frame_idx * ds->channels];
+                                          size_t sample_idx = frame_idx * ds->channels;
+                                          if (sample_idx < ds->sample_data.size()) {
+                                              s = ds->sample_data[sample_idx];
+                                          }
                                       }
                                   }
                                   float env = 1.0f;
@@ -1292,13 +1341,13 @@ namespace KuroAudio {
                                   }
                                   s *= env;
                               } else {
-                                  MidiInstrument inst = (voice.track_idx >= 0 && voice.track_idx < 8 && flex_active[voice.track_idx]) 
+                                  MidiInstrument inst = (voice.track_idx >= 0 && voice.track_idx < MAX_TRACKS && flex_active[voice.track_idx]) 
                                                         ? flex_channel_instrument[voice.track_idx] 
                                                         : current_instrument;
                                    s = synthesize(inst, freq, voice.current_time, voice.phase, voice.duration);
 
                                    // Aplicar Envelope ADSR e Filtro de Equalização Suave do FLEX se ativo
-                                   int target_ch = (voice.track_idx >= 0 && voice.track_idx < 8) ? voice.track_idx : 0;
+                                   int target_ch = (voice.track_idx >= 0 && voice.track_idx < MAX_TRACKS) ? voice.track_idx : 0;
                                    if (flex_active[target_ch]) {
                                        auto& fs = flex_settings[target_ch];
                                        
@@ -1341,27 +1390,14 @@ namespace KuroAudio {
                           }
                      }
  
-                     int trk = 5;
+                     int trk = (voice.track_idx >= 0 && voice.track_idx < 8) ? voice.track_idx : 5;
                      if (drum_idx >= 0 && drum_idx < 8) {
                          auto& ss = sampler_settings[drum_idx];
                          if (ss.track >= 1 && ss.track <= 20) {
                              trk = ss.track - 1;
                          } else {
-                             trk = ::channel_tracks[drum_idx];
+                             trk = channel_tracks[drum_idx];
                          }
-                     } else {
-                         if (voice.pitch == 36) trk = ::channel_tracks[0];
-                         else if (voice.pitch == 38) trk = ::channel_tracks[1];
-                         else if (voice.pitch == 42) trk = ::channel_tracks[2];
-                         else if (voice.pitch == 39) trk = ::channel_tracks[3];
-                         else if (voice.pitch == 46) trk = ::channel_tracks[4];
-                         else if (voice.pitch == 41) trk = ::channel_tracks[5];
-                         else if (voice.pitch == 49) trk = ::channel_tracks[6];
-                         else if (voice.pitch == 56) trk = ::channel_tracks[7];
-                         else if (voice.pitch == 48) trk = 4;
-                         else if (voice.pitch == 60) trk = 5;
-                         else if (voice.pitch == 64) trk = 6;
-                         else if (voice.pitch == 72) trk = 7;
                      }
  
                      float voice_gain = ::is_playing ? ::track_linear_volumes[trk] : 1.0f;
@@ -1398,20 +1434,13 @@ namespace KuroAudio {
                      voice.current_time += dt;
                  }
 
-                // Limpa notas velhas
-                active_voices.erase(std::remove_if(active_voices.begin(), active_voices.end(), 
-                    [](const Voice& v) { return !v.active; }), active_voices.end());
-                    
-                // Reseta notas se voltarmos no tempo (loop/seek)
-                for (auto& note : notes) {
-                    if (note.is_playing && (current_time < note.start_time || current_time >= note.start_time + note.duration)) {
-                        note.is_playing = false;
-                    }
-                }
-
                 out_left[i] += sample_l;
                 out_right[i] += sample_r;
             }
+
+            // Limpa vozes inativas uma única vez por bloco de áudio (NÃO por amostra)
+            active_voices.erase(std::remove_if(active_voices.begin(), active_voices.end(), 
+                [](const Voice& v) { return !v.active; }), active_voices.end());
 
             for (int t = 0; t < 8; t++) {
                 if (t != 5) {
@@ -1423,20 +1452,11 @@ namespace KuroAudio {
         void processMultitrack(float** track_outs_l, float** track_outs_r, unsigned int nFrames, float global_time_sec) {
             std::lock_guard<std::mutex> lock(synth_mutex);
             
-            float block_peaks[8] = { 0.0f };
+            float block_peaks[MAX_TRACKS] = { 0.0f };
             float dt = 1.0f / sample_rate;
             
             for (unsigned int i = 0; i < nFrames; i++) {
                 float current_time = global_time_sec + (i * dt);
-
-                // Checa quais notas devem começar a tocar
-                for (auto& note : notes) {
-                    if (current_time < note.start_time) { note.is_playing = false; }
-                    if (!note.is_playing && current_time >= note.start_time && current_time < note.start_time + note.duration) {
-                        note.is_playing = true;
-                        active_voices.push_back({note.pitch, 0.0f, 0.0f, note.duration, note.velocity, true});
-                    }
-                }
 
                 // Processa vozes ativas
                 for (auto& voice : active_voices) {
@@ -1445,18 +1465,10 @@ namespace KuroAudio {
                     float freq = getFrequency(voice.pitch);
                     
                     // Modulação de Vibrato via Macro do FLEX
-                    int ch_idx = 5;
-                    if (voice.pitch == 36) ch_idx = 0;
-                    else if (voice.pitch == 38) ch_idx = 1;
-                    else if (voice.pitch == 42) ch_idx = 2;
-                    else if (voice.pitch == 48) ch_idx = 3;
-                    else if (voice.pitch == 60) ch_idx = 4;
-                    else if (voice.pitch == 72) ch_idx = 5;
-                    else if (voice.pitch == 39) ch_idx = 6;
-                    else if (voice.pitch == 46) ch_idx = 7;
+                    int ch_idx = std::clamp(voice.track_idx, 0, 19);
                     auto& fs = flex_settings[ch_idx];
                     
-                    if (voice.pitch == 48 || voice.pitch == 60 || voice.pitch == 72) {
+                    if (fs.macro_vibrato > 0.01f) {
                         float vibrato_lfo = std::sin(KURO_TWO_PI * 6.0f * voice.current_time) * 0.03f * fs.macro_vibrato;
                         freq *= (1.0f + vibrato_lfo);
                     }
@@ -1471,12 +1483,12 @@ namespace KuroAudio {
                     float s = 0.0f;
                     int drum_idx = -1;
                     int sfx_idx = -1;
-                    int ch_idx_mt = std::clamp(voice.track_idx, 0, 7);
+                    int ch_idx_mt = std::clamp(voice.track_idx, 0, 19);
                     
                     if (voice.pitch < -90) {
                         sfx_idx = -100 - voice.pitch;
-                    } else if (ch_idx_mt == 0 || ch_idx_mt == 1 || ch_idx_mt == 2 || ch_idx_mt == 6 || ch_idx_mt == 7) {
-                        drum_idx = ch_idx_mt; // Drum sampler channels: Kick (0), Snare (1), HiHat (2), Clap (6), OpenHat (7)
+                    } else if ((ch_idx_mt == 0 || ch_idx_mt == 1 || ch_idx_mt == 2) && !flex_active[ch_idx_mt]) {
+                        drum_idx = ch_idx_mt; // Drum sampler channels: Kick (0), Snare (1), HiHat (2)
                     } else if (getDrumSample(ch_idx_mt).loaded && !flex_active[ch_idx_mt]) {
                         drum_idx = ch_idx_mt;
                     }
@@ -1515,11 +1527,27 @@ namespace KuroAudio {
                             rev_pol = ss.rev_polarity;
                         }
 
-                        if (drum_idx == 0) { // Kick
-                            float pitch_env = std::exp(-60.0f * t);
-                            float kick_freq = (50.0f + 150.0f * pitch_env) * p_mul;
-                            s = std::sin(KURO_TWO_PI * kick_freq * t) * std::exp(-10.0f * t) * 1.3f;
-                            s += 0.2f * std::sin(KURO_TWO_PI * 1000.0f * t) * std::exp(-120.0f * t);
+                        if (drum_idx == 0) { // Psytrance Punch & Click Transient Kick ("Estalo")
+                            // 1. Extreme Transient Click Snap (3.6 kHz -> 800 Hz sweep)
+                            float click_env = std::exp(-400.0f * t);
+                            float click_osc = std::sin(KURO_TWO_PI * (3500.0f - 2200.0f * (t * 250.0f)) * t) * click_env;
+                            
+                            // 2. High-Passed Noise Impulse Click
+                            static thread_local uint32_t click_seed = 777;
+                            click_seed = click_seed * 196314165 + 907633385;
+                            float click_noise = (((float)click_seed / 4294967296.0f) - 0.5f) * std::exp(-750.0f * t);
+                            
+                            // 3. Mid Punch (150Hz - 80Hz sweep)
+                            float punch_env = std::exp(-75.0f * t);
+                            
+                            // 4. Sub Body (52Hz fundamental sine with punchy decay)
+                            float body_env = std::exp(-11.0f * t);
+                            float kick_freq = (52.0f + 300.0f * punch_env) * p_mul;
+                            float sub_body = std::sin(KURO_TWO_PI * kick_freq * t) * body_env;
+                            
+                            // 5. Saturated Analog Punch
+                            float raw_kick = (sub_body * 1.35f) + (click_osc * 0.85f) + (click_noise * 0.45f);
+                            s = std::tanh(raw_kick * 1.6f) * 1.3f;
                         } else if (drum_idx == 1) { // Snare
                             static thread_local uint32_t rand_seed = 12345;
                             rand_seed = rand_seed * 196314165 + 907633385;
@@ -1555,29 +1583,45 @@ namespace KuroAudio {
                             int base_pitch = 60;
                             bool loop = false;
 
-                            if (current_instrument == MidiInstrument::STRING_ENSEMBLE) {
+                            MidiInstrument target_inst = (ch_idx_mt >= 0 && ch_idx_mt < MAX_TRACKS && flex_active[ch_idx_mt]) 
+                                                         ? flex_channel_instrument[ch_idx_mt] 
+                                                         : current_instrument;
+
+                            if (target_inst == MidiInstrument::ACOUSTIC_PIANO || target_inst == MidiInstrument::HONKY_TONK) {
+                                ds = &piano_sample; base_pitch = 60; loop = false;
+                            } else if (target_inst == MidiInstrument::ELECTRIC_BASS || target_inst == MidiInstrument::SUB_BASS) {
+                                ds = &bass_sample; base_pitch = 36; loop = false;
+                            } else if (target_inst == MidiInstrument::PAD_SYNTH || target_inst == MidiInstrument::SWEEP_PAD) {
+                                ds = &pad_sample; base_pitch = 48; loop = true;
+                            } else if (target_inst == MidiInstrument::STRING_ENSEMBLE || target_inst == MidiInstrument::VIOLIN) {
                                 ds = &strings_sample; base_pitch = 48; loop = true;
-                            } else if (current_instrument == MidiInstrument::NYLON_GUITAR) {
+                            } else if (target_inst == MidiInstrument::NYLON_GUITAR || target_inst == MidiInstrument::STEEL_GUITAR) {
                                 ds = &guitar_sample; base_pitch = 57; loop = false;
-                            } else if (current_instrument == MidiInstrument::CELLO) {
+                            } else if (target_inst == MidiInstrument::CELLO) {
                                 ds = &cello_sample; base_pitch = 60; loop = true;
-                            } else if (current_instrument == MidiInstrument::HARPSICHORD) {
+                            } else if (target_inst == MidiInstrument::HARPSICHORD || target_inst == MidiInstrument::CLAVINET) {
                                 ds = &harpsichord_sample; base_pitch = 60; loop = false;
-                            } else if (current_instrument == MidiInstrument::MARIMBA || current_instrument == MidiInstrument::CELESTA) {
+                            } else if (target_inst == MidiInstrument::MARIMBA || target_inst == MidiInstrument::CELESTA || target_inst == MidiInstrument::CHOIR) {
                                 ds = &choir_sample; base_pitch = 57; loop = true;
                             }
 
-                            if (ds && ds->loaded) {
+                            if (ds && ds->loaded && !ds->sample_data.empty()) {
                                 float ratio = std::pow(2.0f, (voice.pitch - base_pitch) / 12.0f);
                                 uint64_t frame_idx = (uint64_t)(voice.current_time * ds->sample_rate * ratio);
                                 if (loop) {
                                     if (ds->total_frames > 0) {
                                         frame_idx = frame_idx % ds->total_frames;
-                                        s = ds->sample_data[frame_idx * ds->channels];
+                                        size_t sample_idx = frame_idx * ds->channels;
+                                        if (sample_idx < ds->sample_data.size()) {
+                                            s = ds->sample_data[sample_idx];
+                                        }
                                     }
                                 } else {
                                     if (frame_idx < ds->total_frames) {
-                                        s = ds->sample_data[frame_idx * ds->channels];
+                                        size_t sample_idx = frame_idx * ds->channels;
+                                        if (sample_idx < ds->sample_data.size()) {
+                                            s = ds->sample_data[sample_idx];
+                                        }
                                     }
                                 }
                                 float env = 1.0f;
@@ -1628,14 +1672,14 @@ namespace KuroAudio {
                         s = voice.filter_state * (1.0f + fs.filter_res * 0.9f);
                     }
 
-                    int trk = ::channel_tracks[voice.track_idx];
+                    int trk = (voice.track_idx >= 0 && voice.track_idx < MAX_TRACKS) ? voice.track_idx : 0;
 
                     float voice_gain = ::is_playing ? ::track_linear_volumes[trk] : 1.0f;
                     float channel_gain = 1.0f;
                     float pan_l = 1.0f;
                     float pan_r = 1.0f;
                     
-                    if (drum_idx >= 0) {
+                    if (drum_idx >= 0 && drum_idx < 8) {
                         channel_gain = ::dummy_vol[drum_idx];
                         float p = ::dummy_pan[drum_idx];
                         pan_l = std::min(1.0f, 1.0f - p);
@@ -1644,7 +1688,7 @@ namespace KuroAudio {
 
                     float base_sample = s * voice.velocity * 0.3f * voice_gain * channel_gain;
                     
-                    if (trk >= 0 && trk < 8) {
+                    if (trk >= 0 && trk < MAX_TRACKS) {
                         track_outs_l[trk][i] += base_sample * pan_l;
                         track_outs_r[trk][i] += base_sample * pan_r;
                         float abs_s = std::abs(base_sample);
@@ -1657,23 +1701,14 @@ namespace KuroAudio {
                     if (voice.phase >= 1.0f) voice.phase -= 1.0f;
                     voice.current_time += dt;
                 }
-
-                // Limpa notas velhas
-                active_voices.erase(std::remove_if(active_voices.begin(), active_voices.end(), 
-                    [](const Voice& v) { return !v.active; }), active_voices.end());
-                    
-                // Reseta notas se voltarmos no tempo (loop/seek)
-                for (auto& note : notes) {
-                    if (note.is_playing && (current_time < note.start_time || current_time >= note.start_time + note.duration)) {
-                        note.is_playing = false;
-                    }
-                }
             }
 
-            for (int t = 0; t < 8; t++) {
-                if (t != 5) {
-                    ::track_vu_levels[t] = ::track_vu_levels[t] * 0.8f + block_peaks[t] * 0.2f;
-                }
+            // Limpa vozes inativas uma única vez por bloco de áudio (NÃO por amostra)
+            active_voices.erase(std::remove_if(active_voices.begin(), active_voices.end(), 
+                [](const Voice& v) { return !v.active; }), active_voices.end());
+
+            for (int t = 0; t < MAX_TRACKS; t++) {
+                ::track_vu_levels[t] = ::track_vu_levels[t] * 0.8f + block_peaks[t] * 0.2f;
             }
         }
     };

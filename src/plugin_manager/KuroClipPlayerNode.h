@@ -81,26 +81,12 @@ namespace KuroDSP {
                     uint64_t offset_in_clip = read_start - clip_start_frame;
                     uint64_t source_start_frame = (uint64_t)(clip.source_offset_sec * sample_rate) + offset_in_clip;
                     
-                    // O buffer de origem do StemSeparationEngine é MONO (interleaved ou não? Demucs retorna interleaved stereo ou mono?
-                    // Supondo que a stem seja Mono ou interleaved. O código atual do Demucs extrai em MONO ou STEREO dependendo.
-                    // Vamos assumir Mono copiado pros dois canais se o buffer_size == total_frames, 
-                    // ou Stereo Interleaved se buffer_size == total_frames * 2.
-                    bool is_stereo = (source_buffer->size() > (clip_end_frame * 2 - 1000));
-                    
+                    // O buffer do StemSeparationEngine é Stereo Interleaved (L, R, L, R)
                     for (unsigned int i = 0; i < frames_to_write; ++i) {
-                        if (is_stereo) {
-                            size_t src_idx = (source_start_frame + i) * 2;
-                            if (src_idx + 1 < source_buffer->size()) {
-                                left[frame_offset + i] += (*source_buffer)[src_idx];
-                                right[frame_offset + i] += (*source_buffer)[src_idx + 1];
-                            }
-                        } else {
-                            size_t src_idx = source_start_frame + i;
-                            if (src_idx < source_buffer->size()) {
-                                float s = (*source_buffer)[src_idx];
-                                left[frame_offset + i] += s;
-                                right[frame_offset + i] += s;
-                            }
+                        size_t src_idx = (source_start_frame + i) * 2;
+                        if (src_idx + 1 < source_buffer->size()) {
+                            left[frame_offset + i] += (*source_buffer)[src_idx];
+                            right[frame_offset + i] += (*source_buffer)[src_idx + 1];
                         }
                     }
                 }

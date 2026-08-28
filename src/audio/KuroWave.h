@@ -219,15 +219,6 @@ namespace KuroAudio {
                 float current_wt_pos = param_wt_position + (lfo_val * param_lfo_wt_mod * 3.0f);
                 current_wt_pos = std::clamp(current_wt_pos, 0.0f, 3.0f);
 
-                for (auto& note : notes) {
-                    if (!note.is_playing && current_time >= note.start_time && current_time < note.start_time + note.duration) {
-                        note.is_playing = true;
-                        SynthVoice new_voice(note.pitch, note.duration, note.velocity);
-                        new_voice.osc1.setUnison(param_unison_voices, param_unison_detune, 0.8f);
-                        active_voices.push_back(new_voice);
-                    }
-                }
-
                 for (auto& voice : active_voices) {
                     if (!voice.active) continue;
 

@@ -17,6 +17,22 @@ obj/
 # Dependencias Baixadas e ONNX Runtime
 _deps/
 *.onnx
+models/*.onnx
+
+# Python & Caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Logs e Temporarios
+*.log
+crash_log.txt
+error.log
+stdout.txt
+stderr.txt
+request_screenshot.txt
 
 # MacOS/Linux temp files
 .DS_Store
+

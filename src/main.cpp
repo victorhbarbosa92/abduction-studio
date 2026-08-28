@@ -58,9 +58,14 @@ KuroDSP::AnalogMonsterSynth g_analog_synth("analog");
 KuroDSP::SynthwaveSynth g_synthwave_synth("synthwave");
 KuroDSP::AbductionFMSynth g_fm_synth("fm");
 KuroDSP::AcousticContrabassSynth g_contrabass_synth("contrabass");
+std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
+
 void clear_all_synths() {
     g_piano_synth.clearNotes();
     g_kurowave.clearNotes();
+    if (g_global_sampler) {
+        g_global_sampler->stop();
+    }
     g_lead_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
     g_monk_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
     g_alien_synth.pushMidiEvent({-999, 0, false, 0.0f, 0.0f, 0.0f, 0.0f});
@@ -74,7 +79,6 @@ KuroDSP::AudioGraph master_graph;
 KuroDSP::TimelineManager timeline;
 
 KuroDSP::GrossBeatNode g_gross_beat;
-std::shared_ptr<KuroDSP::KuroSamplerNode> g_global_sampler;
 std::unique_ptr<StemSeparationEngine> g_ai_engine;
 std::unique_ptr<KuroAudio::DJEngine> g_dj_engine;
 std::unique_ptr<KuroAudio::StemExtractorEngine> g_stem_engine;
@@ -87,8 +91,8 @@ std::unique_ptr<KuroAudio::StemExtractorEngine> g_stem_engine;
 // ==========================================
 // ESTRUTURAS GLOBAIS
 // ==========================================
-float track_synth_buffer_l[8][2048] = {{0.0f}};
-float track_synth_buffer_r[8][2048] = {{0.0f}};
+float track_synth_buffer_l[MAX_TRACKS][2048] = {{0.0f}};
+float track_synth_buffer_r[MAX_TRACKS][2048] = {{0.0f}};
 
 class TrackSynthNode : public KuroDSP::PluginNode {
 private:
@@ -108,7 +112,13 @@ public:
     void setParameter(int param_index, float target_value, unsigned int frames_to_lerp = 0) override {}
 };
 
-std::string track_names[MAX_TRACKS] = {"Drums", "Bassline", "Synth Lead", "Vocals", "Automation 1", "Automation 2", "Pads", "FX", "TRK 9", "TRK 10", "TRK 11", "TRK 12", "TRK 13", "TRK 14", "TRK 15", "TRK 16", "TRK 17", "TRK 18", "TRK 19", "TRK 20"};
+std::string track_names[MAX_TRACKS] = {
+    "Track 1", "Track 2", "Track 3", "Track 4",
+    "Track 5", "Track 6", "Track 7", "Track 8",
+    "Track 9", "Track 10", "Track 11", "Track 12",
+    "Track 13", "Track 14", "Track 15", "Track 16",
+    "Track 17", "Track 18", "Track 19", "Track 20"
+};
 
 
 float global_time_sec = 0.0f;
@@ -137,11 +147,11 @@ float track_linear_sends_A[MAX_TRACKS] = { 0.0f };
 float track_linear_sends_B[MAX_TRACKS] = { 0.0f };
 float g_master_volume = 0.8f;
 
-float dummy_vol[8] = { 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f };
-float dummy_pan[8] = { 0.0f };
-int channel_tracks[8] = { 0, 1, 2, 3, 2, 3, 6, 7 };
+float dummy_vol[MAX_TRACKS] = { 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f };
+float dummy_pan[MAX_TRACKS] = { 0.0f };
+int channel_tracks[MAX_TRACKS] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
 
-float track_vu_levels[8] = { 0.0f };
+float track_vu_levels[MAX_TRACKS] = { 0.0f };
 float master_vu_level_l = 0.0f;
 float master_vu_level_r = 0.0f;
 
@@ -221,13 +231,14 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         g_piano_synth.clearNotes();
         g_kurowave.clearNotes();
         
-        // CRÍTICO: Resetar o flag is_playing das notas do padrão ativo
-        // Sem isso, ao reiniciar o play as notas que já tocaram não disparam de novo
+        // CRÍTICO: Resetar o flag is_playing das notas dos canais
         {
             std::lock_guard<std::mutex> lock(g_clip_manager.clip_mutex);
             for (auto& pat : g_clip_manager.global_patterns) {
-                for (auto& note : pat.notes) {
-                    note.is_playing = false;
+                for (int c = 0; c < MAX_TRACKS; c++) {
+                    for (auto& note : pat.getChannelNotes(c)) {
+                        note.is_playing = false;
+                    }
                 }
             }
         }
@@ -236,23 +247,25 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
 
     // --- Suavização de Volumes e Sends (Evita zipper noise, respeita Mute/Solo global) ---
     bool any_solo = false;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < MAX_TRACKS; i++) {
         if (track_solos[i]) { any_solo = true; break; }
     }
 
     for (int i = 0; i < MAX_TRACKS; i++) {
         float target_vol = 0.0f;
-        bool is_muted = (i < 8) ? (track_mutes[i] || (any_solo && !track_solos[i])) : false;
+        bool is_muted = track_mutes[i] || (any_solo && !track_solos[i]);
         if (!is_muted) {
             target_vol = (track_volumes[i] <= -59.9f) ? 0.0f : std::pow(10.0f, track_volumes[i] / 20.0f);
+            track_linear_volumes[i] = track_linear_volumes[i] * 0.90f + target_vol * 0.10f;
+        } else {
+            track_linear_volumes[i] = 0.0f; // Mute instantâneo absoluto
         }
         
-        float target_send_A = (track_sends_A[i] <= -59.9f) ? 0.0f : std::pow(10.0f, track_sends_A[i] / 20.0f);
-        float target_send_B = (track_sends_B[i] <= -59.9f) ? 0.0f : std::pow(10.0f, track_sends_B[i] / 20.0f);
+        float target_send_A = is_muted ? 0.0f : ((track_sends_A[i] <= -59.9f) ? 0.0f : std::pow(10.0f, track_sends_A[i] / 20.0f));
+        float target_send_B = is_muted ? 0.0f : ((track_sends_B[i] <= -59.9f) ? 0.0f : std::pow(10.0f, track_sends_B[i] / 20.0f));
         
-        track_linear_volumes[i] = track_linear_volumes[i] * 0.99f + target_vol * 0.01f;
-        track_linear_sends_A[i] = track_linear_sends_A[i] * 0.99f + target_send_A * 0.01f;
-        track_linear_sends_B[i] = track_linear_sends_B[i] * 0.99f + target_send_B * 0.01f;
+        track_linear_sends_A[i] = track_linear_sends_A[i] * 0.90f + target_send_A * 0.10f;
+        track_linear_sends_B[i] = track_linear_sends_B[i] * 0.90f + target_send_B * 0.10f;
     }
 
     // --- Resetar parâmetros ativos para os valores base ---
@@ -316,29 +329,35 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
         float duration = std::get<2>(ev);
         float velocity = std::get<3>(ev);
         
-        // 1. Aciona a reprodução de samples / baterias no sampler do canal
-        g_piano_synth.triggerNote(pitch, duration, velocity, track_idx);
-        
-        // 2. Roteamento de sintetizadores direcionado por Canal (Channel 3 = Bassline, 4 = Serum Chords, 5 = Lead Synth)
-        if ((track_idx == 3 || pitch <= 48) && !g_piano_synth.flex_active[3]) { // Bassline / Contrabaixo
-            KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
-            g_contrabass_synth.pushMidiEvent(ev_mpe);
-            g_monk_synth.pushMidiEvent(ev_mpe);
-            g_analog_synth.pushMidiEvent(ev_mpe);
-        }
-        else if ((track_idx == 4 || pitch == 60) && !g_piano_synth.flex_active[4]) { // Serum Chords
-            KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
-            g_synthwave_synth.pushMidiEvent(ev_mpe);
-        }
-        else if ((track_idx == 5 || pitch == 72) && !g_piano_synth.flex_active[5]) { // Lead Synth
-            KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
-            g_lead_synth.pushMidiEvent(ev_mpe);
-            g_alien_synth.pushMidiEvent(ev_mpe);
-            g_kurowave.triggerNote(pitch, duration, velocity);
-        }
-        else if ((track_idx == 6 || pitch == 84) && !g_piano_synth.flex_active[6]) { // Alien FM 4-Op Matrix
-            KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
-            g_fm_synth.pushMidiEvent(ev_mpe);
+        // 1. Aciona a reprodução de samples / baterias / instrumentos reais (FLEX) no sampler multicanal
+        if (track_idx >= 0 && track_idx < MAX_TRACKS) {
+            if (track_idx == 0 || track_idx == 1 || track_idx == 2 || track_idx >= 7 || g_piano_synth.flex_active[track_idx]) {
+                g_piano_synth.triggerNote(pitch, duration, velocity, track_idx);
+            }
+            
+            // 2. Roteamento de sintetizadores direcionado estritamente por Canal
+            if (track_idx == 3 && !g_piano_synth.flex_active[3]) { // Bassline / Contrabaixo / Delay Lama
+                KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+                if (KuroUI::show_contrabass_window) {
+                    g_contrabass_synth.pushMidiEvent(ev_mpe);
+                } else if (KuroUI::show_delay_lama) {
+                    g_monk_synth.pushMidiEvent(ev_mpe);
+                } else {
+                    g_analog_synth.pushMidiEvent(ev_mpe);
+                }
+            }
+            else if (track_idx == 4 && !g_piano_synth.flex_active[4]) { // Serum / Synthwave Chords
+                KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+                g_synthwave_synth.pushMidiEvent(ev_mpe);
+            }
+            else if (track_idx == 5 && !g_piano_synth.flex_active[5]) { // Expressive Lead Synth
+                KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+                g_lead_synth.pushMidiEvent(ev_mpe);
+            }
+            else if (track_idx == 6 && !g_piano_synth.flex_active[6]) { // Alien FM 4-Op Matrix Arp / Pluck
+                KuroDSP::MpeMidiEvent ev_mpe{pitch, pitch, true, velocity, 0.0f, 0.5f, 0.5f, duration};
+                g_fm_synth.pushMidiEvent(ev_mpe);
+            }
         }
     }
     
@@ -355,15 +374,15 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
     std::fill_n(global_synth_r, nFrames, 0.0f);
     
     // Zera os buffers de injeção dos canais do mixer
-    for (int t = 0; t < 8; t++) {
+    for (int t = 0; t < MAX_TRACKS; t++) {
         std::fill_n(track_synth_buffer_l[t], nFrames, 0.0f);
         std::fill_n(track_synth_buffer_r[t], nFrames, 0.0f);
     }
     
     // Processa o Sampler Multicanal nos buffers de injeção
-    float* multitrack_l[8];
-    float* multitrack_r[8];
-    for (int t = 0; t < 8; t++) {
+    float* multitrack_l[MAX_TRACKS];
+    float* multitrack_r[MAX_TRACKS];
+    for (int t = 0; t < MAX_TRACKS; t++) {
         multitrack_l[t] = track_synth_buffer_l[t];
         multitrack_r[t] = track_synth_buffer_r[t];
     }
@@ -371,17 +390,19 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nFrames,
     
     // Processa os sintetizadores nos respectivos buffers de canal (se o FLEX estiver inativo para aquele canal)
     if (!g_piano_synth.flex_active[3]) {
-        g_contrabass_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
-        g_monk_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
-        g_analog_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
+        if (KuroUI::show_contrabass_window) {
+            g_contrabass_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
+        } else if (KuroUI::show_delay_lama) {
+            g_monk_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
+        } else {
+            g_analog_synth.process(track_synth_buffer_l[3], track_synth_buffer_r[3], nFrames);
+        }
     }
     if (!g_piano_synth.flex_active[4]) {
         g_synthwave_synth.process(track_synth_buffer_l[4], track_synth_buffer_r[4], nFrames);
     }
     if (!g_piano_synth.flex_active[5]) {
         g_lead_synth.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames);
-        g_alien_synth.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames);
-        g_kurowave.process(track_synth_buffer_l[5], track_synth_buffer_r[5], nFrames, global_time_sec);
     }
     if (!g_piano_synth.flex_active[6]) {
         g_fm_synth.process(track_synth_buffer_l[6], track_synth_buffer_r[6], nFrames);
@@ -496,28 +517,77 @@ void setupGothicTheme() {
 
 void setupAbductionTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.04f, 0.06f, 1.00f); // Deep Space Black
-    style.Colors[ImGuiCol_Border] = ImVec4(0.22f, 1.00f, 0.08f, 0.30f); // Faint Neon Green Border
-    style.Colors[ImGuiCol_Button] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f); // Dark Grey
-    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 1.00f, 0.08f, 0.60f); // Neon Green Glow
-    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.22f, 1.00f, 0.08f, 1.00f); // Solid Neon Green
-    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.08f, 0.08f, 0.10f, 1.00f);
-    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.12f, 0.40f, 0.10f, 1.00f);
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.08f, 0.08f, 0.10f, 1.00f);
-    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.15f, 0.50f, 0.10f, 0.60f);
-    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.22f, 1.00f, 0.08f, 0.80f);
-    style.Colors[ImGuiCol_Text] = ImVec4(0.90f, 0.95f, 0.90f, 1.00f);
-    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.22f, 1.00f, 0.08f, 1.00f); // Neon Green VU
-    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.40f, 1.00f, 0.30f, 1.00f);
-    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.22f, 1.00f, 0.08f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.22f, 1.00f, 0.08f, 1.00f);
-    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.40f, 1.00f, 0.30f, 1.00f);
-    style.Colors[ImGuiCol_Separator] = ImVec4(0.22f, 1.00f, 0.08f, 0.40f);
     
-    style.WindowRounding = 5.0f; 
-    style.FrameRounding = 3.0f;
-    style.GrabRounding = 3.0f;
+    // Paleta Deep Blue / Slate / Neon Cyan (Mockup Aprovado)
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.06f, 0.09f, 1.00f);      // #0A0F17 Deep Space Blue
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.06f, 0.09f, 0.13f, 1.00f);       // #101722 Card Panel
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.06f, 0.09f, 0.13f, 0.98f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.10f, 0.16f, 0.23f, 0.80f);        // #18283A Crisp Border
+    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.07f, 0.11f, 0.16f, 1.00f);       // #121B27
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.10f, 0.16f, 0.23f, 1.00f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.00f, 0.85f, 1.00f, 0.35f);  // Cyan Focus
+    
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.05f, 0.08f, 0.11f, 1.00f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.08f, 0.12f, 0.17f, 1.00f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.04f, 0.06f, 0.09f, 1.00f);
+    
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.06f, 0.09f, 0.13f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.04f, 0.06f, 0.09f, 0.60f);
+    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.12f, 0.18f, 0.25f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.16f, 0.24f, 0.34f, 1.00f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.00f, 0.85f, 1.00f, 0.80f);
+    
+    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.00f, 0.85f, 1.00f, 1.00f);      // Cyan
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.00f, 0.85f, 1.00f, 1.00f);     // Cyan Grabber
+    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.30f, 0.95f, 1.00f, 1.00f);
+    
+    style.Colors[ImGuiCol_Button] = ImVec4(0.08f, 0.12f, 0.18f, 1.00f);        // Dark Slate Button
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.14f, 0.21f, 0.30f, 1.00f);
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.00f, 0.85f, 1.00f, 0.90f);   // Neon Cyan Click
+    
+    style.Colors[ImGuiCol_Header] = ImVec4(0.10f, 0.16f, 0.23f, 0.80f);
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.14f, 0.22f, 0.32f, 1.00f);
+    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.00f, 0.85f, 1.00f, 0.40f);
+    
+    style.Colors[ImGuiCol_Separator] = ImVec4(0.10f, 0.16f, 0.23f, 0.70f);
+    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.00f, 0.85f, 1.00f, 0.78f);
+    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.00f, 0.85f, 1.00f, 1.00f);
+    
+    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.10f, 0.16f, 0.23f, 0.50f);
+    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.00f, 0.85f, 1.00f, 0.70f);
+    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.00f, 0.85f, 1.00f, 1.00f);
+    
+    style.Colors[ImGuiCol_Tab] = ImVec4(0.07f, 0.10f, 0.15f, 1.00f);
+    style.Colors[ImGuiCol_TabHovered] = ImVec4(0.12f, 0.18f, 0.26f, 1.00f);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(0.00f, 0.85f, 1.00f, 0.90f);      // Cyan Active Tab
+    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.05f, 0.08f, 0.12f, 1.00f);
+    style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.08f, 0.13f, 0.19f, 1.00f);
+    
+    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.00f, 0.85f, 1.00f, 1.00f);  // Cyan Meters
+    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.30f, 0.95f, 1.00f, 1.00f);
+    
+    style.Colors[ImGuiCol_Text] = ImVec4(0.92f, 0.95f, 0.98f, 1.00f);          // Clean White/Silver Text
+    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.40f, 0.48f, 0.58f, 1.00f);
+    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 0.85f, 1.00f, 0.35f);
+    
+    // Geometria & Arredondamentos Modernos
+    style.WindowRounding = 6.0f; 
+    style.ChildRounding = 6.0f;
+    style.FrameRounding = 4.0f;
+    style.PopupRounding = 6.0f;
+    style.GrabRounding = 4.0f;
+    style.TabRounding = 4.0f;
     style.ScrollbarRounding = 4.0f;
+    
+    style.WindowPadding = ImVec2(8.0f, 8.0f);
+    style.FramePadding = ImVec2(6.0f, 4.0f);
+    style.ItemSpacing = ImVec2(6.0f, 6.0f);
+    style.ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+    style.WindowBorderSize = 1.0f;
+    style.ChildBorderSize = 1.0f;
+    style.FrameBorderSize = 1.0f;
 }
 
 void setupFLStudioTheme() {
@@ -592,6 +662,13 @@ int main(int argc, char* argv[]) {
     // Inicializa a integração de APIs do FL Studio e Ableton Live (porta UDP 9000)
     DawApiBridge::startBridge();
 
+    // Garante que todos os sintetizadores iniciem 100% silenciados e sem nenhuma nota
+    clear_all_synths();
+    g_clip_manager.reset();
+    timeline.setMasterFrame(0);
+    timeline.setPlaying(false);
+    is_playing = false;
+
     // Sincroniza volumes das faixas com os faders da interface gráfica no início
     float fader_vals_init[9] = {0.80f, 0.75f, 0.75f, 0.70f, 0.75f, 0.70f, 0.72f, 0.68f, 0.70f};
     g_master_volume = fader_vals_init[0];
@@ -628,8 +705,8 @@ int main(int argc, char* argv[]) {
     master_graph.addNode("main_sampler", g_global_sampler);
     master_graph.connect("main_sampler", "Master");
 
-    // FASE 22: Instanciar os 8 Clip Players (1 por faixa) mapeando os buffers extraídos pela IA
-    for (int i = 0; i < 8; i++) {
+    // Instanciar os Clip Players (1 por faixa) mapeando os buffers extraídos pela IA
+    for (int i = 0; i < MAX_TRACKS; i++) {
         auto clip_player = std::make_shared<KuroDSP::KuroClipPlayerNode>(
             "ClipPlayer_" + std::to_string(i), 
             "Clip Player " + std::to_string(i), 
@@ -708,9 +785,10 @@ int main(int argc, char* argv[]) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // Janela sem borda para controles customizados
+    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // Habilitar borda e barra do Windows
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Abduction Studio V2 (Modo Automático)", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Abduction Studio V4.0 - Flagship Edition", NULL, NULL);
     if (window == NULL) {
         std::ofstream err("crash_log.txt", std::ios::app);
         err << "[FATAL] glfwCreateWindow failed!\n";
@@ -719,11 +797,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     glfwMakeContextCurrent(window);
+    glfwShowWindow(window);
     glfwSwapInterval(1); // Enable vsync
     
     // FASE 21: Drag & Drop Callback
     glfwSetDropCallback(window, drop_callback);
     main_hwnd = glfwGetWin32Window(window);
+    if (main_hwnd) {
+        ShowWindow(main_hwnd, SW_SHOWDEFAULT);
+        BringWindowToTop(main_hwnd);
+        SetForegroundWindow(main_hwnd);
+    }
     glfwSwapInterval(1); // Enable vsync (60 FPS)
 
     IMGUI_CHECKVERSION();
@@ -731,6 +815,7 @@ int main(int argc, char* argv[]) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // FASE 27: Habilita janelas flutuantes multi-monitor
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // Habilita sistema de Docking (Ideia 3)
+    io.ConfigDebugHighlightIdConflicts = false;         // Desativa popups de debug em build de produção
     
     // Load Fonts
     auto findResourcePath = [](const std::string& path) -> std::string {
@@ -763,8 +848,18 @@ int main(int argc, char* argv[]) {
     // Setup GLFW Drop Callback
     glfwSetDropCallback(window, drop_callback);
 
-    // 3. Main Loop Gráfico (60 FPS)
+    // 3. Main Loop Gráfico com Frame Pacing Inteligente (60 FPS / Modo Baixo Consumo de CPU)
+    auto frame_start_time = std::chrono::high_resolution_clock::now();
+
     while (!glfwWindowShouldClose(window)) {
+        // Se a janela estiver minimizada, descansa a CPU (10 FPS)
+        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
+            glfwWaitEventsTimeout(0.1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
+
+        frame_start_time = std::chrono::high_resolution_clock::now();
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -801,49 +896,25 @@ int main(int argc, char* argv[]) {
             ImGuiID dock_main_id = dockspace_id;
 
             // ─────────────────────────────────────────────────────────────────
-            // FL Studio Layout:
-            //  [Browser(L 18%)]  [Piano Roll / Proj. Settings (Center)]  [Mixer (R 28%)]
-            //  ───────────────────────────────────────────────────────────────
-            //  [Playlist / Channel Rack / Audio Editor (Bottom 32%)]
+            // ABDUCTION STUDIO FLUID 3-ZONE LAYOUT (FL STUDIO & ABLETON INSPIRED):
+            //  [ BROWSER (Left 18%) ]  [ PLAYLIST (Right Top 72%) ]
+            //                          [ DETAIL DOCK (Right Bottom 28%) ]
             // ─────────────────────────────────────────────────────────────────
 
-            // 1. Split Bottom first (so it spans full width)
-            ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.32f, NULL, &dock_main_id);
-
-            // 2. Split Left for Browser panel
+            // 1. Split Left para BROWSER (18% da largura)
             ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.18f, NULL, &dock_main_id);
 
-            // 3. Split Right for Mixer Panel
-            ImGuiID dock_id_mixer = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.30f, NULL, &dock_main_id);
+            // 2. Split do restante em Topo (PLAYLIST 72%) e Base (INSPECTOR 28%)
+            ImGuiID dock_id_inspector = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.28f, NULL, &dock_main_id);
+            ImGuiID dock_id_playlist = dock_main_id; // Top right (72% da altura)
 
-            // Remaining center = Piano Roll area
-            ImGuiID dock_id_center = dock_main_id;
-
-            // ── Dock the actual windows ──────────────────────────────────────
-
-            // Left: Browser (Files tab)
-            ImGui::DockBuilderDockWindow("Files", dock_id_left);
-            ImGui::DockBuilderDockWindow("Plugins", dock_id_left);
-            ImGui::DockBuilderDockWindow("Samples", dock_id_left);
+            // ── Ancorar painéis ──────────────────
+            ImGui::DockBuilderDockWindow("BROWSER", dock_id_left);
             ImGui::DockBuilderDockWindow("Browser", dock_id_left);
-
-            // Center Top: Playlist / Arrangement View (Timeline Arranger Grid)
-            ImGui::DockBuilderDockWindow("[Playlist]", dock_id_center);
-            ImGui::DockBuilderDockWindow("Playlist - [Arrangement View]", dock_id_center);
-
-            // Right: Mixer Panel
-            ImGui::DockBuilderDockWindow("Mixer Panel", dock_id_mixer);
-            ImGui::DockBuilderDockWindow("Master Fader", dock_id_mixer);
-
-            // Bottom: Device Rack, Piano Roll, Step Sequencer
-            ImGui::DockBuilderDockWindow("Device Rack", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("DeviceRack", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("Piano Roll", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("PianoRoll", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("[Channel Rack]", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("Channel Rack", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("[Automation Clip]", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("[Audio Editor]", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("PLAYLIST", dock_id_playlist);
+            ImGui::DockBuilderDockWindow("Playlist - [Arrangement View]", dock_id_playlist);
+            ImGui::DockBuilderDockWindow("INSPECTOR", dock_id_inspector);
+            ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
 
             ImGui::DockBuilderFinish(dockspace_id);
         }
@@ -870,6 +941,62 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        // Captura Interna Hardware de Framebuffer para Testes Autônomos e Debug
+        std::filesystem::path trigger_p = std::filesystem::temp_directory_path() / "abduction_screenshot_req.txt";
+        std::filesystem::path default_out = std::filesystem::temp_directory_path() / "abduction_screenshot.bmp";
+        if (std::filesystem::exists(trigger_p) || (ImGui::IsKeyPressed(ImGuiKey_F12, false))) {
+            std::error_code ec;
+            std::filesystem::remove(trigger_p, ec);
+            
+            int w = display_w;
+            int h = display_h;
+            std::vector<unsigned char> pixels(w * h * 4);
+            glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+            
+            #pragma pack(push, 1)
+            struct BMPHeader {
+                uint16_t bfType = 0x4D42;
+                uint32_t bfSize = 0;
+                uint16_t bfReserved1 = 0;
+                uint16_t bfReserved2 = 0;
+                uint32_t bfOffBits = 54;
+                uint32_t biSize = 40;
+                int32_t  biWidth = 0;
+                int32_t  biHeight = 0;
+                uint16_t biPlanes = 1;
+                uint16_t biBitCount = 24;
+                uint32_t biCompression = 0;
+                uint32_t biSizeImage = 0;
+                int32_t  biXPelsPerMeter = 2835;
+                int32_t  biYPelsPerMeter = 2835;
+                uint32_t biClrUsed = 0;
+                uint32_t biClrImportant = 0;
+            } bmp;
+            #pragma pack(pop)
+            
+            int row_stride = ((w * 3 + 3) / 4) * 4;
+            bmp.biWidth = w;
+            bmp.biHeight = h;
+            bmp.biSizeImage = row_stride * h;
+            bmp.bfSize = 54 + bmp.biSizeImage;
+            
+            std::vector<unsigned char> row(row_stride, 0);
+            std::ofstream f(default_out, std::ios::binary);
+            if (f.is_open()) {
+                f.write((const char*)&bmp, 54);
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        int src_idx = (y * w + x) * 4;
+                        row[x * 3 + 0] = pixels[src_idx + 2]; // B
+                        row[x * 3 + 1] = pixels[src_idx + 1]; // G
+                        row[x * 3 + 2] = pixels[src_idx + 0]; // R
+                    }
+                    f.write((const char*)row.data(), row_stride);
+                }
+                f.close();
+            }
+        }
+
         // FASE 27: Renderização de Viewports Independentes (Multi-monitor)
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -879,6 +1006,15 @@ int main(int argc, char* argv[]) {
         }
 
         glfwSwapBuffers(window);
+
+        // Frame Pacing: 60 FPS quando focado (~16ms), 30 FPS em segundo plano (~33ms)
+        bool is_focused = (glfwGetWindowAttrib(window, GLFW_FOCUSED) != 0);
+        int target_frame_ms = is_focused ? 16 : 33;
+        auto frame_end_time = std::chrono::high_resolution_clock::now();
+        auto elapsed_frame_ms = std::chrono::duration_cast<std::chrono::milliseconds>(frame_end_time - frame_start_time).count();
+        if (elapsed_frame_ms < target_frame_ms) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(target_frame_ms - elapsed_frame_ms));
+        }
     }
 
     if (adc.isStreamOpen()) {

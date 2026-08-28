@@ -1,4 +1,7 @@
 #pragma once
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -28,7 +31,7 @@ namespace KuroDSP {
             for (int i = 0; i < samples; ++i) {
                 float abs_l = std::abs(buffer_left[i]);
                 float abs_r = std::abs(buffer_right[i]);
-                float peak = std::max(abs_l, abs_r);
+                float peak = (std::max)(abs_l, abs_r);
                 
                 if (peak > env) env = peak; // Instant attack
                 else env = release_coef * (env - peak) + peak;

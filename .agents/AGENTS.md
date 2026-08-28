@@ -27,5 +27,16 @@ When planning structural UI changes or new visual features, ALWAYS generate a re
    - The future planning for the project.
 3. Utilize the following commands for the project workflow when necessary:
    - **Build:** Open PowerShell, navigate to `C:\Users\USUÁRIO\.gemini\antigravity-ide\scratch\abduction_studio_v2\build`, and execute `cmake --build .`
-   - **Run DAW:** Execute `C:\Users\USUÁRIO\.gemini\antigravity-ide\scratch\abduction_studio_v2\build\Debug\AbductionStudioV2.exe`
-   - **Run Tests:** Execute `python C:\Users\USUÁRIO\.gemini\antigravity-ide\scratch\abduction_studio_v2\autotest_abduction.py`
+   - **Run DAW:** Execute `C:\Users\USUÁRIO\.gemini\antigravity-ide\scratch\abduction_studio_v2\build\Release\AbductionStudioV2.exe`
+   - **Run Tests:** Execute `python C:\Users\USUÁRIO\.gemini\antigravity-ide\scratch\abduction_studio_v2\live_screen_test.py`
+
+## Workflow Obrigatório de Testes em Tempo Real e Sessões Interativas
+
+Sempre que for solicitado fazer testes, auditar bugs ou validar funcionalidades:
+1. **Visibilidade Obrigatória (Nunca rodar no escuro/background)**:
+   - Trazer sempre a janela da DAW para primeiro plano maximizada.
+   - Usar movimentação suave do mouse (*SmoothStep*) com pausas para o usuário acompanhar tudo visualmente na tela.
+2. **Sessão Interativa Colaborativa (Usuário + IA)**:
+   - Quando o usuário quiser testar manualmente com seu próprio mouse/teclado, a DAW é iniciada e mantida aberta com o chat pronto.
+   - A cada clique/ação do usuário, são capturados snapshots visuais da sessão.
+   - O usuário envia seu áudio com o feedback, e o agente analisa os prints cronológicos, correlaciona com o áudio e aplica as correções no código imediatamente.

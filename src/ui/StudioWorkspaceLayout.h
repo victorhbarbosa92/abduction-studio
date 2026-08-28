@@ -14,7 +14,7 @@ extern float track_pans[MAX_TRACKS];
 extern float track_volumes[MAX_TRACKS];
 extern bool track_mutes[MAX_TRACKS];
 extern bool track_solos[MAX_TRACKS];
-extern float track_vu_levels[8];
+extern float track_vu_levels[MAX_TRACKS];
 extern float master_vu_level_l;
 extern float master_vu_level_r;
 extern float g_master_volume;

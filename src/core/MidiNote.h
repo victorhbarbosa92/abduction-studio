@@ -11,9 +11,11 @@ namespace KuroDSP {
         bool is_muted;
         bool is_selected;
         int channel;        // Channel index
+        float pan;          // 0.0 (Left) to 1.0 (Right), default 0.5 (Center)
+        float pitch_offset; // Semitone offset (-12.0 to +12.0)
 
-        MidiNote() : pitch(60), start_time(0.0f), duration(1.0f), velocity(0.8f), is_playing(false), probability(1.0f), is_muted(false), is_selected(false), channel(0) {}
-        MidiNote(int p, float st, float dur, float vel = 0.8f, float prob = 1.0f, int ch = 0) 
-            : pitch(p), start_time(st), duration(dur), velocity(vel), is_playing(false), probability(prob), is_muted(false), is_selected(false), channel(ch) {}
+        MidiNote() : pitch(60), start_time(0.0f), duration(1.0f), velocity(0.8f), is_playing(false), probability(1.0f), is_muted(false), is_selected(false), channel(0), pan(0.5f), pitch_offset(0.0f) {}
+        MidiNote(int p, float st, float dur, float vel = 0.8f, float prob = 1.0f, int ch = 0, float p_pan = 0.5f, float p_poff = 0.0f) 
+            : pitch(p), start_time(st), duration(dur), velocity(vel), is_playing(false), probability(prob), is_muted(false), is_selected(false), channel(ch), pan(p_pan), pitch_offset(p_poff) {}
     };
 }
