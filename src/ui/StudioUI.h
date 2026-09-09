@@ -1,3 +1,4 @@
+#include "SciFiIconSystem.h"
 #pragma once
 #include "imgui.h"
 #include "IconsFontAwesome6.h"
@@ -72,7 +73,10 @@
 #include "StemBeatSlicerUI.h"
 #include "KuroDirectWaveUI.h"
 #include "AudioClipEditorUI.h"
-inline KuroUI::AudioClipEditorUI g_audio_clip_editor_ui;
+#include "KuroPsytranceRollingBassUI.h"
+#include "KuroPlaylistUI.h"
+#include "KuroDJStudioUI.h"
+#include "../core/PsySongArranger.h"
 extern KuroUI::SpectrumVisualizerUI g_spectrum_visualizer;
 #include <thread>
 #include <cstdlib>
@@ -115,6 +119,8 @@ namespace ProjectManagerBridge {
 
 namespace KuroUI {
     extern CommandManager g_command_manager;
+    inline float g_playlist_scroll_x = 0.0f;
+    inline float g_playlist_scroll_y = 0.0f;
 
     enum class AppMode {
         PRODUCE_MODE = 0,
@@ -131,11 +137,15 @@ namespace KuroUI {
     inline int selected_track_idx = 0;
     inline bool show_mixer = false;
     inline bool set_mixer_focus = false;
-    inline bool show_playlist = true;
+    inline bool show_playlist = false;
+    inline bool show_psy_arranger_modal = false;
     inline bool show_browser = true;
-    inline bool show_inspector = true;
-    inline bool show_piano_roll = true;
-    inline bool show_step_sequencer = false;
+    inline bool show_inspector = false;
+    inline bool show_piano_roll = false;
+    inline bool show_step_sequencer = true;
+    inline bool g_show_app_drawer = false;
+    inline bool g_need_focus_piano_roll = false;
+    inline bool g_need_focus_step_sequencer = false;
     inline bool show_modulation_panel = false;
     inline bool show_cloud_downloader = false;
     inline bool show_gross_beat = false;
@@ -200,6 +210,11 @@ namespace KuroUI {
     inline PresetManagerUI g_preset_manager_ui;
     inline StemBeatSlicerUI g_stem_beat_slicer_ui;
     inline KuroDirectWaveUI g_directwave_ui;
+    inline AudioClipEditorUI g_audio_clip_editor_ui;
+    inline KuroPsytranceRollingBassUI g_psy_rolling_bass_ui;
+    inline bool g_open_psy_rolling_bass_window = false;
+    inline KuroDJStudioUI g_dj_studio_ui;
+    inline bool show_dj_modal = false;
     static void RenderMixerFloatingWindow();
     inline std::string g_current_project_name = "Novo Projeto";
     static bool show_genre_templates_window = false;
@@ -2478,7 +2493,328 @@ static void RenderFlexBrowserContent() {
         }
     }
 
+    // =========================================================================
+    // FASE 2: DESKTOP CENTRAL ESTILO ANDROID HUB (WALLPAPER & APP LAUNCHER)
+    // =========================================================================
+    inline int g_open_folder_idx = -1; // -1: fechado, 0: Plugins, 1: Sequenciadores, 2: Mixer, 3: IA, 4: Arquivos
+    inline char g_desktop_search_query[128] = "";
+
+    static void RenderAndroidDesktopHub(StemSeparationEngine& ai_engine) {
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus;
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.08f, 0.10f, 0.14f, 1.0f)); // #141A24 Deep Dark Slate
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+        if (ImGui::Begin("DESKTOP", nullptr, flags)) {
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            ImVec2 wpos = ImGui::GetWindowPos();
+            ImVec2 wsz = ImGui::GetWindowSize();
+            float cx = wpos.x + wsz.x * 0.5f;
+            float cy = wpos.y + wsz.y * 0.5f;
+
+            // 1. Grade sutil de fundo cibernetico
+            float grid_spacing = 48.0f;
+            for (float gx = wpos.x; gx < wpos.x + wsz.x; gx += grid_spacing) {
+                dl->AddLine(ImVec2(gx, wpos.y), ImVec2(gx, wpos.y + wsz.y), IM_COL32(28, 36, 48, 35), 1.0f);
+            }
+            for (float gy = wpos.y; gy < wpos.y + wsz.y; gy += grid_spacing) {
+                dl->AddLine(ImVec2(wpos.x, gy), ImVec2(wpos.x + wsz.x, gy), IM_COL32(28, 36, 48, 35), 1.0f);
+            }
+
+            // 2. EMBLEMA CENTRAL DA NAVE ALIENIGENA EM RELEVO METALICO 3D (WALLPAPER)
+            float s_rx = 135.0f;
+            float s_ry = 48.0f;
+            ImVec2 s_c = ImVec2(cx, cy - 20.0f);
+
+            auto DrawSaucerEllipse = [&](ImVec2 center, float rx, float ry, ImU32 fill_col, ImU32 stroke_col, float stroke_w) {
+                const int n = 36;
+                ImVec2 pts[36];
+                for (int i = 0; i < n; i++) {
+                    float a = ((float)i / (float)n) * 6.2831853f;
+                    pts[i] = ImVec2(center.x + cosf(a) * rx, center.y + sinf(a) * ry);
+                }
+                dl->AddConvexPolyFilled(pts, n, fill_col);
+                if (stroke_col != 0) {
+                    dl->AddPolyline(pts, n, stroke_col, ImDrawFlags_Closed, stroke_w);
+                }
+            };
+
+            // Halo de brilho suave ciano atras da nave
+            dl->AddCircleFilled(s_c, s_rx * 0.90f, IM_COL32(0, 229, 255, 14), 48);
+
+            // Anel externo em baixo-relevo (sombra e chanfro de luz)
+            DrawSaucerEllipse(ImVec2(s_c.x, s_c.y + 3.0f), s_rx + 2.0f, s_ry + 2.0f, IM_COL32(10, 13, 18, 255), 0, 0.0f);
+            DrawSaucerEllipse(s_c, s_rx, s_ry, IM_COL32(26, 32, 42, 255), IM_COL32(55, 68, 88, 255), 1.5f);
+
+            // Disco intermediario da nave
+            DrawSaucerEllipse(s_c, s_rx * 0.72f, s_ry * 0.65f, IM_COL32(34, 42, 54, 255), IM_COL32(70, 88, 115, 255), 1.0f);
+
+            // Cupula superior da nave alienigena
+            ImVec2 dome_c = ImVec2(s_c.x, s_c.y - s_ry * 0.28f);
+            float dome_r = s_rx * 0.35f;
+            DrawSaucerEllipse(dome_c, dome_r, dome_r * 0.55f, IM_COL32(42, 54, 70, 255), IM_COL32(85, 110, 145, 255), 1.2f);
+            // Reflexo de luz na cupula
+            dl->AddLine(ImVec2(dome_c.x - dome_r * 0.6f, dome_c.y - dome_r * 0.2f),
+                        ImVec2(dome_c.x + dome_r * 0.2f, dome_c.y - dome_r * 0.35f),
+                        IM_COL32(180, 225, 255, 160), 1.5f);
+
+            // 3. BARRA DE PESQUISA RAPIDA ESTILO ANDROID
+            float search_w = 400.0f;
+            float search_h = 36.0f;
+            ImGui::SetCursorPos(ImVec2((wsz.x - search_w) * 0.5f, 22.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.10f, 0.13f, 0.18f, 0.90f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.42f, 0.85f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 18.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+            ImGui::SetNextItemWidth(search_w);
+            ImGui::InputTextWithHint("##DesktopSearch", "Buscar instrumentos, plugins, samples e stems... 🔍", g_desktop_search_query, sizeof(g_desktop_search_query));
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(2);
+
+            // 4. AS 5 PASTAS DE APLICATIVOS ESTILO ANDROID (APP FOLDERS)
+            struct AppFolderDef {
+                const char* title;
+                const char* subtitle;
+                SciFiHUD::IconType icon;
+                ImU32 glow_color;
+                int app_count;
+            };
+
+            AppFolderDef folders[5] = {
+                { "Sintetizadores", "11 Plugins VST", SciFiHUD::IconType::CHANNEL_RACK, IM_COL32(0, 229, 255, 255), 11 },
+                { "Sequenciadores", "Piano Roll, Rack, Playlist", SciFiHUD::IconType::PIANO_KEYS, IM_COL32(255, 170, 40, 255), 4 },
+                { "Mixagem & FX", "Mixer, Inserts, FFT, LUFS", SciFiHUD::IconType::MIXER_FADERS, IM_COL32(180, 80, 255, 255), 5 },
+                { "IA & Stems", "Separador Neural & Inpainting", SciFiHUD::IconType::AI_NEURAL_STEMS, IM_COL32(0, 255, 180, 255), 4 },
+                { "Arquivos & Samples", "Browser, Presets, Export", SciFiHUD::IconType::BROWSER_FOLDER, IM_COL32(70, 190, 255, 255), 6 }
+            };
+
+            float folder_w = 118.0f;
+            float folder_h = 104.0f;
+            float total_folders_w = 5 * folder_w + 4 * 20.0f;
+            float start_fx = (wsz.x - total_folders_w) * 0.5f;
+            if (start_fx < 20.0f) start_fx = 20.0f;
+            float start_fy = wsz.y - 150.0f;
+
+            for (int f = 0; f < 5; f++) {
+                ImGui::SetCursorPos(ImVec2(start_fx + f * (folder_w + 20.0f), start_fy));
+                ImVec2 fp = ImGui::GetCursorScreenPos();
+                ImVec2 fp_max = ImVec2(fp.x + folder_w, fp.y + folder_h);
+
+                char fid[32];
+                snprintf(fid, sizeof(fid), "##DesktopFolderBtn_%d", f);
+                ImGui::InvisibleButton(fid, ImVec2(folder_w, folder_h));
+                bool hovered = ImGui::IsItemHovered();
+                if (ImGui::IsItemClicked()) {
+                    g_open_folder_idx = f;
+                }
+
+                // Corpo da pasta translucida estilo Android
+                ImU32 f_bg = hovered ? IM_COL32(30, 42, 58, 230) : IM_COL32(18, 25, 36, 190);
+                dl->AddRectFilled(fp, fp_max, f_bg, 14.0f);
+                ImU32 f_border = hovered ? folders[f].glow_color : IM_COL32(45, 60, 80, 180);
+                dl->AddRect(fp, fp_max, f_border, 14.0f, 0, hovered ? 2.0f : 1.0f);
+
+                // Icone da pasta em destaque
+                float ic_box_w = 34.0f;
+                ImVec2 ic_p0 = ImVec2(fp.x + (folder_w - ic_box_w) * 0.5f, fp.y + 14.0f);
+                ImVec2 ic_p1 = ImVec2(ic_p0.x + ic_box_w, ic_p0.y + ic_box_w);
+                SciFiHUD::DrawIcon(dl, ic_p0, ic_p1, folders[f].icon, folders[f].glow_color, 1.8f);
+
+                // Titulo da Pasta
+                ImVec2 tsz = ImGui::CalcTextSize(folders[f].title);
+                dl->AddText(ImVec2(fp.x + (folder_w - tsz.x) * 0.5f, fp.y + 54.0f), IM_COL32(230, 240, 255, 255), folders[f].title);
+
+                // Subtitulo / Badge de contagem
+                char badge[32];
+                snprintf(badge, sizeof(badge), "%d Apps", folders[f].app_count);
+                ImVec2 bsz = ImGui::CalcTextSize(badge);
+                dl->AddText(ImVec2(fp.x + (folder_w - bsz.x) * 0.5f, fp.y + 72.0f), IM_COL32(130, 165, 200, 255), badge);
+            }
+
+            // 5. RODAPE DE VERSAO DISCRETO
+            const char* ver_str = "Abduction Studio V4.0 [Build 4526] - 64-Bit Windows";
+            ImVec2 vsz = ImGui::CalcTextSize(ver_str);
+            dl->AddText(ImVec2(cx - vsz.x * 0.5f, wpos.y + wsz.y - 24.0f), IM_COL32(80, 100, 130, 200), ver_str);
+
+            // =====================================================================
+            // 6. GAVETA DE APLICATIVOS FLUTUANTE ESTILO ANDROID (AO CLICAR NA PASTA OU HUB)
+            // =====================================================================
+            if (g_show_app_drawer && g_open_folder_idx < 0) {
+                g_open_folder_idx = 0;
+            }
+
+            if (g_open_folder_idx >= 0 && g_open_folder_idx < 5) {
+                int f = g_open_folder_idx;
+                ImGui::SetNextWindowPos(ImVec2(cx - 300.0f, cy - 200.0f), ImGuiCond_Appearing);
+                ImGui::SetNextWindowSize(ImVec2(600.0f, 400.0f));
+                ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.09f, 0.12f, 0.17f, 0.98f));
+                ImGui::PushStyleColor(ImGuiCol_Border, folders[f].glow_color);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 14.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+
+                bool drawer_open = true;
+                if (ImGui::Begin("📁 ABDUCTION APP HUB & GAVETA DE FERRAMENTAS###AndroidFolderDrawer", &drawer_open, ImGuiWindowFlags_NoCollapse)) {
+                    // Header com fechar
+                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "ABDUCTION APP HUB");
+                    ImGui::SameLine(0, 10);
+                    ImGui::TextDisabled("| Central de Ferramentas Categorizadas");
+                    ImGui::SameLine(ImGui::GetContentRegionAvail().x - 65);
+                    if (ImGui::Button("✖ Fechar", ImVec2(60, 20))) {
+                        drawer_open = false;
+                    }
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
+                    // Abas das 5 Categorias
+                    if (ImGui::BeginTabBar("##AppDrawerTabs")) {
+                        for (int t = 0; t < 5; t++) {
+                            ImGuiTabItemFlags t_flags = (t == f) ? ImGuiTabItemFlags_SetSelected : 0;
+                            if (ImGui::BeginTabItem(folders[t].title, nullptr, t_flags)) {
+                                f = t;
+                                g_open_folder_idx = t;
+
+                                ImGui::Spacing();
+                                ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%s", folders[t].subtitle);
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                if (t == 0) { // PASTA 1: SINTETIZADORES & PLUGINS
+                                    if (ImGui::Button("🛸 Kuro Psy Rolling Bass Engine", ImVec2(275, 46))) {
+                                        g_psy_rolling_bass_ui.is_open = true;
+                                        g_psy_rolling_bass_ui.need_focus = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("💽 FL DirectWave Multi-Sampler", ImVec2(275, 46))) {
+                                        g_directwave_ui.open();
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    if (ImGui::Button("🌊 Fruity Granulizer (Grain Cloud)", ImVec2(275, 46))) {
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("✂ SliceX Beat Slicer", ImVec2(275, 46))) {
+                                        g_stem_beat_slicer_ui.open();
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    if (ImGui::Button("🎹 FL Flex Synth (Psytrance)", ImVec2(275, 46))) {
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("🧘 Delay Lama (Monge 3D VST)", ImVec2(275, 46))) {
+                                        show_delay_lama = true;
+                                        focus_delay_lama = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                }
+                                else if (t == 1) { // PASTA 2: SEQUENCIADORES & COMPOSICAO
+                                    if (ImGui::Button("🎹 Piano Roll (88 Teclas - F7)", ImVec2(275, 46))) {
+                                        show_piano_roll = true;
+                                        g_need_focus_piano_roll = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("🎛 Channel Rack (16 Passos - F6)", ImVec2(275, 46))) {
+                                        show_step_sequencer = true;
+                                        g_need_focus_step_sequencer = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    if (ImGui::Button("📊 Playlist / Arranjador (F5)", ImVec2(275, 46))) {
+                                        show_playlist = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("➕ Novo Padrao (Pattern)", ImVec2(275, 46))) {
+                                        Pattern p;
+                                        p.id = (int)g_clip_manager.global_patterns.size() + 1;
+                                        p.name = "Pattern " + std::to_string(p.id);
+                                        p.color = 0xFF00E5FF;
+                                        g_clip_manager.global_patterns.push_back(p);
+                                        g_clip_manager.current_pattern_idx = (int)g_clip_manager.global_patterns.size() - 1;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                }
+                                else if (t == 2) { // PASTA 3: MIXER & FX
+                                    if (ImGui::Button("🎚 Mixer Console (F9)", ImVec2(275, 46))) {
+                                        show_mixer = true;
+                                        set_mixer_focus = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("🎛 Rack de Efeitos FX", ImVec2(275, 46))) {
+                                        show_mixer = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                }
+                                else if (t == 3) { // PASTA 4: IA & STEMS
+                                    if (ImGui::Button("🧠 Separador Neural de Stems (IA)", ImVec2(275, 46))) {
+                                        g_cloud_stem_ui.open();
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("🛸 Gerador Rolling Bass Psytrance", ImVec2(275, 46))) {
+                                        g_psy_rolling_bass_ui.is_open = true;
+                                        g_psy_rolling_bass_ui.need_focus = true;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                }
+                                else if (t == 4) { // PASTA 5: ARQUIVOS & BROWSER
+                                    if (ImGui::Button("📁 Browser de Amostras (F8)", ImVec2(275, 46))) {
+                                        show_browser = !show_browser;
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                    ImGui::SameLine();
+                                    if (ImGui::Button("💾 Salvar Projeto (.kuro)", ImVec2(275, 46))) {
+                                        std::string path = FileDialog::SaveFile("Abduction Project (*.kuro)\0*.kuro\0");
+                                        if (!path.empty()) {
+                                            if (path.find(".kuro") == std::string::npos) path += ".kuro";
+                                            ProjectManagerBridge::Save(path);
+                                        }
+                                        g_open_folder_idx = -1;
+                                        g_show_app_drawer = false;
+                                    }
+                                }
+
+                                ImGui::EndTabItem();
+                            }
+                        }
+                        ImGui::EndTabBar();
+                    }
+                }
+                ImGui::End();
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(2);
+                if (!drawer_open) {
+                    g_open_folder_idx = -1;
+                    g_show_app_drawer = false;
+                }
+            }
+        }
+        ImGui::End();
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor();
+    }
+
+
     static void RenderStudioMode(StemSeparationEngine& ai_engine) {
+        // 1. ÁREA DE TRABALHO LIMPA ESTILO ANDROID HUB (DESKTOP)
+        RenderAndroidDesktopHub(ai_engine);
+
         ImGuiIO& io = ImGui::GetIO();
         ImDrawList* draw_list = nullptr;
         const char* ch_track_names[] = { "Punch Kick", "Snare / Clap", "Hi-Hats & Ride", "5-String Bass", "Symphonic Strings", "Steinway Piano", "SuperSaw & FM", "Angelic Choir" };
@@ -2491,1171 +2827,12 @@ static void RenderFlexBrowserContent() {
         // =============================================
         // PANEL: PLAYLIST (FL Studio Full Arrangement Workflow)
         // =============================================
+        // =============================================
+        // PANEL: PLAYLIST / SONG ARRANGER (REFORMULADO V2)
+        // =============================================
         if (show_playlist) {
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.04f, 0.06f, 0.09f, 1.0f)); // #0A0F17 Deep Slate
-            if (ImGui::Begin("PLAYLIST", &show_playlist, ImGuiWindowFlags_NoCollapse)) {
-                ImDrawList* draw = ImGui::GetWindowDrawList();
-
-                // Setup Inicial Automático: Se a Playlist estiver vazia, carrega o template rico
-                static bool initial_playlist_setup = false;
-                if (!initial_playlist_setup) {
-                    initial_playlist_setup = true;
-                    // Inicia com a DAW 100% LIMPA / ZERADA (Projeto em Branco Padrão FL Studio)
-                    g_clip_manager.reset();
-                    ::timeline.setBPM(140.0f);
-                }
-
-            // Estados da Playlist
-            enum PlaylistTool { TOOL_DRAW = 0, TOOL_PAINT, TOOL_DELETE, TOOL_MUTE, TOOL_SLICE, TOOL_SELECT, TOOL_ZOOM };
-            static PlaylistTool current_tool = TOOL_DRAW;
-            static int current_snap = 0; // 0 = 1/4 Beat (16th)
-            static float playlist_zoom_x = 36.0f; // Pixels por compasso (Bar)
-            static float playlist_scroll_x = 0.0f;
-            static float playlist_scroll_y = 0.0f;
-            static float playlist_track_h = 52.0f;
-            static bool show_ghost_waveform = false;
-
-            // Estados de Interação do Mouse
-            static bool is_dragging_clip = false;
-            static bool is_resizing_right = false;
-            static bool is_resizing_left = false;
-            static bool is_slicing = false;
-            static bool is_scrubbing_ruler = false;
-            static bool is_dragging_loop = false;
-
-            static int active_drag_track = -1;
-            static int active_drag_clip_idx = -1;
-            static int active_drag_type = 0; // 0=Audio, 1=MIDI, 2=Auto
-            static float drag_orig_start = 0.0f;
-            static float drag_orig_len = 0.0f;
-            static float drag_orig_offset = 0.0f;
-            static ImVec2 drag_mouse_start_pos = ImVec2(0, 0);
-
-            // Cálculos de Tempo e BPM
-            float bpm = ::timeline.getBPM();
-            if (bpm <= 10.0f) bpm = 140.0f;
-            float beat_len_sec = 60.0f / bpm;
-            float bar_len_sec = beat_len_sec * 4.0f;
-
-            auto get_snap_step_sec = [&](int snap_mode) -> float {
-                switch (snap_mode) {
-                    case 0: return beat_len_sec * 0.25f; // 1/16th (1/4 beat)
-                    case 1: return beat_len_sec * 0.50f; // 1/8th (1/2 beat)
-                    case 2: return beat_len_sec;         // 1 Beat (1/4 bar)
-                    case 3: return beat_len_sec * 2.0f;  // 1/2 Bar
-                    case 4: return bar_len_sec;          // 1 Bar
-                    default: return 0.001f;              // Free
-                }
-            };
-            float snap_sec = get_snap_step_sec(current_snap);
-
-            auto snap_time = [&](float t) -> float {
-                if (snap_sec <= 0.005f) return (std::max)(0.0f, t);
-                return (std::max)(0.0f, std::round(t / snap_sec) * snap_sec);
-            };
-
-            // Atalhos Rápidos de Teclado
-            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
-                if (ImGui::IsKeyPressed(ImGuiKey_P)) current_tool = TOOL_DRAW;
-                if (ImGui::IsKeyPressed(ImGuiKey_B)) current_tool = TOOL_PAINT;
-                if (ImGui::IsKeyPressed(ImGuiKey_D) || ImGui::IsKeyPressed(ImGuiKey_E)) current_tool = TOOL_DELETE;
-                if (ImGui::IsKeyPressed(ImGuiKey_T)) current_tool = TOOL_MUTE;
-                if (ImGui::IsKeyPressed(ImGuiKey_C)) current_tool = TOOL_SLICE;
-                if (ImGui::IsKeyPressed(ImGuiKey_S) && !ImGui::GetIO().KeyCtrl) current_tool = TOOL_SELECT;
-                if (ImGui::IsKeyPressed(ImGuiKey_Z) && !ImGui::GetIO().KeyCtrl) current_tool = TOOL_ZOOM;
-                
-                // Ctrl + B: Quick Stamp (Duplica clipe selecionado / ativo)
-                if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_B)) {
-                    if (active_drag_track >= 0 && active_drag_track < MAX_TRACKS) {
-                        if (active_drag_type == 0 && active_drag_clip_idx >= 0) {
-                            g_clip_manager.duplicateAudioClip(active_drag_track, active_drag_clip_idx, bar_len_sec);
-                        } else if (active_drag_type == 1 && active_drag_clip_idx >= 0) {
-                            g_clip_manager.duplicateMidiClip(active_drag_track, active_drag_clip_idx, bar_len_sec);
-                        }
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 1. TOOLBAR SUPERIOR ESTILO FL STUDIO
-            // ─────────────────────────────────────────────────────────────
-            auto render_tool_btn = [&](const char* icon_label, PlaylistTool tool, const char* tooltip, float btn_w = 48.0f) {
-                bool is_active = (current_tool == tool);
-                if (is_active) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.70f, 1.00f, 0.90f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.16f, 0.22f, 0.90f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.90f, 0.95f, 1.0f));
-                }
-                if (ImGui::Button(icon_label, ImVec2(btn_w, 22))) {
-                    current_tool = tool;
-                }
-                ImGui::PopStyleColor(2);
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-                ImGui::SameLine(0, 3);
-            };
-
-            render_tool_btn("DRAW", TOOL_DRAW, "Draw / Pencil Tool (P): Inserir ou mover clipes com snap", 46.0f);
-            render_tool_btn("PAINT", TOOL_PAINT, "Paint / Brush Tool (B): Pintar multiplos clipes consecutivos", 46.0f);
-            render_tool_btn("DEL", TOOL_DELETE, "Delete / Eraser Tool (D): Excluir clipes (ou botao direito)", 38.0f);
-            render_tool_btn("MUTE", TOOL_MUTE, "Mute Tool (T): Mutar/desmutar clipes individuais", 42.0f);
-            render_tool_btn("SLICE", TOOL_SLICE, "Slice / Knife Tool (C): Cortar clipes na posicao do cursor", 46.0f);
-            render_tool_btn("SELECT", TOOL_SELECT, "Select Tool (S): Selecao em area", 52.0f);
-
-            ImGui::SameLine(0, 8);
-            ImGui::SetNextItemWidth(115);
-            const char* snap_names[] = { "Snap: 1/4 Beat", "Snap: 1/2 Beat", "Snap: 1 Beat", "Snap: 1/2 Bar", "Snap: 1 Bar", "Snap: Free" };
-            ImGui::Combo("##PlaylistSnap", &current_snap, snap_names, IM_ARRAYSIZE(snap_names));
-
-            ImGui::SameLine(0, 8);
-            ImGui::SetNextItemWidth(130);
-            std::vector<std::string> pat_names;
-            for (const auto& p : g_clip_manager.global_patterns) {
-                pat_names.push_back(p.name);
-            }
-            if (pat_names.empty()) pat_names.push_back("Pattern 1");
-            int pat_idx = (std::clamp)(g_clip_manager.current_pattern_idx, 0, (int)pat_names.size() - 1);
-            if (ImGui::BeginCombo("##PatPicker", pat_names[pat_idx].c_str())) {
-                for (size_t p = 0; p < pat_names.size(); p++) {
-                    bool is_sel = (p == (size_t)pat_idx);
-                    if (ImGui::Selectable(pat_names[p].c_str(), is_sel)) {
-                        g_clip_manager.current_pattern_idx = (int)p;
-                    }
-                    if (is_sel) ImGui::SetItemDefaultFocus();
-                }
-                if (ImGui::Selectable("+ Novo Padrao (Pattern)...")) {
-                    Pattern np;
-                    np.id = g_clip_manager.next_id++;
-                    np.name = "Pattern " + std::to_string(g_clip_manager.global_patterns.size() + 1);
-                    np.color = 0xFF00E5FF;
-                    g_clip_manager.global_patterns.push_back(np);
-                    g_clip_manager.current_pattern_idx = (int)g_clip_manager.global_patterns.size() - 1;
-                }
-                ImGui::EndCombo();
-            }
-
-            // Botão Adicionar Clipes de Automação
-            ImGui::SameLine(0, 8);
-            if (ImGui::Button("+ AUTO [v]")) {
-                ImGui::OpenPopup("AddAutoClipPopup");
-            }
-            if (ImGui::BeginPopup("AddAutoClipPopup")) {
-                ImGui::TextDisabled("Criar Clipe de Automacao:");
-                ImGui::Separator();
-                if (ImGui::MenuItem("Master Volume Auto (Bezier)")) {
-                    g_clip_manager.addAutomationClip(selected_track_idx, 0.0f, bar_len_sec * 8.0f, "Master Volume", "Master", 0);
-                }
-                if (ImGui::MenuItem("Filter Cutoff Sweep Auto")) {
-                    g_clip_manager.addAutomationClip(selected_track_idx, 0.0f, bar_len_sec * 8.0f, "Cutoff Sweep", "Filter", 1);
-                }
-                if (ImGui::MenuItem("Reverb Wet Mix Auto")) {
-                    g_clip_manager.addAutomationClip(selected_track_idx, 0.0f, bar_len_sec * 8.0f, "Reverb Wet", "Reverb", 2);
-                }
-                if (ImGui::MenuItem("Pitch Riser Auto (+12 st)")) {
-                    g_clip_manager.addAutomationClip(selected_track_idx, 0.0f, bar_len_sec * 4.0f, "Pitch Riser", "Pitch", 3);
-                }
-                ImGui::EndPopup();
-            }
-
-            // Inovações Além do FL Studio: Ghost Waveform & AI
-            ImGui::SameLine(0, 8);
-            if (show_ghost_waveform) {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.00f, 0.50f, 0.00f, 0.90f));
-            } else {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.18f, 0.24f, 0.90f));
-            }
-            if (ImGui::Button("GHOST ALIGN")) {
-                show_ghost_waveform = !show_ghost_waveform;
-            }
-            ImGui::PopStyleColor(1);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Inovacao: Projeta forma de onda fantasma do Kick sobre o Bass para alinhamento de fase milimetrico");
-
-            // Botão Loop
-            ImGui::SameLine(0, 8);
-            bool loop_act = ::timeline.loop_enabled;
-            if (loop_act) {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.85f, 0.60f, 0.90f));
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-            } else {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.18f, 0.24f, 0.90f));
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.85f, 0.90f, 1.0f));
-            }
-            if (ImGui::Button(loop_act ? "LOOP: ON" : "LOOP: OFF")) {
-                ::timeline.loop_enabled = !::timeline.loop_enabled;
-            }
-            ImGui::PopStyleColor(2);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ativa repeticao continua da regiao de loop definida na regua");
-
-            // Menu de Templates
-            ImGui::SameLine(0, 8);
-            if (ImGui::Button("Arranjos [v]")) {
-                ImGui::OpenPopup("PlaylistTemplatesPopup");
-            }
-            if (ImGui::BeginPopup("PlaylistTemplatesPopup")) {
-                ImGui::TextDisabled("Arranjos & Templates:");
-                ImGui::Separator();
-                if (ImGui::MenuItem("Perception - The Astral Portal (Brazilian Psy 140 BPM - 16 Tracks)")) {
-                    float b; g_clip_manager.loadTrackTemplate(0, b); ::timeline.setBPM(b);
-                }
-                if (ImGui::MenuItem("Cyberpunk 2088 (Synthwave Darksynth 118 BPM)")) {
-                    float b; g_clip_manager.loadTrackTemplate(1, b); ::timeline.setBPM(b);
-                }
-                if (ImGui::MenuItem("Afterlife Journey (Melodic Techno 124 BPM)")) {
-                    float b; g_clip_manager.loadTrackTemplate(2, b); ::timeline.setBPM(b);
-                }
-                if (ImGui::MenuItem("Losing Control (Tech House 126 BPM)")) {
-                    float b; g_clip_manager.loadTrackTemplate(3, b); ::timeline.setBPM(b);
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Limpar Playlist (Reset)")) {
-                    g_clip_manager.reset();
-                }
-                ImGui::EndPopup();
-            }
-
-            ImGui::SameLine(0, 8);
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.50f, 0.85f, 0.90f));
-            if (ImGui::Button("Desconstruir Musica (IA)")) {
-                std::string chosen = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac)\0*.wav;*.mp3;*.flac\0");
-                if (!chosen.empty()) {
-                    g_cloud_stem_ui.DeconstructAnySong(chosen, g_clip_manager, ::timeline);
-                } else {
-                    std::string def_track = "C:\\NovaDAW\\tracks\\Vini_Vici_Astrix_Adhana.wav";
-                    if (std::filesystem::exists(def_track)) {
-                        g_cloud_stem_ui.DeconstructAnySong(def_track, g_clip_manager, ::timeline);
-                    }
-                }
-            }
-            ImGui::PopStyleColor(1);
-
-            ImGui::SameLine(0, 8);
-            static bool show_timeline_inpainting_modal = false;
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.85f, 0.90f));
-            if (ImGui::Button("✨ AI Inpaint Arranjo")) {
-                show_timeline_inpainting_modal = true;
-            }
-            ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Timeline Arrangement Inpainting: Criacao automatica de Buildups, Drops e Transicoes com IA (Suno / Ableton)");
-
-            if (show_timeline_inpainting_modal) {
-                ImGui::OpenPopup("TimelineInpaintingModal");
-            }
-            if (ImGui::BeginPopupModal("TimelineInpaintingModal", &show_timeline_inpainting_modal, ImGuiWindowFlags_AlwaysAutoResize)) {
-                ImGui::TextColored(ImVec4(0.8f, 0.4f, 1.0f, 1.0f), "🚀 TIMELINE ARRANGEMENT INPAINTING & GENERATIVE SUITE");
-                ImGui::TextDisabled("Gera variacoes generativas de arranjo e transicoes no trecho selecionado");
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                static int tl_mode = 0;
-                static float tl_energy = 80.0f;
-                const char* tl_modes[] = { "🚀 Build-up Rush (Snare Roll & Pitch Climb)", "⚡ Drop Energy Mutation (Explosive Variation)", "🌊 Filter Transition Sweep (Smooth Washout)" };
-                ImGui::Combo("Modo de Arranjo", &tl_mode, tl_modes, IM_ARRAYSIZE(tl_modes));
-
-                ImGui::SliderFloat("Intensidade da Transicao", &tl_energy, 1.0f, 100.0f, "%.0f%%");
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                if (ImGui::Button("⚡ GERAR INPAINTING NO ARRANJO", ImVec2(230, 32))) {
-                    show_timeline_inpainting_modal = false;
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Cancelar", ImVec2(90, 32))) {
-                    show_timeline_inpainting_modal = false;
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
-            }
-
-            // Controles de Zoom
-            ImGui::SameLine(0, 8);
-            if (ImGui::Button("-")) { playlist_zoom_x = (std::max)(16.0f, playlist_zoom_x * 0.8f); }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Zoom Out (Horizontal)");
-            ImGui::SameLine(0, 2);
-            if (ImGui::Button("+")) { playlist_zoom_x = (std::min)(180.0f, playlist_zoom_x * 1.25f); }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Zoom In (Horizontal)");
-            ImGui::SameLine(0, 2);
-            if (ImGui::Button("FIT")) { playlist_zoom_x = 36.0f; playlist_scroll_x = 0.0f; }
-
-            ImGui::Separator();
-
-            // ─────────────────────────────────────────────────────────────
-            // 2. LAYOUT PRINCIPAL: RÉGUA TEMPORAL + TRACK HEADERS + GRID
-            // ─────────────────────────────────────────────────────────────
-            ImVec2 main_p0 = ImGui::GetCursorScreenPos();
-            ImVec2 main_sz = ImGui::GetContentRegionAvail();
-            if (main_sz.x < 100.0f) main_sz.x = 800.0f;
-            if (main_sz.y < 100.0f) main_sz.y = 350.0f;
-
-            float track_card_w = 175.0f;
-            float ruler_h = 26.0f;
-            float p_sec = playlist_zoom_x; // Pixels por compasso (Bar)
-
-            // Suporte a Scroll Horizontal e Vertical com o Mouse (Estilo FL Studio)
-            if (ImGui::IsWindowHovered()) {
-                float wheel_y = ImGui::GetIO().MouseWheel;
-                float wheel_x = ImGui::GetIO().MouseWheelH;
-                if (ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeyShift && wheel_y != 0.0f) {
-                    playlist_track_h = (std::clamp)(playlist_track_h + wheel_y * 4.0f, 28.0f, 120.0f);
-                } else if (ImGui::GetIO().KeyCtrl && wheel_y != 0.0f) {
-                    playlist_zoom_x = (std::clamp)(playlist_zoom_x + wheel_y * 4.0f, 16.0f, 240.0f);
-                } else if (ImGui::GetIO().KeyShift && wheel_y != 0.0f) {
-                    playlist_scroll_x = (std::clamp)(playlist_scroll_x - wheel_y * 50.0f, 0.0f, 12000.0f);
-                } else if (wheel_y != 0.0f) {
-                    playlist_scroll_y = (std::clamp)(playlist_scroll_y - wheel_y * 36.0f, 0.0f, 2000.0f);
-                }
-                if (wheel_x != 0.0f) {
-                    playlist_scroll_x = (std::clamp)(playlist_scroll_x - wheel_x * 50.0f, 0.0f, 12000.0f);
-                }
-            }
-
-            // Atalhos Globais: Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+A (Ativos em qualquer tela da DAW)
-            if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().WantTextInput) {
-                if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
-                    g_clip_manager.undo();
-                } else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
-                    g_clip_manager.redo();
-                } else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-                    g_clip_manager.copySelection(selected_track_idx);
-                } else if (ImGui::IsKeyPressed(ImGuiKey_X, false)) {
-                    g_clip_manager.cutSelection(selected_track_idx);
-                } else if (ImGui::IsKeyPressed(ImGuiKey_V, false)) {
-                    float rel_x = ImGui::GetIO().MousePos.x - (main_p0.x + track_card_w) + playlist_scroll_x;
-                    float paste_t = snap_time((std::max)(0.0f, (rel_x / p_sec) * bar_len_sec));
-                    g_clip_manager.pasteClipboard(selected_track_idx, paste_t);
-                }
-            }
-
-            ImVec2 grid_p0 = main_p0;
-            ImVec2 grid_sz = main_sz;
-            ImVec2 mouse_pos = ImGui::GetIO().MousePos;
-
-            // Fundo da Grade
-            draw->AddRectFilled(ImVec2(grid_p0.x + track_card_w, grid_p0.y + ruler_h), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + grid_sz.y), IM_COL32(11, 16, 24, 255));
-
-            // Régua de Compassos
-            draw->AddRectFilled(ImVec2(grid_p0.x + track_card_w, grid_p0.y), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + ruler_h), IM_COL32(16, 23, 34, 255));
-            draw->AddLine(ImVec2(grid_p0.x + track_card_w, grid_p0.y + ruler_h), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + ruler_h), IM_COL32(24, 40, 58, 255));
-
-            // Interação com a Régua Temporal (Scrubbing / Seeking imediato)
-            bool is_playlist_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
-            ImVec2 ruler_rect_p0 = ImVec2(grid_p0.x + track_card_w, grid_p0.y);
-            ImVec2 ruler_rect_p1 = ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + ruler_h);
-
-            ImGui::SetCursorScreenPos(ruler_rect_p0);
-            ImGui::InvisibleButton("##playlist_ruler_hitbox", ImVec2((std::max)(10.0f, grid_sz.x - track_card_w), ruler_h));
-            bool is_ruler_hovered = is_playlist_hovered && ImGui::IsItemHovered();
-
-            if (is_ruler_hovered && ImGui::IsMouseClicked(0)) {
-                is_scrubbing_ruler = true;
-            }
-            if (is_scrubbing_ruler) {
-                if (ImGui::IsMouseDown(0)) {
-                    float scrub_x = mouse_pos.x - (grid_p0.x + track_card_w) + playlist_scroll_x;
-                    float scrub_bars = (std::max)(0.0f, scrub_x / p_sec);
-                    float scrub_time_sec = scrub_bars * bar_len_sec;
-                    ::timeline.setMasterFrame((uint64_t)(scrub_time_sec * 44100.0f));
-                } else {
-                    is_scrubbing_ruler = false;
-                }
-            }
-
-            // Suporte a Loop Region Drag com Botão Direito na Régua
-            if (is_ruler_hovered && ImGui::IsMouseClicked(1)) {
-                is_dragging_loop = true;
-                float r_x = mouse_pos.x - (grid_p0.x + track_card_w) + playlist_scroll_x;
-                float t_sec = (r_x / p_sec) * bar_len_sec;
-                ::timeline.loop_start_sec = snap_time(t_sec);
-                ::timeline.loop_end_sec = ::timeline.loop_start_sec + bar_len_sec * 4.0f;
-                ::timeline.loop_enabled = true;
-            }
-            if (is_dragging_loop) {
-                if (ImGui::IsMouseDown(1)) {
-                    float r_x = mouse_pos.x - (grid_p0.x + track_card_w) + playlist_scroll_x;
-                    float t_sec = (r_x / p_sec) * bar_len_sec;
-                    ::timeline.loop_end_sec = (std::max)(::timeline.loop_start_sec + 0.5f, snap_time(t_sec));
-                } else {
-                    is_dragging_loop = false;
-                }
-            }
-
-            // Desenho do Highlight da Região de Loop na Régua e Grade
-            if (::timeline.loop_enabled) {
-                float lx0 = grid_p0.x + track_card_w + (::timeline.loop_start_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                float lx1 = grid_p0.x + track_card_w + (::timeline.loop_end_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                if (lx1 > grid_p0.x + track_card_w && lx0 < grid_p0.x + grid_sz.x) {
-                    float dl0 = (std::max)(lx0, grid_p0.x + track_card_w);
-                    float dl1 = (std::min)(lx1, grid_p0.x + grid_sz.x);
-                    draw->AddRectFilled(ImVec2(dl0, grid_p0.y), ImVec2(dl1, grid_p0.y + ruler_h), IM_COL32(0, 220, 180, 50));
-                    draw->AddRectFilled(ImVec2(dl0, grid_p0.y + ruler_h), ImVec2(dl1, grid_p0.y + grid_sz.y), IM_COL32(0, 220, 180, 15));
-                    draw->AddLine(ImVec2(dl0, grid_p0.y), ImVec2(dl0, grid_p0.y + ruler_h), IM_COL32(0, 255, 200, 255), 2.0f);
-                    draw->AddLine(ImVec2(dl1, grid_p0.y), ImVec2(dl1, grid_p0.y + ruler_h), IM_COL32(0, 255, 200, 255), 2.0f);
-                }
-            }
-
-            // Desenho das Linhas de Compassos e Subdivisões na Grid
-            for (int bar = 1; bar <= 128; ++bar) {
-                float bx = grid_p0.x + track_card_w + (bar - 1) * p_sec - playlist_scroll_x;
-                if (bx < grid_p0.x + track_card_w - p_sec) continue;
-                if (bx > grid_p0.x + grid_sz.x) break;
-
-                bool is_major = (bar == 1 || bar % 4 == 1);
-                draw->AddLine(ImVec2(bx, grid_p0.y), ImVec2(bx, grid_p0.y + ruler_h), is_major ? IM_COL32(0, 212, 255, 200) : IM_COL32(40, 60, 80, 100), 1.0f);
-                draw->AddLine(ImVec2(bx, grid_p0.y + ruler_h), ImVec2(bx, grid_p0.y + grid_sz.y), is_major ? IM_COL32(28, 44, 64, 220) : IM_COL32(16, 25, 38, 120), 1.0f);
-
-                // Subdivisões de tempos (Beats) dentro do compasso
-                for (int beat = 1; beat < 4; beat++) {
-                    float beat_x = bx + (beat * 0.25f) * p_sec;
-                    if (beat_x > grid_p0.x + track_card_w && beat_x < grid_p0.x + grid_sz.x) {
-                        draw->AddLine(ImVec2(beat_x, grid_p0.y + ruler_h - 4.0f), ImVec2(beat_x, grid_p0.y + ruler_h), IM_COL32(30, 48, 68, 120), 1.0f);
-                        draw->AddLine(ImVec2(beat_x, grid_p0.y + ruler_h), ImVec2(beat_x, grid_p0.y + grid_sz.y), IM_COL32(14, 22, 32, 80), 1.0f);
-                    }
-                }
-
-                if (is_major || bar % 2 == 1) {
-                    char b_num[16];
-                    snprintf(b_num, sizeof(b_num), "Bar %d", bar);
-                    draw->AddText(ImVec2(bx + 4.0f, grid_p0.y + 4.0f), is_major ? IM_COL32(0, 212, 255, 240) : IM_COL32(160, 195, 220, 200), b_num);
-                }
-            }
-
-            // Marcadores de Seção na Régua ([INTRO], [BUILD-UP], [DROP 1], etc.)
-            for (const auto& marker : ::timeline.section_markers) {
-                float mx = grid_p0.x + track_card_w + (marker.time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                if (mx >= grid_p0.x + track_card_w - 40.0f && mx <= grid_p0.x + grid_sz.x) {
-                    ImVec2 m_p0(mx, grid_p0.y + 1.0f);
-                    ImVec2 m_p1(mx + 68.0f, grid_p0.y + 15.0f);
-                    draw->AddRectFilled(m_p0, m_p1, marker.color, 3.0f);
-                    draw->AddText(ImVec2(mx + 4.0f, grid_p0.y + 1.0f), IM_COL32(0, 0, 0, 255), marker.name.c_str());
-                    draw->AddLine(ImVec2(mx, grid_p0.y + 15.0f), ImVec2(mx, grid_p0.y + grid_sz.y), marker.color, 1.0f);
-
-                    if (is_ruler_hovered && ImGui::IsMouseClicked(0) && ImGui::IsMouseHoveringRect(m_p0, m_p1)) {
-                        ::timeline.setMasterFrame((uint64_t)(marker.time_sec * 44100.0f));
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 3. RENDERIZAÇÃO DAS FAIXAS (TRACKS 1 a 8) & CABEÇALHOS
-            // ─────────────────────────────────────────────────────────────
-            const char* trk_labels[16] = { 
-                "1. Psy Kick (Click)", "2. Sub Bass (KB-B-B)", "3. Mid Saw Bass", "4. Snare & Smash Clap", 
-                "5. Offbeat Open Hat", "6. Closed Hats/Shaker", "7. Tribal Percussion", "8. FM Squelch & Zaps",
-                "9. Main Acid Lead", "10. Counter-Arp Pluck", "11. SuperSaw Poly Lead", "12. Dark Sub Drone",
-                "13. Symphonic Strings", "14. Steinway Piano", "15. Vocal Mantra Chants", "16. Snare Roll & FX"
-            };
-            ImU32 trk_palette[16] = {
-                IM_COL32(0, 240, 255, 255),   // 1. Kick (Cyan Punch)
-                IM_COL32(255, 0, 128, 255),   // 2. Sub Bass (Neon Pink)
-                IM_COL32(255, 60, 180, 255),  // 3. Mid Bass (Magenta)
-                IM_COL32(255, 140, 0, 255),   // 4. Snare (Orange)
-                IM_COL32(255, 220, 0, 255),   // 5. Open Hat (Yellow)
-                IM_COL32(200, 255, 0, 255),   // 6. Closed Hats (Lime)
-                IM_COL32(0, 255, 128, 255),   // 7. Tribal Perc (Green)
-                IM_COL32(0, 255, 200, 255),   // 8. FM Squelch (Mint)
-                IM_COL32(0, 180, 255, 255),   // 9. Acid Lead (Sky Blue)
-                IM_COL32(80, 120, 255, 255),  // 10. Counter Arp (Royal Blue)
-                IM_COL32(160, 80, 255, 255),  // 11. SuperSaw (Purple)
-                IM_COL32(110, 40, 220, 255),  // 12. Drone (Deep Violet)
-                IM_COL32(0, 210, 230, 255),   // 13. Strings (Turquoise)
-                IM_COL32(255, 215, 0, 255),   // 14. Piano (Gold)
-                IM_COL32(255, 80, 120, 255),  // 15. Vocal Mantra (Coral)
-                IM_COL32(255, 50, 50, 255)    // 16. FX Risers (Red)
-            };
-
-            int visible_tracks = 16;
-            float trk_h = playlist_track_h;
-            float content_h = visible_tracks * trk_h;
-            float view_h = grid_sz.y - ruler_h - 10.0f;
-            float max_scroll_y = (std::max)(0.0f, content_h - view_h);
-            playlist_scroll_y = (std::clamp)(playlist_scroll_y, 0.0f, max_scroll_y);
-            float track_start_y = grid_p0.y + ruler_h + 2.0f - playlist_scroll_y;
-
-            draw->PushClipRect(ImVec2(grid_p0.x, grid_p0.y + ruler_h), ImVec2(grid_p0.x + grid_sz.x, grid_p0.y + grid_sz.y), true);
-
-            for (int t = 0; t < visible_tracks; ++t) {
-                float ty0 = track_start_y + t * trk_h;
-                float ty1 = ty0 + trk_h - 3.0f;
-
-                // Faixa Alternada na Grade
-                if (t % 2 == 1) {
-                    draw->AddRectFilled(ImVec2(grid_p0.x + track_card_w, ty0), ImVec2(grid_p0.x + grid_sz.x, ty1), IM_COL32(13, 19, 28, 140));
-                }
-                draw->AddLine(ImVec2(grid_p0.x + track_card_w, ty1), ImVec2(grid_p0.x + grid_sz.x, ty1), IM_COL32(20, 32, 48, 255), 1.0f);
-
-                // 3.1 Card do Cabeçalho da Faixa
-                bool is_sel = (selected_track_idx == t);
-                ImU32 card_bg = is_sel ? IM_COL32(22, 33, 48, 255) : IM_COL32(14, 20, 29, 255);
-                draw->AddRectFilled(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + track_card_w, ty1), card_bg, 4.0f);
-                draw->AddRect(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + track_card_w, ty1), is_sel ? IM_COL32(0, 212, 255, 200) : IM_COL32(24, 38, 55, 255), 4.0f);
-
-                // Barra Colorida de Acento
-                draw->AddRectFilled(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + 4.0f, ty1), trk_palette[t], 4.0f);
-
-                // Nome da Faixa Dinâmico (Modular com suporte a renomeação)
-                std::string display_name = (t < MAX_TRACKS && !::track_names[t].empty()) ? ::track_names[t] : ("Track " + std::to_string(t + 1));
-                draw->AddText(ImVec2(grid_p0.x + 8.0f, ty0 + 6.0f), IM_COL32(235, 245, 255, 255), display_name.c_str());
-
-                // Barra Horizontal de Volume
-                float vol_bar_x0 = grid_p0.x + 8.0f;
-                float vol_bar_x1 = grid_p0.x + track_card_w - 55.0f;
-                float vol_bar_y = ty0 + 28.0f;
-                float cur_vol = (t < MAX_TRACKS) ? ::track_linear_volumes[t] : 0.8f;
-                draw->AddRectFilled(ImVec2(vol_bar_x0, vol_bar_y), ImVec2(vol_bar_x1, vol_bar_y + 5.0f), IM_COL32(20, 30, 42, 255), 2.0f);
-                draw->AddRectFilled(ImVec2(vol_bar_x0, vol_bar_y), ImVec2(vol_bar_x0 + (vol_bar_x1 - vol_bar_x0) * (std::clamp)(cur_vol, 0.0f, 1.0f), vol_bar_y + 5.0f), trk_palette[t], 2.0f);
-
-                // Botões Interativos [ M ] e [ S ]
-                float btn_m_x = grid_p0.x + track_card_w - 48.0f;
-                float btn_o_x = grid_p0.x + track_card_w - 24.0f;
-                float btn_y = ty0 + 10.0f;
-                
-                bool is_muted = (t < MAX_TRACKS) ? ::track_mutes[t] : false;
-                bool is_solo = (t < MAX_TRACKS) ? ::track_solos[t] : false;
-
-                ImVec2 btn_m_p0(btn_m_x, btn_y);
-                ImVec2 btn_m_p1(btn_m_x + 20.0f, btn_y + 20.0f);
-                bool hover_m = is_playlist_hovered && ImGui::IsMouseHoveringRect(btn_m_p0, btn_m_p1);
-                draw->AddRectFilled(btn_m_p0, btn_m_p1, is_muted ? IM_COL32(220, 40, 40, 255) : hover_m ? IM_COL32(30, 45, 60, 255) : IM_COL32(18, 26, 36, 255), 3.0f);
-                draw->AddText(ImVec2(btn_m_x + 5.0f, btn_y + 3.0f), is_muted ? IM_COL32(255, 255, 255, 255) : IM_COL32(180, 205, 230, 255), "M");
-                if (hover_m && ImGui::IsMouseClicked(0)) {
-                    if (t < MAX_TRACKS) ::track_mutes[t] = !::track_mutes[t];
-                }
-
-                ImVec2 btn_o_p0(btn_o_x, btn_y);
-                ImVec2 btn_o_p1(btn_o_x + 20.0f, btn_y + 20.0f);
-                bool hover_o = is_playlist_hovered && ImGui::IsMouseHoveringRect(btn_o_p0, btn_o_p1);
-                draw->AddRectFilled(btn_o_p0, btn_o_p1, is_solo ? IM_COL32(250, 190, 0, 255) : hover_o ? IM_COL32(30, 45, 60, 255) : IM_COL32(18, 26, 36, 255), 3.0f);
-                draw->AddText(ImVec2(btn_o_x + 5.0f, btn_y + 3.0f), is_solo ? IM_COL32(0, 0, 0, 255) : IM_COL32(180, 205, 230, 255), "S");
-                if (hover_o && ImGui::IsMouseClicked(0)) {
-                    if (t < MAX_TRACKS) ::track_solos[t] = !::track_solos[t];
-                }
-
-                // Interação com o Cabeçalho: Seleção (Clique-Esq) ou Renomear (Duplo-Clique / Clique-Dir)
-                std::string rename_popup_id = "##RenameTrackPopup_" + std::to_string(t);
-                static char rename_buffer[128] = "";
-
-                bool is_header_hovered = is_playlist_hovered && ImGui::IsMouseHoveringRect(ImVec2(grid_p0.x, ty0), ImVec2(grid_p0.x + track_card_w - 52.0f, ty1));
-                if (is_header_hovered) {
-                    if (ImGui::IsMouseDoubleClicked(0) || ImGui::IsMouseClicked(1)) {
-                        selected_track_idx = t;
-                        strncpy(rename_buffer, (t < MAX_TRACKS) ? ::track_names[t].c_str() : "", sizeof(rename_buffer) - 1);
-                        ImGui::OpenPopup(rename_popup_id.c_str());
-                    } else if (ImGui::IsMouseClicked(0) && !hover_m && !hover_o) {
-                        selected_track_idx = t;
-                    }
-                }
-
-                if (ImGui::BeginPopup(rename_popup_id.c_str())) {
-                    ImGui::TextColored(ImVec4(0.0f, 0.9f, 1.0f, 1.0f), "🏷️ Renomear Faixa %02d", t + 1);
-                    ImGui::Separator();
-                    ImGui::SetNextItemWidth(220);
-                    if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
-                    if (ImGui::InputText("##rename_input", rename_buffer, sizeof(rename_buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                        if (strlen(rename_buffer) > 0 && t < MAX_TRACKS) {
-                            ::track_names[t] = rename_buffer;
-                        }
-                        ImGui::CloseCurrentPopup();
-                    }
-                    if (ImGui::Button("Salvar", ImVec2(100, 24))) {
-                        if (strlen(rename_buffer) > 0 && t < MAX_TRACKS) {
-                            ::track_names[t] = rename_buffer;
-                        }
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Cancelar", ImVec2(100, 24))) {
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::EndPopup();
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 4. RENDERIZAÇÃO E INTERAÇÃO COM CLIPES REAIS (AUDIO, MIDI & AUTO)
-            // ─────────────────────────────────────────────────────────────
-            ImVec2 grid_lane_p0 = ImVec2(grid_p0.x + track_card_w, grid_p0.y + ruler_h);
-            ImVec2 grid_lane_sz = ImVec2((std::max)(10.0f, grid_sz.x - track_card_w - 14.0f), (std::max)(10.0f, grid_sz.y - ruler_h - 14.0f));
-            ImVec2 grid_lane_p1 = ImVec2(grid_lane_p0.x + grid_lane_sz.x, grid_lane_p0.y + grid_lane_sz.y);
-
-            ImGui::SetCursorScreenPos(grid_lane_p0);
-            ImGui::InvisibleButton("##playlist_grid_hitbox", grid_lane_sz);
-            bool is_grid_hitbox_hovered = ImGui::IsItemHovered();
-            bool is_mouse_in_grid = is_playlist_hovered && is_grid_hitbox_hovered;
-
-            int hovered_track_at_mouse = -1;
-            if (is_mouse_in_grid) {
-                float rel_y = mouse_pos.y - (grid_p0.y + ruler_h) + playlist_scroll_y;
-                if (rel_y >= 0.0f) {
-                    hovered_track_at_mouse = (std::clamp)((int)(rel_y / trk_h), 0, visible_tracks - 1);
-                }
-            }
-
-            float current_mouse_time_sec = 0.0f;
-            if (is_mouse_in_grid) {
-                float rel_x = mouse_pos.x - (grid_p0.x + track_card_w) + playlist_scroll_x;
-                current_mouse_time_sec = (rel_x / p_sec) * bar_len_sec;
-            }
-
-            bool clip_clicked_this_frame = false;
-
-            for (int t = 0; t < visible_tracks; ++t) {
-                float ty0 = track_start_y + t * trk_h;
-                float ty1 = ty0 + trk_h - 3.0f;
-                float mid_y = (ty0 + ty1) * 0.5f;
-
-                // INOVAÇÃO GHOST WAVEFORM: Sobrepõe o Kick da Faixa 0 na Faixa 1 (Bassline) em neon laranja translúcido
-                if (show_ghost_waveform && t == 1) {
-                    auto kick_clips = g_clip_manager.getClips(0);
-                    for (const auto& kc : kick_clips) {
-                        float kx0 = grid_p0.x + track_card_w + (kc.start_time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                        float kx1 = kx0 + (kc.length_sec / bar_len_sec) * p_sec;
-                        if (kx1 < grid_p0.x + track_card_w || kx0 > grid_p0.x + grid_sz.x) continue;
-                        float k_draw_x0 = (std::max)(kx0, grid_p0.x + track_card_w);
-                        float k_draw_x1 = (std::min)(kx1, grid_p0.x + grid_sz.x);
-
-                        for (float wx = k_draw_x0; wx < k_draw_x1; wx += 3.0f) {
-                            float prog = (wx - kx0) / (kx1 - kx0);
-                            float amp = (std::sin(prog * 45.0f) * 0.5f + std::cos(prog * 12.0f) * 0.4f) * (trk_h * 0.35f);
-                            draw->AddLine(ImVec2(wx, mid_y - std::abs(amp)), ImVec2(wx, mid_y + std::abs(amp)), IM_COL32(255, 140, 0, 70), 1.5f);
-                        }
-                    }
-                }
-
-                // 4.1 RENDERIZAR AUDIO CLIPS REAIS
-                auto audio_clips = g_clip_manager.getClips(t);
-                for (size_t c_idx = 0; c_idx < audio_clips.size(); ++c_idx) {
-                    const auto& clip = audio_clips[c_idx];
-
-                    float cx0 = grid_p0.x + track_card_w + (clip.start_time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                    float cx1 = cx0 + (clip.length_sec / bar_len_sec) * p_sec;
-
-                    if (cx1 < grid_p0.x + track_card_w || cx0 > grid_p0.x + grid_sz.x) continue;
-
-                    float draw_x0 = (std::max)(cx0, grid_p0.x + track_card_w);
-                    float draw_x1 = (std::min)(cx1, grid_p0.x + grid_sz.x);
-
-                    ImVec2 clip_p0(draw_x0, ty0 + 2.0f);
-                    ImVec2 clip_p1(draw_x1, ty1 - 2.0f);
-                    bool is_hovered = is_mouse_in_grid && ImGui::IsMouseHoveringRect(clip_p0, clip_p1);
-
-                    ImU32 clip_col = trk_palette[t % 8];
-                    if (clip.is_muted) clip_col = IM_COL32(80, 90, 100, 180);
-
-                    // Caixa do Clipe
-                    draw->AddRectFilled(clip_p0, clip_p1, clip_col, 4.0f);
-                    draw->AddRect(clip_p0, clip_p1, is_hovered ? IM_COL32(255, 255, 255, 240) : IM_COL32(255, 255, 255, 120), 4.0f, 0, is_hovered ? 2.0f : 1.0f);
-
-                    // Header do Clipe com Botão Menu ▼
-                    draw->AddRectFilled(clip_p0, ImVec2(clip_p1.x, clip_p0.y + 14.0f), IM_COL32(10, 15, 22, 200), 4.0f);
-                    std::string clip_title = clip.name.empty() ? (std::string("Audio ") + std::to_string(clip.id)) : clip.name;
-                    if (clip.is_reversed) clip_title += " [REV]";
-                    if (clip.is_normalized) clip_title += " [0dB]";
-
-                    draw->AddText(ImVec2(clip_p0.x + 4.0f, clip_p0.y + 1.0f), IM_COL32(230, 245, 255, 240), (std::string("[AUDIO] ") + clip_title).c_str());
-
-                    // Desenho da Forma de Onda Real (Extraída dos Dados PCM de Áudio da Música)
-                    const std::vector<float>* p_stem_buf = (::g_ai_engine && t < MAX_TRACKS) ? &::g_ai_engine->getStemBuffer(t) : nullptr;
-                    bool has_real_audio = (p_stem_buf && !p_stem_buf->empty());
-
-                    if (has_real_audio) {
-                        size_t total_samples = p_stem_buf->size();
-                        size_t total_frames = total_samples / 2; // Interleaved stereo
-                        float sr = 44100.0f;
-                        float clip_dur_sec = (std::max)(0.1f, clip.length_sec);
-                        float source_off_sec = (std::max)(0.0f, clip.source_offset_sec);
-
-                        for (float wx = draw_x0 + 2.0f; wx < draw_x1 - 2.0f; wx += 2.0f) {
-                            float norm_x = (wx - cx0) / (cx1 - cx0);
-                            if (clip.is_reversed) norm_x = 1.0f - norm_x;
-                            
-                            float cur_sec = source_off_sec + norm_x * clip_dur_sec;
-                            size_t frame_pos = (size_t)(cur_sec * sr);
-                            
-                            float peak = 0.0f;
-                            size_t win_sz = 384;
-                            size_t f_start = (frame_pos >= win_sz / 2) ? frame_pos - win_sz / 2 : 0;
-                            size_t f_end = (std::min)(total_frames, f_start + win_sz);
-
-                            for (size_t f = f_start; f < f_end; f += 8) {
-                                size_t idx = f * 2;
-                                if (idx < total_samples) {
-                                    float s = std::abs((*p_stem_buf)[idx]);
-                                    if (s > peak) peak = s;
-                                }
-                            }
-
-                            if (clip.is_normalized && peak > 0.0f) peak *= 1.4f;
-                            peak = std::clamp(peak, 0.02f, 1.0f);
-
-                            float wave_amp = peak * (trk_h * 0.38f);
-                            draw->AddLine(ImVec2(wx, mid_y - wave_amp), ImVec2(wx, mid_y + wave_amp), IM_COL32(10, 18, 28, 230), 1.6f);
-                            draw->AddLine(ImVec2(wx, mid_y - wave_amp * 0.5f), ImVec2(wx, mid_y + wave_amp * 0.5f), IM_COL32(255, 255, 255, 45), 1.0f);
-                        }
-                    } else {
-                        // Fallback procedural se ainda não carregou o buffer
-                        for (float wx = draw_x0 + 4.0f; wx < draw_x1 - 4.0f; wx += 2.0f) {
-                            float progress_in_clip = (wx - cx0) / (cx1 - cx0);
-                            if (clip.is_reversed) progress_in_clip = 1.0f - progress_in_clip;
-                            float wave_amp = (std::sin(progress_in_clip * 45.0f) * 0.5f + std::cos(progress_in_clip * 12.0f) * 0.4f) * (trk_h * 0.28f);
-                            draw->AddLine(ImVec2(wx, mid_y - std::abs(wave_amp)), ImVec2(wx, mid_y + std::abs(wave_amp)), IM_COL32(10, 20, 30, 220), 1.5f);
-                        }
-                    }
-
-                    if (clip.is_muted) {
-                        draw->AddText(ImVec2(clip_p0.x + 6.0f, mid_y - 6.0f), IM_COL32(255, 80, 80, 240), "[MUTED]");
-                    }
-
-                    bool is_near_right = is_hovered && (mouse_pos.x >= draw_x1 - 8.0f);
-                    bool is_near_left = is_hovered && (mouse_pos.x <= draw_x0 + 8.0f);
-
-                    if (is_near_right || is_near_left) {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                    }
-
-                    // INTERAÇÃO DO MOUSE COM AUDIO CLIP
-                    if (is_hovered) {
-                        ImGui::SetTooltip("Audio Clip: %s\nInicio: Bar %.2f | Duracao: %.2fs\n(Duplo clique: Inspector | Arraste: Mover/Esticar | Botao Direito: Excluir)", clip_title.c_str(), 1.0f + (clip.start_time_sec / bar_len_sec), clip.length_sec);
-
-                        // Duplo Clique: Abre o Audio Clip Inspector Modal
-                        if (ImGui::IsMouseDoubleClicked(0)) {
-                            g_audio_clip_editor_ui.open(t, (int)c_idx);
-                            clip_clicked_this_frame = true;
-                            break;
-                        }
-
-                        // Botão Direito: Exclusão rápida
-                        if (ImGui::IsMouseClicked(1)) {
-                            g_clip_manager.deleteClip(t, (int)c_idx);
-                            clip_clicked_this_frame = true;
-                            break;
-                        }
-
-                        // Botão Esquerdo: Mover, Esticar ou Ferramenta
-                        if (ImGui::IsMouseClicked(0)) {
-                            clip_clicked_this_frame = true;
-                            if (current_tool == TOOL_DELETE) {
-                                g_clip_manager.deleteClip(t, (int)c_idx);
-                                break;
-                            } else if (current_tool == TOOL_MUTE) {
-                                g_clip_manager.toggleMuteAudioClip(t, (int)c_idx);
-                            } else if (current_tool == TOOL_SLICE) {
-                                g_clip_manager.splitClip(t, (int)c_idx, current_mouse_time_sec);
-                                break;
-                            } else {
-                                // Suporte a Shift + Drag (Clonar no arraste)
-                                if (ImGui::GetIO().KeyShift) {
-                                    g_clip_manager.duplicateAudioClip(t, (int)c_idx, 0.0f);
-                                }
-                                is_dragging_clip = true;
-                                is_resizing_right = is_near_right;
-                                is_resizing_left = is_near_left;
-                                active_drag_track = t;
-                                active_drag_clip_idx = (int)c_idx;
-                                active_drag_type = 0;
-                                drag_orig_start = clip.start_time_sec;
-                                drag_orig_len = clip.length_sec;
-                                drag_orig_offset = clip.source_offset_sec;
-                                drag_mouse_start_pos = mouse_pos;
-                            }
-                        }
-                    }
-                }
-
-                // 4.2 RENDERIZAR MIDI PATTERN CLIPS REAIS
-                auto midi_clips = g_clip_manager.getMidiClips(t);
-                for (size_t c_idx = 0; c_idx < midi_clips.size(); ++c_idx) {
-                    const auto& clip = midi_clips[c_idx];
-
-                    float cx0 = grid_p0.x + track_card_w + (clip.start_time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                    float cx1 = cx0 + (clip.length_sec / bar_len_sec) * p_sec;
-
-                    if (cx1 < grid_p0.x + track_card_w || cx0 > grid_p0.x + grid_sz.x) continue;
-
-                    float draw_x0 = (std::max)(cx0, grid_p0.x + track_card_w);
-                    float draw_x1 = (std::min)(cx1, grid_p0.x + grid_sz.x);
-
-                    ImVec2 clip_p0(draw_x0, ty0 + 2.0f);
-                    ImVec2 clip_p1(draw_x1, ty1 - 2.0f);
-                    bool is_hovered = is_mouse_in_grid && ImGui::IsMouseHoveringRect(clip_p0, clip_p1);
-
-                    std::string pat_name = clip.name.empty() ? ("Pattern " + std::to_string(clip.pattern_id)) : clip.name;
-                    if (pat_name.find("[MIDI]") == std::string::npos && pat_name.find("[PAT]") == std::string::npos) {
-                        pat_name = "[MIDI] " + pat_name;
-                    }
-                    ImU32 pat_col = trk_palette[t % 8];
-                    int associated_pat_idx = 0;
-                    for (size_t p_i = 0; p_i < g_clip_manager.global_patterns.size(); ++p_i) {
-                        if (g_clip_manager.global_patterns[p_i].id == clip.pattern_id) {
-                            associated_pat_idx = (int)p_i;
-                            break;
-                        }
-                    }
-
-                    if (clip.is_muted) pat_col = IM_COL32(80, 90, 100, 180);
-
-                    // Bloco do Padrão MIDI
-                    draw->AddRectFilled(clip_p0, clip_p1, pat_col, 4.0f);
-                    draw->AddRect(clip_p0, clip_p1, is_hovered ? IM_COL32(255, 255, 255, 240) : IM_COL32(255, 255, 255, 120), 4.0f, 0, is_hovered ? 2.0f : 1.0f);
-
-                    // Header do Clipe MIDI
-                    draw->AddRectFilled(clip_p0, ImVec2(clip_p1.x, clip_p0.y + 15.0f), IM_COL32(10, 15, 22, 220), 4.0f);
-                    draw->AddText(ImVec2(clip_p0.x + 4.0f, clip_p0.y + 1.0f), IM_COL32(255, 255, 255, 255), pat_name.c_str());
-
-                    // Desenha Mini-Notas do Piano Roll dentro do Clipe MIDI (igual FL Studio)
-                    for (const auto& p : g_clip_manager.global_patterns) {
-                        if (p.id == clip.pattern_id) {
-                            const auto& notes = p.getChannelNotes(t % 8);
-                            for (const auto& note : notes) {
-                                float nx0 = cx0 + (note.start_time / bar_len_sec) * p_sec;
-                                float nx1 = nx0 + (std::max)(2.5f, (note.duration / bar_len_sec) * p_sec);
-                                if (nx1 >= draw_x0 && nx0 <= draw_x1) {
-                                    float note_norm = std::clamp((note.pitch - 24) / 60.0f, 0.05f, 0.95f);
-                                    float rel_pitch_y = (ty1 - 4.0f) - note_norm * (trk_h * 0.60f);
-                                    draw->AddRectFilled(ImVec2((std::max)(nx0, draw_x0), rel_pitch_y - 1.5f), ImVec2((std::min)(nx1, draw_x1), rel_pitch_y + 1.5f), IM_COL32(255, 255, 255, 230), 1.0f);
-                                }
-                            }
-                            break;
-                        }
-                    }
-
-                    if (clip.is_muted) {
-                        draw->AddText(ImVec2(clip_p0.x + 6.0f, mid_y - 6.0f), IM_COL32(255, 80, 80, 240), "[MUTED]");
-                    }
-
-                    bool is_near_right = is_hovered && (mouse_pos.x >= draw_x1 - 8.0f);
-                    bool is_near_left = is_hovered && (mouse_pos.x <= draw_x0 + 8.0f);
-
-                    if (is_near_right || is_near_left) {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                    }
-
-                    // INTERAÇÃO DO MOUSE COM MIDI CLIP
-                    if (is_hovered) {
-                        ImGui::SetTooltip("MIDI / Pattern Clip: %s\nInicio: Bar %.2f | Duracao: %.2fs\n(Duplo clique: Abrir Piano Roll | Arraste: Mover | Botao Direito: Excluir)", pat_name.c_str(), 1.0f + (clip.start_time_sec / bar_len_sec), clip.length_sec);
-
-                        // Duplo Clique: Abre e Foca o Piano Roll no Pattern
-                        if (ImGui::IsMouseDoubleClicked(0)) {
-                            selected_track_idx = t;
-                            g_clip_manager.current_pattern_idx = associated_pat_idx;
-                            show_piano_roll = true;
-                            clip_clicked_this_frame = true;
-                            break;
-                        }
-
-                        if (ImGui::IsMouseClicked(1)) {
-                            g_clip_manager.deleteMidiClip(t, (int)c_idx);
-                            clip_clicked_this_frame = true;
-                            break;
-                        }
-
-                        if (ImGui::IsMouseClicked(0)) {
-                            clip_clicked_this_frame = true;
-                            if (current_tool == TOOL_DELETE) {
-                                g_clip_manager.deleteMidiClip(t, (int)c_idx);
-                                break;
-                            } else if (current_tool == TOOL_MUTE) {
-                                g_clip_manager.toggleMuteMidiClip(t, (int)c_idx);
-                            } else if (current_tool == TOOL_SLICE) {
-                                g_clip_manager.splitMidiClip(t, (int)c_idx, current_mouse_time_sec);
-                                break;
-                            } else {
-                                if (ImGui::GetIO().KeyShift) {
-                                    g_clip_manager.duplicateMidiClip(t, (int)c_idx, 0.0f);
-                                }
-                                is_dragging_clip = true;
-                                is_resizing_right = is_near_right;
-                                is_resizing_left = is_near_left;
-                                active_drag_track = t;
-                                active_drag_clip_idx = (int)c_idx;
-                                active_drag_type = 1;
-                                drag_orig_start = clip.start_time_sec;
-                                drag_orig_len = clip.length_sec;
-                                drag_mouse_start_pos = mouse_pos;
-                            }
-                        }
-                    }
-                }
-
-                // 4.3 RENDERIZAR CLIPS DE AUTOMAÇÃO COM CURVAS BÉZIER
-                auto auto_clips = g_clip_manager.getAutomationClips(t);
-                for (size_t c_idx = 0; c_idx < auto_clips.size(); ++c_idx) {
-                    const auto& clip = auto_clips[c_idx];
-
-                    float cx0 = grid_p0.x + track_card_w + (clip.start_time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-                    float cx1 = cx0 + (clip.length_sec / bar_len_sec) * p_sec;
-
-                    if (cx1 < grid_p0.x + track_card_w || cx0 > grid_p0.x + grid_sz.x) continue;
-
-                    float draw_x0 = (std::max)(cx0, grid_p0.x + track_card_w);
-                    float draw_x1 = (std::min)(cx1, grid_p0.x + grid_sz.x);
-
-                    ImVec2 clip_p0(draw_x0, ty0 + 2.0f);
-                    ImVec2 clip_p1(draw_x1, ty1 - 2.0f);
-                    bool is_hovered = is_mouse_in_grid && ImGui::IsMouseHoveringRect(clip_p0, clip_p1);
-
-                    // Fundo da Automação com Gradiente Escuro
-                    draw->AddRectFilled(clip_p0, clip_p1, IM_COL32(18, 28, 40, 220), 4.0f);
-                    draw->AddRect(clip_p0, clip_p1, is_hovered ? IM_COL32(0, 229, 255, 255) : IM_COL32(0, 180, 220, 140), 4.0f);
-
-                    // Header do Clipe de Automação
-                    draw->AddRectFilled(clip_p0, ImVec2(clip_p1.x, clip_p0.y + 14.0f), IM_COL32(8, 14, 20, 240), 4.0f);
-                    draw->AddText(ImVec2(clip_p0.x + 4.0f, clip_p0.y + 1.0f), IM_COL32(0, 229, 255, 240), (std::string("[AUTO] ") + clip.name).c_str());
-
-                    // Desenho da Curva de Bézier Contínua com Underfill
-                    ImVec2 last_pt(draw_x0, ty1 - 4.0f);
-                    for (float wx = draw_x0; wx <= draw_x1; wx += 3.0f) {
-                        float rel_t = ((wx - cx0) / (cx1 - cx0)) * clip.length_sec;
-                        float val = clip.getValueAtTime(rel_t);
-                        float pt_y = (ty1 - 4.0f) - val * (trk_h - 22.0f);
-                        ImVec2 curr_pt(wx, pt_y);
-
-                        if (wx > draw_x0) {
-                            // Linha de Curva
-                            draw->AddLine(last_pt, curr_pt, IM_COL32(0, 229, 255, 255), 2.0f);
-                            // Preenchimento Suave por Baixo
-                            draw->AddLine(curr_pt, ImVec2(wx, ty1 - 4.0f), IM_COL32(0, 200, 255, 40), 3.0f);
-                        }
-                        last_pt = curr_pt;
-                    }
-
-                    // Desenho dos Nós de Ancoragem (Círculos)
-                    for (size_t pt_i = 0; pt_i < clip.points.size(); ++pt_i) {
-                        float px = cx0 + (clip.points[pt_i].time_rel_sec / clip.length_sec) * (cx1 - cx0);
-                        if (px >= draw_x0 && px <= draw_x1) {
-                            float py = (ty1 - 4.0f) - clip.points[pt_i].value * (trk_h - 22.0f);
-                            draw->AddCircleFilled(ImVec2(px, py), 4.0f, IM_COL32(255, 255, 255, 255));
-                            draw->AddCircle(ImVec2(px, py), 4.0f, IM_COL32(0, 229, 255, 255), 0, 1.5f);
-                        }
-                    }
-
-                    // INTERAÇÃO DO MOUSE COM CLIPE DE AUTOMAÇÃO
-                    if (is_hovered) {
-                        ImGui::SetTooltip("Automation Clip: %s\n(Clique na curva para criar no | Botao direito no clipe para excluir)", clip.name.c_str());
-
-                        if (ImGui::IsMouseClicked(1)) {
-                            g_clip_manager.deleteAutomationClip(t, (int)c_idx);
-                            clip_clicked_this_frame = true;
-                            break;
-                        }
-
-                        if (ImGui::IsMouseClicked(0)) {
-                            clip_clicked_this_frame = true;
-                            is_dragging_clip = true;
-                            active_drag_track = t;
-                            active_drag_clip_idx = (int)c_idx;
-                            active_drag_type = 2;
-                            drag_orig_start = clip.start_time_sec;
-                            drag_orig_len = clip.length_sec;
-                            drag_mouse_start_pos = mouse_pos;
-                        }
-                    }
-                }
-            }
-
-            draw->PopClipRect();
-
-            // ─────────────────────────────────────────────────────────────
-            // SCROLLBARS INTERATIVAS (HORIZONTAL E VERTICAL ESTILO FL STUDIO)
-            // ─────────────────────────────────────────────────────────────
-            static bool is_dragging_h_scrollbar = false;
-            static bool is_dragging_v_scrollbar = false;
-
-            float total_song_sec = 420.0f;
-            float total_content_w = (total_song_sec / bar_len_sec) * p_sec;
-            float view_w = grid_sz.x - track_card_w;
-            float max_scroll_x = (std::max)(0.0f, total_content_w - view_w);
-            playlist_scroll_x = (std::clamp)(playlist_scroll_x, 0.0f, max_scroll_x);
-
-            // 1. Barra de Rolagem Horizontal (Inferior)
-            if (max_scroll_x > 0.0f) {
-                float h_sb_h = 8.0f;
-                float h_sb_x0 = grid_p0.x + track_card_w + 2.0f;
-                float h_sb_x1 = grid_p0.x + grid_sz.x - 14.0f;
-                float h_sb_y0 = grid_p0.y + grid_sz.y - h_sb_h - 2.0f;
-                float h_sb_y1 = grid_p0.y + grid_sz.y - 2.0f;
-                float h_sb_w = h_sb_x1 - h_sb_x0;
-                
-                float h_thumb_w = (std::clamp)(h_sb_w * (view_w / total_content_w), 36.0f, h_sb_w);
-                float h_thumb_x0 = h_sb_x0 + (playlist_scroll_x / max_scroll_x) * (h_sb_w - h_thumb_w);
-                
-                ImVec2 h_sb_p0(h_sb_x0, h_sb_y0);
-                ImVec2 h_sb_p1(h_sb_x1, h_sb_y1);
-                ImVec2 h_thumb_p0(h_thumb_x0, h_sb_y0);
-                ImVec2 h_thumb_p1(h_thumb_x0 + h_thumb_w, h_sb_y1);
-                
-                bool h_hovered = is_playlist_hovered && ImGui::IsMouseHoveringRect(h_sb_p0, h_sb_p1);
-                if (h_hovered && ImGui::IsMouseClicked(0)) {
-                    is_dragging_h_scrollbar = true;
-                    clip_clicked_this_frame = true;
-                }
-                if (is_dragging_h_scrollbar) {
-                    if (ImGui::IsMouseDown(0)) {
-                        float norm = (std::clamp)((mouse_pos.x - h_sb_x0 - h_thumb_w * 0.5f) / (h_sb_w - h_thumb_w), 0.0f, 1.0f);
-                        playlist_scroll_x = norm * max_scroll_x;
-                    } else {
-                        is_dragging_h_scrollbar = false;
-                    }
-                }
-                
-                draw->AddRectFilled(h_sb_p0, h_sb_p1, IM_COL32(10, 16, 24, 200), 4.0f);
-                draw->AddRectFilled(h_thumb_p0, h_thumb_p1, is_dragging_h_scrollbar ? IM_COL32(0, 255, 255, 255) : (h_hovered ? IM_COL32(0, 230, 255, 240) : IM_COL32(0, 190, 230, 210)), 4.0f);
-            }
-
-            // 2. Barra de Rolagem Vertical (Lateral Direita)
-            if (max_scroll_y > 0.0f) {
-                float v_sb_w = 8.0f;
-                float v_sb_x0 = grid_p0.x + grid_sz.x - v_sb_w - 2.0f;
-                float v_sb_x1 = grid_p0.x + grid_sz.x - 2.0f;
-                float v_sb_y0 = grid_p0.y + ruler_h + 2.0f;
-                float v_sb_y1 = grid_p0.y + grid_sz.y - 12.0f;
-                float v_sb_h = v_sb_y1 - v_sb_y0;
-                
-                float v_thumb_h = (std::clamp)(v_sb_h * (view_h / content_h), 28.0f, v_sb_h);
-                float v_thumb_y0 = v_sb_y0 + (playlist_scroll_y / max_scroll_y) * (v_sb_h - v_thumb_h);
-                
-                ImVec2 v_sb_p0(v_sb_x0, v_sb_y0);
-                ImVec2 v_sb_p1(v_sb_x1, v_sb_y1);
-                ImVec2 v_thumb_p0(v_sb_x0, v_thumb_y0);
-                ImVec2 v_thumb_p1(v_sb_x1, v_thumb_y0 + v_thumb_h);
-                
-                bool v_hovered = is_playlist_hovered && ImGui::IsMouseHoveringRect(v_sb_p0, v_sb_p1);
-                if (v_hovered && ImGui::IsMouseClicked(0)) {
-                    is_dragging_v_scrollbar = true;
-                    clip_clicked_this_frame = true;
-                }
-                if (is_dragging_v_scrollbar) {
-                    if (ImGui::IsMouseDown(0)) {
-                        float norm = (std::clamp)((mouse_pos.y - v_sb_y0 - v_thumb_h * 0.5f) / (v_sb_h - v_thumb_h), 0.0f, 1.0f);
-                        playlist_scroll_y = norm * max_scroll_y;
-                    } else {
-                        is_dragging_v_scrollbar = false;
-                    }
-                }
-                
-                draw->AddRectFilled(v_sb_p0, v_sb_p1, IM_COL32(10, 16, 24, 200), 4.0f);
-                draw->AddRectFilled(v_thumb_p0, v_thumb_p1, is_dragging_v_scrollbar ? IM_COL32(0, 255, 255, 255) : (v_hovered ? IM_COL32(0, 230, 255, 240) : IM_COL32(0, 190, 230, 210)), 4.0f);
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 5. DRAG & DROP TARGET NA GRADE DA PLAYLIST
-            // ─────────────────────────────────────────────────────────────
-            if (ImGui::BeginDragDropTargetCustom(ImRect(grid_lane_p0, grid_lane_p1), ImGui::GetID("PlaylistGridDND"))) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_SAMPLE_PATH")) {
-                    const char* dropped_path = (const char*)payload->Data;
-                    if (hovered_track_at_mouse >= 0) {
-                        float drop_time = snap_time(current_mouse_time_sec);
-                        AudioClip ac;
-                        ac.id = g_clip_manager.next_id++;
-                        ac.name = std::filesystem::path(dropped_path).filename().string();
-                        ac.file_path = dropped_path;
-                        ac.start_time_sec = drop_time;
-                        ac.length_sec = bar_len_sec * 2.0f; // 2 bars default
-                        ac.source_offset_sec = 0.0f;
-                        g_clip_manager.track_clips[hovered_track_at_mouse].push_back(ac);
-                    }
-                }
-                ImGui::EndDragDropTarget();
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 6. PROCESSAMENTO DE ARRASTE / REDIMENSIONAMENTO DE CLIPES
-            // ─────────────────────────────────────────────────────────────
-            if (is_dragging_clip) {
-                if (ImGui::IsMouseDown(0)) {
-                    float delta_px = mouse_pos.x - drag_mouse_start_pos.x;
-                    float delta_time = (delta_px / p_sec) * bar_len_sec;
-
-                    if (is_resizing_right) {
-                        float new_len = snap_time(drag_orig_len + delta_time);
-                        if (new_len >= 0.25f) {
-                            if (active_drag_type == 0) g_clip_manager.resizeAudioClip(active_drag_track, active_drag_clip_idx, new_len);
-                            else if (active_drag_type == 1) g_clip_manager.resizeMidiClip(active_drag_track, active_drag_clip_idx, new_len);
-                            else if (active_drag_type == 2) g_clip_manager.resizeAutomationClip(active_drag_track, active_drag_clip_idx, new_len);
-                        }
-                    } else if (is_resizing_left) {
-                        float new_start = snap_time(drag_orig_start + delta_time);
-                        float new_len = drag_orig_len - (new_start - drag_orig_start);
-                        if (new_len >= 0.25f && new_start >= 0.0f) {
-                            if (active_drag_type == 0) {
-                                g_clip_manager.updateClipStart(active_drag_track, active_drag_clip_idx, new_start);
-                                g_clip_manager.resizeAudioClip(active_drag_track, active_drag_clip_idx, new_len);
-                            } else if (active_drag_type == 1) {
-                                g_clip_manager.updateMidiClipStart(active_drag_track, active_drag_clip_idx, new_start);
-                                g_clip_manager.resizeMidiClip(active_drag_track, active_drag_clip_idx, new_len);
-                            }
-                        }
-                    } else {
-                        // Mover Clipe no Tempo e entre Faixas Verticais
-                        float new_start = snap_time(drag_orig_start + delta_time);
-                        int target_track = (hovered_track_at_mouse >= 0) ? hovered_track_at_mouse : active_drag_track;
-
-                        if (target_track != active_drag_track) {
-                            if (active_drag_type == 0) {
-                                g_clip_manager.moveAudioClip(active_drag_track, active_drag_clip_idx, target_track, new_start);
-                                active_drag_track = target_track;
-                                active_drag_clip_idx = (int)g_clip_manager.track_clips[target_track].size() - 1;
-                            } else if (active_drag_type == 1) {
-                                g_clip_manager.moveMidiClip(active_drag_track, active_drag_clip_idx, target_track, new_start);
-                                active_drag_track = target_track;
-                                active_drag_clip_idx = (int)g_clip_manager.track_midi_clips[target_track].size() - 1;
-                            }
-                        } else {
-                            if (active_drag_type == 0) g_clip_manager.updateClipStart(active_drag_track, active_drag_clip_idx, new_start);
-                            else if (active_drag_type == 1) g_clip_manager.updateMidiClipStart(active_drag_track, active_drag_clip_idx, new_start);
-                            else if (active_drag_type == 2) g_clip_manager.updateAutomationClipStart(active_drag_track, active_drag_clip_idx, new_start);
-                        }
-                    }
-                } else {
-                    is_dragging_clip = false;
-                    is_resizing_right = false;
-                    is_resizing_left = false;
-                }
-            }
-
-            // Inserção com Ferramenta DRAW ou PAINT em Área Vazia
-            bool is_scrollbar_active = is_dragging_h_scrollbar || is_dragging_v_scrollbar;
-            if (is_mouse_in_grid && !is_scrollbar_active && ImGui::IsMouseClicked(0) && !clip_clicked_this_frame && hovered_track_at_mouse >= 0) {
-                if (current_tool == TOOL_DRAW || current_tool == TOOL_PAINT) {
-                    float insert_t = snap_time(current_mouse_time_sec);
-                    int cur_p_idx = (std::clamp)(g_clip_manager.current_pattern_idx, 0, (int)g_clip_manager.global_patterns.size() - 1);
-                    if (!g_clip_manager.global_patterns.empty()) {
-                        int pat_id = g_clip_manager.global_patterns[cur_p_idx].id;
-                        g_clip_manager.addPatternClip(hovered_track_at_mouse, insert_t, bar_len_sec * 4.0f, pat_id);
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────
-            // 7. RENDERIZAÇÃO DO PLAYHEAD & HUD DO TEMPO
-            // ─────────────────────────────────────────────────────────────
-            uint64_t m_frame = ::timeline.getMasterFrame();
-            float cur_play_time_sec = (float)m_frame / 44100.0f;
-            float playhead_x = grid_p0.x + track_card_w + (cur_play_time_sec / bar_len_sec) * p_sec - playlist_scroll_x;
-
-            if (playhead_x >= grid_p0.x + track_card_w && playhead_x <= grid_p0.x + grid_sz.x) {
-                // Laser Playhead Line
-                draw->AddLine(ImVec2(playhead_x, grid_p0.y), ImVec2(playhead_x, grid_p0.y + grid_sz.y), IM_COL32(0, 229, 255, 255), 2.0f);
-                // Top Triangular Pointer
-                draw->AddTriangleFilled(ImVec2(playhead_x - 6.0f, grid_p0.y), ImVec2(playhead_x + 6.0f, grid_p0.y), ImVec2(playhead_x, grid_p0.y + ruler_h * 0.75f), IM_COL32(0, 229, 255, 255));
-            }
-
-            // HUD do Tempo no Canto Superior Direito da Playlist
-            int cur_bar = 1 + (int)(cur_play_time_sec / bar_len_sec);
-            int cur_sec = (int)cur_play_time_sec;
-            int cur_ms = (int)((cur_play_time_sec - cur_sec) * 10.0f);
-            char time_hud[64];
-            snprintf(time_hud, sizeof(time_hud), "%02d:%02d.%d | Bar %d | %.0f BPM", cur_sec / 60, cur_sec % 60, cur_ms, cur_bar, bpm);
-            draw->AddRectFilled(ImVec2(grid_p0.x + grid_sz.x - 190.0f, grid_p0.y + 3.0f), ImVec2(grid_p0.x + grid_sz.x - 6.0f, grid_p0.y + ruler_h - 3.0f), IM_COL32(10, 16, 24, 220), 4.0f);
-            draw->AddText(ImVec2(grid_p0.x + grid_sz.x - 182.0f, grid_p0.y + 5.0f), IM_COL32(0, 229, 255, 240), time_hud);
-
-            ImGui::Dummy(main_sz);
+            g_playlist_ui.render(&show_playlist);
         }
-        ImGui::End();
-        ImGui::PopStyleColor(1);
-    }
 
         // =============================================
         // PANEL: BROWSER (Pro Tree & Drag & Drop Support)
@@ -3679,11 +2856,12 @@ static void RenderFlexBrowserContent() {
                 ImGui::Separator();
                 ImGui::Spacing();
 
-            auto render_sample_node = [](const std::string& display_name, const std::string& sub_or_full_path) {
+            auto render_sample_node = [&](const std::string& display_name, const std::string& sub_or_full_path) {
                 std::string resolved_path = sub_or_full_path;
                 if (!std::filesystem::exists(to_fs_path(resolved_path))) {
                     std::vector<std::string> candidates = {
                         "assets\\samples\\" + sub_or_full_path,
+                        "assets\\samples\\Electronic_Soundbanks\\" + sub_or_full_path,
                         "assets\\samples\\Real_Drums\\" + sub_or_full_path,
                         "assets\\samples\\Real_Piano\\" + sub_or_full_path,
                         "assets\\samples\\Real_Strings\\" + sub_or_full_path,
@@ -3692,7 +2870,12 @@ static void RenderFlexBrowserContent() {
                         "assets\\samples\\Real_Choir\\" + sub_or_full_path,
                         "assets\\samples\\Real_SFX\\" + sub_or_full_path,
                         "assets\\samples\\adhana_signature\\" + sub_or_full_path,
+                        "assets\\samples\\Sonicspore_PRYZMA\\" + sub_or_full_path,
+                        "C:\\NovaDAW\\samples\\" + sub_or_full_path,
+                        "C:\\Users\\USUÁRIO\\Music\\rekordbox\\Sampler\\" + sub_or_full_path,
                         "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\" + sub_or_full_path,
+                        "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\Sonicspore_PRYZMA\\" + sub_or_full_path,
+                        "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\Electronic_Soundbanks\\" + sub_or_full_path,
                         "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\adhana_signature\\" + sub_or_full_path,
                         "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\" + sub_or_full_path
                     };
@@ -3720,20 +2903,53 @@ static void RenderFlexBrowserContent() {
                     ImGui::EndDragDropSource();
                 }
 
+                if (ImGui::BeginPopupContextItem()) {
+                    if (ImGui::MenuItem("▶ Ouvir Preview")) {
+                        if (std::filesystem::exists(to_fs_path(resolved_path))) {
+                            PlaySoundA(resolved_path.c_str(), NULL, SND_ASYNC | SND_FILENAME);
+                        }
+                    }
+                    if (ImGui::MenuItem("➕ Carregar no Canal Selecionado")) {
+                        if (std::filesystem::exists(to_fs_path(resolved_path)) && selected_track_idx >= 0 && selected_track_idx < MAX_TRACKS) {
+                            g_channel_slots[selected_track_idx].type = ChannelInstrumentType::AUDIO_SAMPLE;
+                            g_channel_slots[selected_track_idx].sample_name = display_name;
+                            {
+                                std::lock_guard<std::mutex> lock(g_piano_synth.getMutex());
+                                g_piano_synth.getDrumSample(selected_track_idx).load(resolved_path);
+                            }
+                            g_piano_synth.triggerNote(60, 0.40f, 0.95f, selected_track_idx);
+                        }
+                    }
+                    if (ImGui::MenuItem("🎛️ Abrir no Sampler Editor")) {
+                        if (std::filesystem::exists(to_fs_path(resolved_path)) && selected_track_idx >= 0 && selected_track_idx < MAX_TRACKS) {
+                            g_channel_slots[selected_track_idx].type = ChannelInstrumentType::AUDIO_SAMPLE;
+                            g_channel_slots[selected_track_idx].sample_name = display_name;
+                            {
+                                std::lock_guard<std::mutex> lock(g_piano_synth.getMutex());
+                                g_piano_synth.getDrumSample(selected_track_idx).load(resolved_path);
+                            }
+                            active_sampler_channel = selected_track_idx;
+                            show_sampler_settings = true;
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+
                 if (ImGui::IsItemHovered()) {
-                    ImGui::SetTooltip("Clique: Ouvir Preview | Arraste: Soltar na Playlist / Channel Rack");
+                    ImGui::SetTooltip("Clique: Ouvir Preview | Botão Direito: Carregar na Faixa | Arraste: Soltar na Playlist");
                 }
             };
 
-            std::function<void(const std::filesystem::path&)> render_dir_tree;
-            render_dir_tree = [&](const std::filesystem::path& dir_path) {
+            std::function<void(const std::filesystem::path&, int)> render_dir_tree_depth;
+            render_dir_tree_depth = [&](const std::filesystem::path& dir_path, int depth) {
                 try {
                     if (!std::filesystem::exists(dir_path)) return;
                     for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
                         if (entry.is_directory()) {
                             std::string folder_name = to_utf8_str(entry.path().filename());
-                            if (ImGui::TreeNode(folder_name.c_str())) {
-                                render_dir_tree(entry.path());
+                            ImGuiTreeNodeFlags flags = (depth < 2) ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+                            if (ImGui::TreeNodeEx(folder_name.c_str(), flags)) {
+                                render_dir_tree_depth(entry.path(), depth + 1);
                                 ImGui::TreePop();
                             }
                         } else if (entry.is_regular_file()) {
@@ -3747,6 +2963,10 @@ static void RenderFlexBrowserContent() {
                         }
                     }
                 } catch (...) {}
+            };
+
+            auto render_dir_tree = [&](const std::filesystem::path& dir_path) {
+                render_dir_tree_depth(dir_path, 0);
             };
 
         // 1. PROJECTS
@@ -3771,6 +2991,7 @@ static void RenderFlexBrowserContent() {
         bool open_instruments = ImGui::TreeNodeEx("INSTRUMENTS", ImGuiTreeNodeFlags_DefaultOpen);
         ImGui::PopStyleColor();
         if (open_instruments) {
+            if (ImGui::Selectable("  🛸 Kuro Psy Rolling Bass (Engine)")) g_psy_rolling_bass_ui.is_open = true;
             if (ImGui::Selectable("  FL DirectWave (Multi-Sampler)")) g_directwave_ui.open();
             if (ImGui::Selectable("  Fruity Granulizer (Grain Cloud)")) g_granulizer_ui.open();
             if (ImGui::Selectable("  SliceX (Beat Slicer)")) g_slicex_ui.open();
@@ -3798,6 +3019,44 @@ static void RenderFlexBrowserContent() {
         bool open_samples = ImGui::TreeNodeEx("SAMPLES", ImGuiTreeNodeFlags_DefaultOpen);
         ImGui::PopStyleColor();
         if (open_samples) {
+            // 🌀 Sonicspore - PRYZMA (FREE Psytrance Sample Pack - 239 Samples) - Featured Pack
+            std::string pryzma_path = "assets/samples/Sonicspore_PRYZMA";
+            if (!std::filesystem::exists(to_fs_path(pryzma_path))) {
+                pryzma_path = "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\Sonicspore_PRYZMA";
+            }
+            if (std::filesystem::exists(to_fs_path(pryzma_path))) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.45f, 1.00f, 1.0f)); // Psytrance Neon Magenta
+                bool open_pryzma = ImGui::TreeNodeEx("🌀 Sonicspore - PRYZMA (Psytrance Pack - 239 Samples)", ImGuiTreeNodeFlags_DefaultOpen);
+                ImGui::PopStyleColor();
+                if (open_pryzma) {
+                    render_dir_tree(to_fs_path(pryzma_path));
+                    ImGui::TreePop();
+                }
+            }
+
+            // ⚡ Banco Oficial de Músicas Eletrônicas (Psytrance, Peak Techno, Acid 303, Melodic, Tech House, Hardstyle, Cyberpunk)
+            std::string elec_bank_path = "assets/samples/Electronic_Soundbanks";
+            if (!std::filesystem::exists(to_fs_path(elec_bank_path))) {
+                elec_bank_path = "C:\\Users\\USUÁRIO\\.gemini\\antigravity-ide\\scratch\\abduction_studio_v2\\assets\\samples\\Electronic_Soundbanks";
+            }
+            if (std::filesystem::exists(to_fs_path(elec_bank_path))) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.00f, 0.95f, 1.00f, 1.0f));
+                bool open_elec = ImGui::TreeNodeEx("⚡ Banco de Músicas Eletrônicas (Multi-Gêneros)");
+                ImGui::PopStyleColor();
+                if (open_elec) {
+                    render_dir_tree(to_fs_path(elec_bank_path));
+                    ImGui::TreePop();
+                }
+            }
+
+            // 🎧 Pioneer DJ & Rekordbox Sampler Kits
+            if (std::filesystem::exists(to_fs_path("C:\\Users\\USUÁRIO\\Music\\rekordbox\\Sampler"))) {
+                if (ImGui::TreeNodeEx("🎧 Pioneer DJ & Rekordbox Sampler Kits")) {
+                    render_dir_tree(to_fs_path("C:\\Users\\USUÁRIO\\Music\\rekordbox\\Sampler"));
+                    ImGui::TreePop();
+                }
+            }
+
             // 🛸 Músicas Desconstruídas & Custom Samples (C:\NovaDAW\samples)
             if (std::filesystem::exists(to_fs_path("C:\\NovaDAW\\samples"))) {
                 if (ImGui::TreeNodeEx("🛸 Músicas Desconstruídas & Custom Samples", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -4281,24 +3540,6 @@ static void RenderFlexBrowserContent() {
             if (ImGui::IsKeyPressed(ImGuiKey_S) && !io.KeyCtrl) {
                 ::track_solos[selected_track_idx] = !::track_solos[selected_track_idx];
             }
-            if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
-                show_playlist = !show_playlist;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F6)) {
-                show_step_sequencer = !show_step_sequencer;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
-                show_piano_roll = !show_piano_roll;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
-                show_browser = !show_browser;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F9)) {
-                show_mixer = !show_mixer;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
-                g_cloud_stem_ui.toggle();
-            }
         }
     }
 
@@ -4417,58 +3658,12 @@ static void RenderFlexBrowserContent() {
         show_piano_roll_prev = show_piano_roll;
     }
 
-    // Renderiza Modos Mockados para DJ e Stems (Fase 24)
+    // Renderiza Abduction DJ Studio (Modo DJ Nativo com Pioneer DDJ-200)
     static void RenderDJMode() {
-        ImGui::BeginChild("DJMode", ImVec2(0, 0), true);
-        ImGui::TextColored(ImVec4(0.22f, 1.0f, 0.08f, 1.0f), "🎛️ MODO DJ: EM CONSTRUÇÃO");
-        ImGui::Separator();
-        
         if (g_dj_engine) {
-            ImGui::Spacing();
-            ImGui::Columns(2, "Decks", true);
-            // Deck A
-            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "DECK A");
-            ImGui::TextWrapped("Faixa: %s", g_dj_engine->getDeckATrack().c_str());
-            if (ImGui::Button("Carregar A", ImVec2(100, 30))) {
-                std::string path = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3)\0*.wav;*.mp3\0");
-                if (!path.empty()) g_dj_engine->loadDeckA(path);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(g_dj_engine->isDeckAPlaying() ? "Pause A" : "Play A", ImVec2(100, 30))) {
-                if (g_dj_engine->isDeckAPlaying()) g_dj_engine->pauseDeckA();
-                else g_dj_engine->playDeckA();
-            }
-            ImGui::NextColumn();
-            
-            // Deck B
-            ImGui::TextColored(ImVec4(0.0f, 0.8f, 1.0f, 1.0f), "DECK B");
-            ImGui::TextWrapped("Faixa: %s", g_dj_engine->getDeckBTrack().c_str());
-            if (ImGui::Button("Carregar B", ImVec2(100, 30))) {
-                std::string path = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3)\0*.wav;*.mp3\0");
-                if (!path.empty()) g_dj_engine->loadDeckB(path);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(g_dj_engine->isDeckBPlaying() ? "Pause B" : "Play B", ImVec2(100, 30))) {
-                if (g_dj_engine->isDeckBPlaying()) g_dj_engine->pauseDeckB();
-                else g_dj_engine->playDeckB();
-            }
-            ImGui::Columns(1);
-            
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-            
-            // Mixer Central Placeholder
-            ImGui::Text("CROSSFADER");
-            float cf = g_dj_engine->getCrossfader();
-            if (ImGui::SliderFloat("##crossfader", &cf, 0.0f, 1.0f, "%.2f")) {
-                g_dj_engine->setCrossfader(cf);
-            }
-            if (ImGui::Button("SYNC BPM", ImVec2(200, 40))) {
-                g_dj_engine->syncBPM();
-            }
+            bool open = true;
+            g_dj_studio_ui.render(*g_dj_engine, &open);
         }
-        ImGui::EndChild();
     }
 
     static void RenderStemMode() {
@@ -4645,13 +3840,91 @@ static void RenderFlexBrowserContent() {
 #include "SciFiIconSystem.h"
 #include <GLFW/glfw3.h> // Para controle nativo da janela (Min/Max/Close)
 
-    static void RenderMainMenu(StemSeparationEngine& ai_engine) {
-        if (ImGui::BeginMenuBar()) {
-            
-            // Drag logic for borderless window
-            if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+    // =========================================================================
+    // FASE 1: CONCEITO 2 - QUANTUM CYBER-DECK (MODULAR HARDWARE WORKSTATION)
+    // =========================================================================
+    inline std::string g_fl_hint_text = "Abduction Quantum Workstation";
+    inline std::string g_forced_hint_text = "";
+    inline void SetFLHint(const std::string& hint) { g_fl_hint_text = hint; }
+    inline float g_master_pitch_semitones = 0.0f;
+    inline bool g_metronome_active = false;
+    inline bool g_typing_keyboard_active = true;
+    inline bool g_countdown_active = false;
+    inline bool g_loop_record_active = false;
+
+    // Helper para desenhar os Pads de Módulo do Conceito 2 (Backlit Touch-Pads de Luxo)
+    inline bool RenderQuantumPad(ImDrawList* dl, const char* id, const char* label, SciFiHUD::IconType icon, bool is_active, const char* tooltip) {
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        float pad_w = 47.0f;
+        float pad_h = 27.0f;
+        ImVec2 p_min = pos;
+        ImVec2 p_max = ImVec2(pos.x + pad_w, pos.y + pad_h);
+
+        ImGui::InvisibleButton(id, ImVec2(pad_w, pad_h));
+        bool hovered = ImGui::IsItemHovered();
+        bool clicked = ImGui::IsItemClicked();
+
+        if (hovered && tooltip) {
+            SetFLHint(tooltip);
+        }
+
+        // 1. Corpo do Pad em silicone escuro
+        ImU32 bg_col = is_active ? IM_COL32(14, 38, 48, 255) : (hovered ? IM_COL32(28, 36, 46, 255) : IM_COL32(18, 22, 28, 255));
+        dl->AddRectFilled(p_min, p_max, bg_col, 4.0f);
+
+        // 2. Borda iluminada (Halo âmbar sutil em repouso, ciano vivo quando ativo)
+        ImU32 border_col = is_active ? IM_COL32(0, 229, 255, 255) : (hovered ? IM_COL32(255, 180, 50, 240) : IM_COL32(255, 160, 40, 110));
+        dl->AddRect(p_min, p_max, border_col, 4.0f, 0, is_active ? 1.6f : 1.0f);
+
+        // 3. Ícone vetorial ciano/branco
+        ImU32 icon_col = is_active ? IM_COL32(0, 229, 255, 255) : (hovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(180, 215, 240, 255));
+        float icon_sz = 12.0f;
+        ImVec2 ic_min = ImVec2(pos.x + (pad_w - icon_sz) * 0.5f, pos.y + 2.5f);
+        ImVec2 ic_max = ImVec2(ic_min.x + icon_sz, ic_min.y + icon_sz);
+        SciFiHUD::DrawIcon(dl, ic_min, ic_max, icon, icon_col, 1.3f);
+
+        // 4. Texto micro tipografia no rodapé do pad
+        ImVec2 text_sz = ImGui::CalcTextSize(label);
+        ImU32 text_col = is_active ? IM_COL32(0, 229, 255, 255) : (hovered ? IM_COL32(255, 255, 255, 255) : IM_COL32(160, 185, 210, 255));
+        dl->AddText(ImVec2(pos.x + (pad_w - text_sz.x) * 0.5f, pos.y + 15.0f), text_col, label);
+
+        return clicked;
+    }
+
+    static void RenderFLStyleTopbar(StemSeparationEngine& ai_engine) {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+        const float topbar_h = 68.0f;
+        ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y));
+        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, topbar_h));
+        ImGui::SetNextWindowViewport(viewport->ID);
+
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+                                 ImGuiWindowFlags_NoMove |
+                                 ImGuiWindowFlags_NoScrollWithMouse |
+                                 ImGuiWindowFlags_NoSavedSettings |
+                                 ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 3.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.14f, 0.18f, 1.0f)); // Chassi grafite usinado escuro
+
+        if (ImGui::Begin("##FLStyleTopbar", nullptr, flags)) {
+            ImDrawList* wdl = ImGui::GetWindowDrawList();
+            ImDrawList* dl = wdl;
+
+            // Reset da dica padrao ao iniciar o frame (sera sobrescrita caso algum item seja hovered)
+            if (!g_forced_hint_text.empty()) {
+                g_fl_hint_text = g_forced_hint_text;
+            } else if (!ImGui::IsAnyItemHovered()) {
+                g_fl_hint_text = "Abduction Quantum Workstation";
+            }
+
+            // Permite arrastar a janela clicando em areas vazias da barra superior
+            if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f)) {
                 GLFWwindow* win = glfwGetCurrentContext();
-                if (win) {
+                if (win && !glfwGetWindowAttrib(win, GLFW_MAXIMIZED)) {
                     ImVec2 delta = ImGui::GetIO().MouseDelta;
                     int wx, wy;
                     glfwGetWindowPos(win, &wx, &wy);
@@ -4659,261 +3932,583 @@ static void RenderFlexBrowserContent() {
                 }
             }
 
-            // ── 1. LOGO & SCI-FI SHIP EMBLEM ──────────────────────────────
+            // Linha chanfrada de reforço do chassi no fundo
+            wdl->AddLine(ImVec2(viewport->Pos.x, viewport->Pos.y + topbar_h - 1), 
+                         ImVec2(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + topbar_h - 1), 
+                         IM_COL32(0, 229, 255, 180), 1.2f);
+
+            // =========================================================================
+            // 1. MASTER VOLUME CONSOLE BAY (MÓDULO DE LUXO EM TITÂNIO ANODIZADO NA ESQUERDA)
+            // =========================================================================
+            ImGui::SetCursorPos(ImVec2(6.0f, 3.0f));
+            float bay_w = 84.0f;
+            float bay_h = 62.0f;
+            ImVec2 bay_p = ImGui::GetCursorScreenPos();
+
+            // Moldura rebaixada metálica do Master Volume Bay
+            wdl->AddRectFilled(bay_p, ImVec2(bay_p.x + bay_w, bay_p.y + bay_h), IM_COL32(18, 22, 28, 255), 5.0f);
+            wdl->AddRect(bay_p, ImVec2(bay_p.x + bay_w, bay_p.y + bay_h), IM_COL32(40, 52, 68, 255), 5.0f);
+
+            // Parafusos sextavados nos 4 cantos
+            wdl->AddCircleFilled(ImVec2(bay_p.x + 5, bay_p.y + 5), 1.4f, IM_COL32(75, 90, 110, 255));
+            wdl->AddCircleFilled(ImVec2(bay_p.x + bay_w - 5, bay_p.y + 5), 1.4f, IM_COL32(75, 90, 110, 255));
+            wdl->AddCircleFilled(ImVec2(bay_p.x + 5, bay_p.y + bay_h - 5), 1.4f, IM_COL32(75, 90, 110, 255));
+            wdl->AddCircleFilled(ImVec2(bay_p.x + bay_w - 5, bay_p.y + bay_h - 5), 1.4f, IM_COL32(75, 90, 110, 255));
+
+            // Centro do Knob Master
+            static float master_vol = 0.85f;
+            ImVec2 knob_c = ImVec2(bay_p.x + bay_w * 0.5f, bay_p.y + 25.0f);
+            float knob_r = 16.5f;
+
+            // Soquete escuro
+            wdl->AddCircleFilled(knob_c, knob_r + 4.0f, IM_COL32(10, 12, 16, 255), 24);
+            wdl->AddCircle(knob_c, knob_r + 4.0f, IM_COL32(32, 42, 54, 255), 24, 1.0f);
+
+            // Arco de LEDs bicolor: âmbar (à esquerda) até ciano (à direita)
+            float a_start = 2.4f;
+            float a_end = 7.0f;
+            float a_curr = a_start + (master_vol / 1.25f) * (a_end - a_start);
+
+            for (float a = a_start; a <= a_curr; a += 0.16f) {
+                float t = (a - a_start) / (a_end - a_start);
+                ImU32 led_c = (t < 0.45f) ? IM_COL32(255, (int)(150 + t * 100), 20, 255) : IM_COL32((int)((1.0f - t) * 100), 225, 255, 255);
+                float px = knob_c.x + cosf(a) * (knob_r + 2.8f);
+                float py = knob_c.y + sinf(a) * (knob_r + 2.8f);
+                wdl->AddCircleFilled(ImVec2(px, py), 1.4f, led_c, 6);
+            }
+
+            // Corpo usinado do Knob em titânio
+            wdl->AddCircleFilled(knob_c, knob_r, IM_COL32(44, 52, 64, 255), 24);
+            wdl->AddCircle(knob_c, knob_r, IM_COL32(90, 105, 125, 255), 24, 1.2f);
+            wdl->AddCircleFilled(knob_c, knob_r - 4.5f, IM_COL32(30, 36, 44, 255), 20);
+
+            // Marcador indicador branco no knob
+            float ind_x = knob_c.x + cosf(a_curr) * (knob_r - 2.0f);
+            float ind_y = knob_c.y + sinf(a_curr) * (knob_r - 2.0f);
+            wdl->AddLine(knob_c, ImVec2(ind_x, ind_y), IM_COL32(255, 255, 255, 255), 2.0f);
+
+            // Display numérico em dB / % abaixo do knob
+            float vol_db = (master_vol > 0.001f) ? (20.0f * log10f(master_vol)) : -60.0f;
+            char db_str[32];
+            snprintf(db_str, sizeof(db_str), "%+.1fdB  %.0f%%", vol_db, master_vol * 100.0f);
+            ImVec2 db_sz = ImGui::CalcTextSize(db_str);
+            wdl->AddText(ImVec2(knob_c.x - db_sz.x * 0.5f, bay_p.y + 46.0f), IM_COL32(255, 180, 50, 255), db_str);
+
+            // Botão invisível interativo para o Knob
+            ImGui::InvisibleButton("##QuantumMasterVol", ImVec2(bay_w, bay_h));
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                master_vol -= ImGui::GetIO().MouseDelta.y * 0.006f;
+                master_vol = std::clamp(master_vol, 0.0f, 1.25f);
+            }
+            if (ImGui::IsItemHovered()) {
+                char hbuf[64];
+                snprintf(hbuf, sizeof(hbuf), "Master Volume Console: %+.1f dB (Arraste para ajustar)", vol_db);
+                SetFLHint(hbuf);
+            }
+
+            // =========================================================================
+            // 2. DECK 1: LINHA SUPERIOR (MENUS, TRANSPORTE, TELAS OLED, FFT SPECTRUM, CPU)
+            // =========================================================================
+            ImGui::SetCursorPos(ImVec2(96.0f, 4.0f));
+            ImGui::BeginGroup();
             {
-                ImVec2 logo_pos = ImGui::GetCursorScreenPos();
-                ImDrawList* dl = ImGui::GetWindowDrawList();
-                SciFiHUD::DrawIcon(dl, ImVec2(logo_pos.x, logo_pos.y + 3), ImVec2(logo_pos.x + 16, logo_pos.y + 19), SciFiHUD::IconType::ABDUCTION_SHIP, 0xFF00E5FF, 1.5f);
-                ImGui::Dummy(ImVec2(18, 22));
-                ImGui::SameLine(0, 4);
+                // Menus de Texto FL Studio Modernizados
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.92f, 0.94f, 0.98f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.24f, 0.28f, 0.34f, 1.0f));
 
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.00f, 0.85f, 1.00f, 1.00f));
-                ImGui::TextUnformatted("ABDUCTION");
-                ImGui::PopStyleColor();
-            }
-            ImGui::SameLine(0, 8);
-
-            // ── 2. MENU DROPDOWNS (Arquivo, Editar, Exibir) ───────────────
-            if (ImGui::BeginMenu("Arquivo")) {
-                if (ImGui::Button("NEW PROJECT (Reset)", ImVec2(150, 30))) {
-                    ai_engine.reset();
-                    g_clip_manager.reset();
-                    timeline.setMasterFrame(0);
-                    timeline.setPlaying(false);
-                }
-                if (ImGui::MenuItem("Abrir Projeto...")) {
-                    std::string path = KuroUI::FileDialog::OpenFile("Abduction Project (*.kuro)\0*.kuro\0");
-                    if (!path.empty()) {
-                        ProjectManagerBridge::Load(path);
+                if (ImGui::Button("FILE##fl_menu")) ImGui::OpenPopup("PopupArquivo");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu File: New, Open, Save, Export Audio");
+                if (ImGui::BeginPopup("PopupArquivo")) {
+                    if (ImGui::MenuItem("Novo Projeto (Reset)")) {
+                        ai_engine.reset();
+                        g_clip_manager.reset();
+                        ::timeline.setMasterFrame(0);
+                        ::timeline.setPlaying(false);
                     }
-                }
-                if (ImGui::MenuItem("Salvar Projeto...")) {
-                    std::string path = KuroUI::FileDialog::SaveFile("Abduction Project (*.kuro)\0*.kuro\0");
-                    if (!path.empty()) {
-                        if (path.find(".kuro") == std::string::npos) path += ".kuro";
-                        ProjectManagerBridge::Save(path);
+                    if (ImGui::MenuItem("Abrir Projeto... (Ctrl+O)")) {
+                        std::string path = FileDialog::OpenFile("Abduction Project (*.kuro)\0*.kuro\0");
+                        if (!path.empty()) ProjectManagerBridge::Load(path);
                     }
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Templates de Producao (Musicas Prontas)", "", show_genre_templates_window)) {
-                    show_genre_templates_window = !show_genre_templates_window;
-                }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Importar Áudio...")) {
-                    std::string path = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3)\0*.wav;*.mp3\0");
-                    if (!path.empty()) {
-                        if (g_global_sampler && (path.find(".wav") != std::string::npos || path.find(".WAV") != std::string::npos)) {
-                            g_global_sampler->loadSample(path);
-                        }
-                        if (!ai_engine.isRunning()) {
-                            ai_engine.startProcessing(path);
+                    if (ImGui::MenuItem("Salvar Projeto (Ctrl+S)")) {
+                        std::string path = FileDialog::SaveFile("Abduction Project (*.kuro)\0*.kuro\0");
+                        if (!path.empty()) {
+                            if (path.find(".kuro") == std::string::npos) path += ".kuro";
+                            ProjectManagerBridge::Save(path);
                         }
                     }
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Exportar Master (.wav)...")) {
+                        g_record_manager.saveToWav("Kuro_Export_Master.wav");
+                    }
+                    if (ImGui::MenuItem("Exportar Stems Separadas...")) {
+                        KuroAudio::OfflineRenderer::RenderStems(master_graph, 10.0f, ".");
+                    }
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Sair do Abduction Studio")) {
+                        GLFWwindow* win = glfwGetCurrentContext();
+                        if (win) glfwSetWindowShouldClose(win, GLFW_TRUE);
+                    }
+                    ImGui::EndPopup();
                 }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Exportar Stems...")) {
-                    KuroAudio::OfflineRenderer::RenderStems(master_graph, 10.0f, ".");
+                ImGui::SameLine(0, 2);
+
+                if (ImGui::Button("EDIT##fl_menu")) ImGui::OpenPopup("PopupEditar");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Edit: Undo, Redo, Cut, Copy, Paste");
+                if (ImGui::BeginPopup("PopupEditar")) {
+                    if (ImGui::MenuItem("Desfazer (Undo)", "Ctrl+Z")) g_clip_manager.undo();
+                    if (ImGui::MenuItem("Refazer (Redo)", "Ctrl+Y")) g_clip_manager.redo();
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Cortar", "Ctrl+X")) {}
+                    if (ImGui::MenuItem("Copiar", "Ctrl+C")) {}
+                    if (ImGui::MenuItem("Colar", "Ctrl+V")) {}
+                    ImGui::EndPopup();
                 }
-                if (ImGui::MenuItem("Exportar Master (.wav)...")) {
-                    g_record_manager.saveToWav("Kuro_Export_Master.wav");
+                ImGui::SameLine(0, 2);
+
+                if (ImGui::Button("ADD##fl_menu")) ImGui::OpenPopup("PopupAdicionar");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Add: Adicionar Instrumentos e Sintetizadores");
+                if (ImGui::BeginPopup("PopupAdicionar")) {
+                    if (ImGui::MenuItem("🛸 Kuro Psy Rolling Bass Engine")) {
+                        g_psy_rolling_bass_ui.is_open = true;
+                        g_psy_rolling_bass_ui.need_focus = true;
+                    }
+                    if (ImGui::MenuItem("FL DirectWave Multi-Sampler")) g_directwave_ui.open();
+                    if (ImGui::MenuItem("SliceX Beat Slicer")) g_stem_beat_slicer_ui.open();
+                    if (ImGui::MenuItem("Delay Lama (Monge 3D)")) show_delay_lama = true;
+                    ImGui::EndPopup();
                 }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Configurações da DAW")) {}
-                if (ImGui::MenuItem("Sair")) {}
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Editar")) {
-                if (ImGui::MenuItem("Desfazer", "Ctrl+Z")) {}
-                if (ImGui::MenuItem("Refazer", "Ctrl+Y")) {}
-                ImGui::Separator();
-                if (ImGui::MenuItem("Cortar", "Ctrl+X")) {}
-                if (ImGui::MenuItem("Copiar", "Ctrl+C")) {}
-                if (ImGui::MenuItem("Colar", "Ctrl+V")) {}
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("Exibir")) {
-                if (ImGui::MenuItem("Mostrar Browser", "", show_browser)) { show_browser = !show_browser; }
-                if (ImGui::MenuItem("Mostrar Playlist", "", show_playlist)) { show_playlist = !show_playlist; }
-                if (ImGui::MenuItem("Channel Rack", "", show_step_sequencer)) { show_step_sequencer = !show_step_sequencer; }
-                if (ImGui::MenuItem("Piano Roll", "", show_piano_roll)) { show_piano_roll = !show_piano_roll; }
-                ImGui::Separator();
-                if (ImGui::MenuItem("Separador de Stems AI (DJ Slicer)", "", g_cloud_stem_ui.getOpenState())) { g_cloud_stem_ui.toggle(); }
-                ImGui::EndMenu();
-            }
+                ImGui::SameLine(0, 2);
 
-            ImGui::SameLine(0, 8);
-            ImGui::TextDisabled("|");
-            ImGui::SameLine(0, 8);
+                if (ImGui::Button("PATTERNS##fl_menu")) ImGui::OpenPopup("PopupPadroes");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Patterns: Gerenciamento de Padroes e Sequencias");
+                if (ImGui::BeginPopup("PopupPadroes")) {
+                    if (ImGui::MenuItem("Novo Padrao (Pattern)")) {
+                        Pattern p;
+                        p.id = (int)g_clip_manager.global_patterns.size() + 1;
+                        p.name = "Pattern " + std::to_string(p.id);
+                        p.color = 0xFF00E5FF;
+                        g_clip_manager.global_patterns.push_back(p);
+                        g_clip_manager.current_pattern_idx = (int)g_clip_manager.global_patterns.size() - 1;
+                    }
+                    ImGui::EndPopup();
+                }
+                ImGui::SameLine(0, 2);
 
-            // ── 3. SCI-FI TRANSPORT CONSOLE (PLAY, STOP, REC, PAT/SONG) ────
-            bool is_p = is_playing;
-            if (SciFiHUD::SciFiTransportBtn("##TPlay", is_p ? SciFiHUD::IconType::PAUSE : SciFiHUD::IconType::PLAY, is_p, ImVec4(0.00f, 0.85f, 1.00f, 1.0f), ImVec2(24, 22), "Tocar / Pausar (Barra de Espaço)")) {
-                KuroUI::TransportController::TogglePlayPause(timeline);
-            }
-            ImGui::SameLine(0, 2);
+                if (ImGui::Button("VIEW##fl_menu")) ImGui::OpenPopup("PopupExibir");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu View: Alternar Janelas Principais (F5, F6, F7, F9)");
+                if (ImGui::BeginPopup("PopupExibir")) {
+                    if (ImGui::MenuItem("Playlist / Arranjo (F5)", nullptr, show_playlist)) show_playlist = !show_playlist;
+                    if (ImGui::MenuItem("Channel Rack (F6)", nullptr, show_step_sequencer)) {
+                        show_step_sequencer = !show_step_sequencer;
+                        if (show_step_sequencer) g_need_focus_step_sequencer = true;
+                    }
+                    if (ImGui::MenuItem("Piano Roll (F7)", nullptr, show_piano_roll)) {
+                        show_piano_roll = !show_piano_roll;
+                        if (show_piano_roll) g_need_focus_piano_roll = true;
+                    }
+                    if (ImGui::MenuItem("Mixer Console (F9)", nullptr, show_mixer)) show_mixer = !show_mixer;
+                    if (ImGui::MenuItem("Browser de Amostras (F8)", nullptr, show_browser)) show_browser = !show_browser;
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Modo DJ Studio / Pioneer DDJ-200 (F11)", nullptr, show_dj_modal)) show_dj_modal = !show_dj_modal;
+                    if (ImGui::MenuItem("Gaveta de Apps / Android Hub (F12)", nullptr, g_show_app_drawer)) g_show_app_drawer = !g_show_app_drawer;
+                    ImGui::EndPopup();
+                }
+                ImGui::SameLine(0, 2);
 
-            if (SciFiHUD::SciFiTransportBtn("##TStop", SciFiHUD::IconType::STOP, false, ImVec4(0.50f, 0.65f, 0.80f, 1.0f), ImVec2(24, 22), "Parar (Stop)")) {
-                KuroUI::TransportController::Stop(timeline);
-            }
-            ImGui::SameLine(0, 2);
+                if (ImGui::Button("OPTIONS##fl_menu")) ImGui::OpenPopup("PopupOpcoes");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Options: Audio, MIDI e Preferencias");
+                if (ImGui::BeginPopup("PopupOpcoes")) {
+                    if (ImGui::MenuItem("Dispositivos de Audio (WASAPI/ASIO)...")) {}
+                    if (ImGui::MenuItem("Configuracoes MIDI...")) {}
+                    ImGui::EndPopup();
+                }
+                ImGui::SameLine(0, 2);
 
-            bool rec = g_record_manager.isRecording();
-            if (SciFiHUD::SciFiTransportBtn("##TRec", SciFiHUD::IconType::RECORD, rec, ImVec4(0.90f, 0.15f, 0.20f, 1.0f), ImVec2(24, 22), "Gravar Áudio Master / MIDI")) {
-                if (rec) g_record_manager.setRecording(false);
-                else     g_record_manager.setRecording(true, false);
-            }
-            ImGui::SameLine(0, 4);
+                if (ImGui::Button("TOOLS##fl_menu")) ImGui::OpenPopup("PopupFerramentas");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Tools: Separador Neural de Stems e Sintese");
+                if (ImGui::BeginPopup("PopupFerramentas")) {
+                    if (ImGui::MenuItem("Separador Neural de Stems (IA)")) g_cloud_stem_ui.toggle();
+                    if (ImGui::MenuItem("Gerador de Linha de Baixo Psytrance")) {
+                        g_psy_rolling_bass_ui.is_open = true;
+                        g_psy_rolling_bass_ui.need_focus = true;
+                    }
+                    ImGui::EndPopup();
+                }
+                ImGui::SameLine(0, 2);
 
-            // PAT / SONG Mode Switcher
-            bool is_pat = timeline.is_pattern_mode;
-            ImGui::PushStyleColor(ImGuiCol_Button, is_pat ? ImVec4(1.00f, 0.55f, 0.00f, 1.0f) : ImVec4(0.08f, 0.12f, 0.18f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Text, is_pat ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(1.00f, 0.65f, 0.20f, 1.0f));
-            if (ImGui::Button("PAT", ImVec2(32, 22))) {
-                timeline.is_pattern_mode = true;
-            }
-            ImGui::PopStyleColor(2);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Modo Padrão / Pattern (Loop do Channel Rack / Piano Roll)");
-            ImGui::SameLine(0, 2);
-
-            ImGui::PushStyleColor(ImGuiCol_Button, !is_pat ? ImVec4(0.00f, 0.85f, 1.00f, 1.0f) : ImVec4(0.08f, 0.12f, 0.18f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_Text, !is_pat ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.00f, 0.85f, 1.00f, 1.0f));
-            if (ImGui::Button("SONG", ImVec2(38, 22))) {
-                timeline.is_pattern_mode = false;
-            }
-            ImGui::PopStyleColor(2);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Modo Música / Song (Toca a Playlist Completa)");
-            ImGui::SameLine(0, 8);
-
-            // ── 4. COMPACT LCD TEMPO & TIMECODE ───────────────────────────
-            {
-                size_t sr = ai_engine.getSampleRate(); if (sr == 0) sr = 44100;
-                size_t mf = timeline.getMasterFrame();
-                int cs = (int)(mf / sr);
-                int ms = (int)((mf % sr) * 10 / sr);
-                float current_bpm = timeline.getBPM();
-
-                ImGui::SetNextItemWidth(62);
-                ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.05f, 0.08f, 0.12f, 1.0f));
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.00f, 0.85f, 1.00f, 1.0f));
-                if (ImGui::DragFloat("##TopBPM", &current_bpm, 0.5f, 40.0f, 300.0f, "%.0f BPM")) {
-                    timeline.setBPM(current_bpm);
+                if (ImGui::Button("HELP##fl_menu")) ImGui::OpenPopup("PopupAjuda");
+                if (ImGui::IsItemHovered()) SetFLHint("Menu Help: Manual e Sobre");
+                if (ImGui::BeginPopup("PopupAjuda")) {
+                    if (ImGui::MenuItem("Guia do Abduction Studio V4.0")) {}
+                    ImGui::EndPopup();
                 }
                 ImGui::PopStyleColor(2);
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Tempo da Música em BPM (Arraste)");
+
+                ImGui::SameLine(0, 6);
+                ImGui::TextDisabled("|");
+                ImGui::SameLine(0, 6);
+
+                // Botões de Transporte Backlit Silicone
+                bool is_pat = ::timeline.is_pattern_mode;
+                const char* mode_lbl = is_pat ? "PAT" : "SONG";
+                ImVec4 mode_btn_bg = is_pat ? ImVec4(0.96f, 0.58f, 0.10f, 1.0f) : ImVec4(0.00f, 0.85f, 1.00f, 1.0f);
+                ImGui::PushStyleColor(ImGuiCol_Button, mode_btn_bg);
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+                if (ImGui::Button(mode_lbl, ImVec2(54, 22))) {
+                    ::timeline.is_pattern_mode = !::timeline.is_pattern_mode;
+                }
+                if (ImGui::IsItemHovered()) SetFLHint(is_pat 
+                    ? "Modo Ativo: PAT (Toca apenas o Pattern selecionado). Clique para comutar para SONG (Arranjo da Playlist)" 
+                    : "Modo Ativo: SONG (Toca a musica completa na Playlist). Clique para comutar para PAT (Apenas Pattern)");
+                ImGui::PopStyleColor(2);
+                ImGui::SameLine(0, 3);
+
+                bool is_p = ::is_playing;
+                if (SciFiHUD::SciFiTransportBtn("##FLPlay", is_p ? SciFiHUD::IconType::PAUSE : SciFiHUD::IconType::PLAY, is_p, ImVec4(0.00f, 0.90f, 1.00f, 1.0f), ImVec2(26, 22), "Play / Pause (Espaco)")) {
+                    TransportController::TogglePlayPause(::timeline);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint(is_p ? "Pausar Reproducao (Espaco)" : "Iniciar Reproducao (Espaco)");
+                ImGui::SameLine(0, 3);
+
+                if (SciFiHUD::SciFiTransportBtn("##FLStop", SciFiHUD::IconType::STOP, false, ImVec4(0.00f, 0.80f, 0.95f, 1.0f), ImVec2(26, 22), "Stop (Parar)")) {
+                    TransportController::Stop(::timeline);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Parar Reproducao e Resetar Cursor");
+                ImGui::SameLine(0, 3);
+
+                bool rec = g_record_manager.isRecording();
+                if (SciFiHUD::SciFiTransportBtn("##FLRec", SciFiHUD::IconType::RECORD, rec, ImVec4(0.98f, 0.15f, 0.25f, 1.0f), ImVec2(26, 22), "Armar Gravacao")) {
+                    if (rec) g_record_manager.setRecording(false);
+                    else     g_record_manager.setRecording(true, false);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint(rec ? "Gravando Audio... Clique para Parar" : "Armar Gravacao Master / MIDI");
+                ImGui::SameLine(0, 8);
+
+                // Telas Duplas OLED (Display 1: BPM / TEMPO 4/4)
+                float current_bpm = ::timeline.getBPM();
+                ImVec2 bpm_p = ImGui::GetCursorScreenPos();
+                float bpm_w = 84.0f;
+                float bpm_h = 24.0f;
+                wdl->AddRectFilled(bpm_p, ImVec2(bpm_p.x + bpm_w, bpm_p.y + bpm_h), IM_COL32(10, 14, 20, 255), 3.0f);
+                wdl->AddRect(bpm_p, ImVec2(bpm_p.x + bpm_w, bpm_p.y + bpm_h), IM_COL32(30, 44, 60, 255), 3.0f);
+                wdl->AddText(ImVec2(bpm_p.x + 5, bpm_p.y + 1), IM_COL32(90, 130, 170, 255), "BPM");
+                wdl->AddText(ImVec2(bpm_p.x + bpm_w - 24, bpm_p.y + 1), IM_COL32(80, 110, 140, 255), "4/4");
+                char bpm_buf[32];
+                snprintf(bpm_buf, sizeof(bpm_buf), "%.3f", current_bpm);
+                wdl->AddText(ImVec2(bpm_p.x + 5, bpm_p.y + 10), IM_COL32(0, 229, 255, 255), bpm_buf);
+                // Setas ▲ ▼
+                wdl->AddTriangleFilled(ImVec2(bpm_p.x + bpm_w - 7, bpm_p.y + 13), ImVec2(bpm_p.x + bpm_w - 11, bpm_p.y + 16), ImVec2(bpm_p.x + bpm_w - 3, bpm_p.y + 16), IM_COL32(120, 160, 200, 255));
+                wdl->AddTriangleFilled(ImVec2(bpm_p.x + bpm_w - 7, bpm_p.y + 21), ImVec2(bpm_p.x + bpm_w - 11, bpm_p.y + 18), ImVec2(bpm_p.x + bpm_w - 3, bpm_p.y + 18), IM_COL32(120, 160, 200, 255));
+
+                ImGui::InvisibleButton("##BpmDisplayBtn", ImVec2(bpm_w, bpm_h));
+                if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                    current_bpm -= ImGui::GetIO().MouseDelta.y * 0.2f;
+                    current_bpm = std::clamp(current_bpm, 40.0f, 300.0f);
+                    ::timeline.setBPM(current_bpm);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Andamento da Musica (BPM) - Clique e arraste para alterar");
+                ImGui::SameLine(0, 6);
+
+                // Telas Duplas OLED (Display 2: TIME / BAR 1)
+                ImVec2 time_p = ImGui::GetCursorScreenPos();
+                float time_w = 90.0f;
+                float time_h = 24.0f;
+                wdl->AddRectFilled(time_p, ImVec2(time_p.x + time_w, time_p.y + time_h), IM_COL32(10, 14, 20, 255), 3.0f);
+                wdl->AddRect(time_p, ImVec2(time_p.x + time_w, time_p.y + time_h), IM_COL32(30, 44, 60, 255), 3.0f);
+
+                double current_time_sec = (double)::timeline.getMasterFrame() / 44100.0;
+                double beats_per_sec = (double)current_bpm / 60.0;
+                double total_beats = current_time_sec * beats_per_sec;
+                int bar = (int)(total_beats / 4.0) + 1;
+                int step = ((int)total_beats % 4) + 1;
+                int tick = (int)((total_beats - (int)total_beats) * 100.0);
+
+                char time_str[32];
+                snprintf(time_str, sizeof(time_str), "%d:%02d:%02d", bar, step, tick);
+                wdl->AddText(ImVec2(time_p.x + 5, time_p.y + 1), IM_COL32(90, 130, 170, 255), "TIME");
+                wdl->AddText(ImVec2(time_p.x + time_w - 36, time_p.y + 1), IM_COL32(80, 110, 140, 255), "BAR 1");
+                wdl->AddText(ImVec2(time_p.x + 5, time_p.y + 10), IM_COL32(0, 229, 255, 255), time_str);
+
+                ImGui::Dummy(ImVec2(time_w, time_h));
+                if (ImGui::IsItemHovered()) SetFLHint("Tempo da Musica: Bar : Beat : Tick");
+                ImGui::SameLine(0, 6);
+
+                // Mini Analisador de Espectro FFT em Tempo Real (Conceito 2)
+                ImVec2 spec_p = ImGui::GetCursorScreenPos();
+                float spec_w = 72.0f;
+                float spec_h = 24.0f;
+                wdl->AddRectFilled(spec_p, ImVec2(spec_p.x + spec_w, spec_p.y + spec_h), IM_COL32(10, 13, 18, 255), 3.0f);
+                wdl->AddRect(spec_p, ImVec2(spec_p.x + spec_w, spec_p.y + spec_h), IM_COL32(28, 38, 52, 255), 3.0f);
+
+                const int num_bars = 14;
+                float bar_w = (spec_w - 8.0f) / num_bars - 1.0f;
+                static float bar_heights[14] = { 0.2f, 0.4f, 0.6f, 0.5f, 0.7f, 0.8f, 0.6f, 0.7f, 0.5f, 0.4f, 0.3f, 0.5f, 0.3f, 0.2f };
+
+                for (int b = 0; b < num_bars; b++) {
+                    float target = is_p ? (0.20f + 0.75f * fabsf(sinf((float)ImGui::GetTime() * 9.0f + b * 0.7f))) : 0.08f;
+                    bar_heights[b] += (target - bar_heights[b]) * 0.30f;
+                    float bh = bar_heights[b] * (spec_h - 6.0f);
+                    float bx = spec_p.x + 4.0f + b * (bar_w + 1.0f);
+                    float by = spec_p.y + spec_h - 3.0f - bh;
+                    
+                    ImU32 bar_col = (b < 7) ? IM_COL32(160 + b * 10, 60 + b * 20, 255, 240) : IM_COL32(0, 210 + b * 3, 255, 240);
+                    wdl->AddRectFilled(ImVec2(bx, by), ImVec2(bx + bar_w, spec_p.y + spec_h - 3.0f), bar_col, 1.0f);
+                    wdl->AddLine(ImVec2(bx, by - 1), ImVec2(bx + bar_w, by - 1), IM_COL32(255, 255, 255, 220));
+                }
+
+                ImGui::Dummy(ImVec2(spec_w, spec_h));
+                if (ImGui::IsItemHovered()) SetFLHint("Mini Analisador de Espectro FFT de Audio em Tempo Real");
+                ImGui::SameLine(0, 6);
+
+                // Monitor de CPU e Memoria RAM
+                ImVec2 perf_p = ImGui::GetCursorScreenPos();
+                float perf_w = 80.0f;
+                float perf_h = 24.0f;
+                wdl->AddRectFilled(perf_p, ImVec2(perf_p.x + perf_w, perf_p.y + perf_h), IM_COL32(10, 13, 18, 255), 3.0f);
+                wdl->AddRect(perf_p, ImVec2(perf_p.x + perf_w, perf_p.y + perf_h), IM_COL32(28, 38, 52, 255), 3.0f);
+                
+                wdl->AddText(ImVec2(perf_p.x + 4, perf_p.y + 1), IM_COL32(170, 195, 220, 255), "CPU: 4%");
+                wdl->AddText(ImVec2(perf_p.x + 4, perf_p.y + 11), IM_COL32(170, 195, 220, 255), "MEM: 240MB");
+
+                ImGui::Dummy(ImVec2(perf_w, perf_h));
+                if (ImGui::IsItemHovered()) SetFLHint("Monitor de Hardware: CPU 4% | RAM 240 MB");
+
+                // Controles de Janela do Windows no extremo direito
+                float right_margin = viewport->Size.x - ImGui::GetCursorPosX() - 95.0f;
+                if (right_margin > 0) ImGui::SameLine(0, right_margin);
+                
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                if (ImGui::Button("_##FLWinMin", ImVec2(26, 20))) {
+                    GLFWwindow* win = glfwGetCurrentContext();
+                    if (win) glfwIconifyWindow(win);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Minimizar Abduction Studio");
+                ImGui::SameLine(0, 2);
+
+                if (ImGui::Button("[ ]##FLWinMax", ImVec2(26, 20))) {
+                    GLFWwindow* win = glfwGetCurrentContext();
+                    if (win) {
+                        if (glfwGetWindowAttrib(win, GLFW_MAXIMIZED)) glfwRestoreWindow(win);
+                        else glfwMaximizeWindow(win);
+                    }
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Maximizar / Restaurar Janela");
+                ImGui::SameLine(0, 2);
+
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.35f, 0.35f, 1.0f));
+                if (ImGui::Button("X##FLWinClose", ImVec2(26, 20))) {
+                    GLFWwindow* win = glfwGetCurrentContext();
+                    if (win) glfwSetWindowShouldClose(win, GLFW_TRUE);
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Fechar Abduction Studio");
+                ImGui::PopStyleColor(2);
+            }
+            ImGui::EndGroup();
+
+            // =========================================================================
+            // 3. DECK 2: LINHA INFERIOR (OLED HINT DISPLAY, PITCH, LASER SCRUBBER, SNAP, PATTERN, TOUCH-PADS)
+            // =========================================================================
+            ImGui::SetCursorPos(ImVec2(96.0f, 35.0f));
+            ImGui::BeginGroup();
+            {
+                // 1. OLED Hint Display (Caixa rebaixada escura com texto ciano e Auto-Marquee inteligente)
+                ImVec2 hint_pos = ImGui::GetCursorScreenPos();
+                float hint_w = 205.0f;
+                float hint_h = 27.0f;
+                
+                wdl->AddRectFilled(hint_pos, ImVec2(hint_pos.x + hint_w, hint_pos.y + hint_h), IM_COL32(12, 16, 22, 255), 4.0f);
+                wdl->AddRect(hint_pos, ImVec2(hint_pos.x + hint_w, hint_pos.y + hint_h), IM_COL32(32, 44, 58, 255), 4.0f);
+
+                // Clip estrito: NENHUM pixel pode vazar para fora da moldura sob qualquer circunstância
+                wdl->PushClipRect(ImVec2(hint_pos.x + 3.0f, hint_pos.y + 2.0f), ImVec2(hint_pos.x + hint_w - 3.0f, hint_pos.y + hint_h - 2.0f), true);
+
+                float max_avail_w = hint_w - 14.0f;
+                ImVec2 text_sz = ImGui::CalcTextSize(g_fl_hint_text.c_str());
+                float text_y = hint_pos.y + (hint_h - text_sz.y) * 0.5f;
+
+                if (text_sz.x <= max_avail_w) {
+                    wdl->AddText(ImVec2(hint_pos.x + 7.0f, text_y), IM_COL32(0, 229, 255, 255), g_fl_hint_text.c_str());
+                } else {
+                    // Texto longo: Auto-Marquee suave estilo hardware FL Studio
+                    float overflow = text_sz.x - max_avail_w + 14.0f;
+                    float t = (float)ImGui::GetTime() * 32.0f; // velocidade elegante de rolagem
+                    float cycle = std::fmod(t, overflow + 65.0f);
+                    float offset_x = 0.0f;
+                    if (cycle > 22.0f) {
+                        offset_x = (cycle - 22.0f);
+                        if (offset_x > overflow) offset_x = overflow;
+                    }
+                    wdl->AddText(ImVec2(hint_pos.x + 7.0f - offset_x, text_y), IM_COL32(0, 229, 255, 255), g_fl_hint_text.c_str());
+                }
+                wdl->PopClipRect();
+
+                ImGui::Dummy(ImVec2(hint_w, hint_h));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("%s", g_fl_hint_text.c_str());
+                }
+                ImGui::SameLine(0, 8);
+
+                // 2. Master Pitch Knob
+                ImVec2 mpk_p = ImGui::GetCursorScreenPos();
+                float mpk_r = 10.0f;
+                ImVec2 mpk_c = ImVec2(mpk_p.x + mpk_r + 2, mpk_p.y + mpk_r + 3);
+                
+                wdl->AddCircleFilled(mpk_c, mpk_r + 2.0f, IM_COL32(14, 16, 20, 255), 18);
+                wdl->AddCircleFilled(mpk_c, mpk_r, IM_COL32(48, 56, 68, 255), 16);
+                
+                float p_angle = 4.712f + (g_master_pitch_semitones / 12.0f) * 1.8f;
+                wdl->AddLine(mpk_c, ImVec2(mpk_c.x + cosf(p_angle) * (mpk_r - 2.0f), mpk_c.y + sinf(p_angle) * (mpk_r - 2.0f)), IM_COL32(255, 170, 40, 255), 1.6f);
+
+                ImGui::InvisibleButton("##mpk_btn", ImVec2(mpk_r * 2 + 4, mpk_r * 2 + 4));
+                if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                    g_master_pitch_semitones -= ImGui::GetIO().MouseDelta.y * 0.1f;
+                    g_master_pitch_semitones = std::clamp(g_master_pitch_semitones, -12.0f, 12.0f);
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    g_master_pitch_semitones = 0.0f;
+                }
+                if (ImGui::IsItemHovered()) {
+                    char p_buf[64];
+                    snprintf(p_buf, sizeof(p_buf), "Master Pitch: %+.2f Semitons (Duplo-clique para zerar)", g_master_pitch_semitones);
+                    SetFLHint(p_buf);
+                }
+                ImGui::SameLine(0, 8);
+
+                // 3. Laser Scrubber (Trilho Duplo Ciano com Indicador de Posição)
+                ImVec2 scr_pos = ImGui::GetCursorScreenPos();
+                float scr_w = 115.0f;
+                float scr_h = 27.0f;
+                wdl->AddRectFilled(scr_pos, ImVec2(scr_pos.x + scr_w, scr_pos.y + scr_h), IM_COL32(12, 16, 22, 255), 3.0f);
+                wdl->AddRect(scr_pos, ImVec2(scr_pos.x + scr_w, scr_pos.y + scr_h), IM_COL32(30, 40, 52, 255), 3.0f);
+                
+                // Trilho laser ciano
+                float track_y = scr_pos.y + scr_h * 0.5f;
+                wdl->AddLine(ImVec2(scr_pos.x + 6, track_y - 2), ImVec2(scr_pos.x + scr_w - 6, track_y - 2), IM_COL32(0, 180, 220, 180), 1.5f);
+                wdl->AddLine(ImVec2(scr_pos.x + 6, track_y + 2), ImVec2(scr_pos.x + scr_w - 6, track_y + 2), IM_COL32(0, 180, 220, 80), 1.0f);
+                
+                float progress_fraction = (float)(::timeline.getMasterFrame() % (44100 * 32)) / (float)(44100 * 32);
+                float handle_x = scr_pos.x + 6.0f + progress_fraction * (scr_w - 12.0f);
+                // Cursor laser vertical com brilho
+                wdl->AddRectFilled(ImVec2(handle_x - 1.5f, track_y - 7.0f), ImVec2(handle_x + 1.5f, track_y + 7.0f), IM_COL32(0, 229, 255, 255), 1.0f);
+                wdl->AddCircleFilled(ImVec2(handle_x, track_y), 2.5f, IM_COL32(255, 255, 255, 255));
+
+                ImGui::InvisibleButton("##SongScrubber", ImVec2(scr_w, scr_h));
+                if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    float click_x = ImGui::GetIO().MousePos.x;
+                    float norm = std::clamp((click_x - (scr_pos.x + 6.0f)) / (scr_w - 12.0f), 0.0f, 1.0f);
+                    ::timeline.setMasterFrame((unsigned long long)(norm * 44100.0 * 32.0));
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Laser Scrubber: Navegacao da Timeline (Clique ou arraste)");
+                ImGui::SameLine(0, 8);
+
+                // 4. Seletor de Snap (SNAP: 1/16)
+                const char* snap_names[] = { "Line", "Cell", "1/4 Beat", "1/2 Beat", "1/16 Beat", "None" };
+                static int cur_snap_idx = 4; // Padrão 1/16 Beat
+                
+                ImGui::SetNextItemWidth(78);
+                if (ImGui::BeginCombo("##QuantumSnapCombo", snap_names[cur_snap_idx])) {
+                    for (int s = 0; s < 6; s++) {
+                        if (ImGui::Selectable(snap_names[s], cur_snap_idx == s)) {
+                            cur_snap_idx = s;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Resolucao do Snap / Grade de Alinhamento");
+                ImGui::SameLine(0, 6);
+
+                // 5. Seletor de Pattern (◄ Pattern 1 ► [+])
+                int total_patterns = (int)g_clip_manager.global_patterns.size();
+                int cur_pat = g_clip_manager.current_pattern_idx;
+                
+                if (ImGui::Button("◄##PatPrev", ImVec2(18, 25))) {
+                    if (g_clip_manager.current_pattern_idx > 0) g_clip_manager.current_pattern_idx--;
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Padrao Anterior");
+                ImGui::SameLine(0, 2);
+
+                char pat_lbl[32];
+                snprintf(pat_lbl, sizeof(pat_lbl), "Pattern %d", cur_pat + 1);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.18f, 0.22f, 1.0f));
+                ImGui::Button(pat_lbl, ImVec2(74, 25));
+                if (ImGui::IsItemHovered()) SetFLHint("Padrao Ativo");
+                ImGui::PopStyleColor();
+                ImGui::SameLine(0, 2);
+
+                if (ImGui::Button("►##PatNext", ImVec2(18, 25))) {
+                    if (g_clip_manager.current_pattern_idx < total_patterns - 1) g_clip_manager.current_pattern_idx++;
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Proximo Padrao");
+                ImGui::SameLine(0, 2);
+
+                if (ImGui::Button("+##PatAdd", ImVec2(20, 25))) {
+                    Pattern p;
+                    p.id = (int)g_clip_manager.global_patterns.size() + 1;
+                    p.name = "Pattern " + std::to_string(p.id);
+                    p.color = 0xFF00E5FF;
+                    g_clip_manager.global_patterns.push_back(p);
+                    g_clip_manager.current_pattern_idx = (int)g_clip_manager.global_patterns.size() - 1;
+                }
+                if (ImGui::IsItemHovered()) SetFLHint("Criar Novo Padrao (Pattern)");
+                ImGui::SameLine(0, 8);
+                ImGui::TextDisabled("|");
+                ImGui::SameLine(0, 8);
+
+                // 6. OS 8 PADS DE MÓDULO DO CONCEITO 2 (BACKLIT TOUCH-PADS)
+                if (RenderQuantumPad(wdl, "##qpad_playlist", "Playlist", SciFiHUD::IconType::PLAYLIST_TRACKS, show_playlist, "Playlist / Arranjo da Musica (F5)")) {
+                    show_playlist = !show_playlist;
+                }
                 ImGui::SameLine(0, 4);
 
-                char tc_str[16];
-                snprintf(tc_str, sizeof(tc_str), "%02d:%02d.%1d", cs / 60, cs % 60, ms);
-                ImGui::TextColored(ImVec4(0.70f, 0.85f, 0.95f, 1.0f), "%s", tc_str);
-            }
-
-            ImGui::SameLine(0, 8);
-            ImGui::TextDisabled("|");
-            ImGui::SameLine(0, 8);
-
-            // ── 5. THE 5 SCI-FI COCKPIT VIEW SWITCHER BUTTONS ──────────────
-            if (SciFiHUD::SciFiButton("##btn_playlist", "Playlist", SciFiHUD::IconType::PLAYLIST_TRACKS, show_playlist, ImVec2(0, 22), "Playlist / Arranjo da Nave (F5)")) {
-                show_playlist = !show_playlist;
-            }
-            ImGui::SameLine(0, 3);
-
-            if (SciFiHUD::SciFiButton("##btn_rack", "Rack", SciFiHUD::IconType::CHANNEL_RACK, show_step_sequencer, ImVec2(0, 22), "Channel Rack / Matrix 16-Passos (F6)")) {
-                show_step_sequencer = !show_step_sequencer;
-            }
-            ImGui::SameLine(0, 3);
-
-            if (SciFiHUD::SciFiButton("##btn_piano", "Piano", SciFiHUD::IconType::PIANO_KEYS, show_piano_roll, ImVec2(0, 22), "Piano Roll / Sintetizador & Melodia (F7)")) {
-                show_piano_roll = !show_piano_roll;
-            }
-            ImGui::SameLine(0, 3);
-
-            if (SciFiHUD::SciFiButton("##btn_mixer", "Mixer", SciFiHUD::IconType::MIXER_FADERS, show_mixer, ImVec2(0, 22), "Console Mixer & Faders Flutuante (F9)")) {
-                show_mixer = !show_mixer;
-            }
-            ImGui::SameLine(0, 3);
-
-            if (SciFiHUD::SciFiButton("##btn_browser", "Browser", SciFiHUD::IconType::BROWSER_FOLDER, show_browser, ImVec2(0, 22), "Banco de Amostras & VSTs (F8)")) {
-                show_browser = !show_browser;
-            }
-            ImGui::SameLine(0, 3);
-
-            if (SciFiHUD::SciFiButton("##btn_ai_stems", "AI Stems", SciFiHUD::IconType::AI_NEURAL_STEMS, g_cloud_stem_ui.getOpenState(), ImVec2(0, 22), "Separador de Stems & Elementos (IA)")) {
-                g_cloud_stem_ui.toggle();
-            }
-
-            ImGui::SameLine(0, 8);
-            ImGui::TextDisabled("|");
-            ImGui::SameLine(0, 8);
-
-            // ── 6. WORKSPACE MODE & PROJECT NODE ───────────────────────────
-            const char* mode_labels[] = { "PRODUCE", "SLICING", "MIX", "LIVE" };
-            int cur_m_idx = (current_app_mode == AppMode::PRODUCE_MODE) ? 0 :
-                            (current_app_mode == AppMode::BEAT_SLICING_MODE) ? 1 :
-                            (current_app_mode == AppMode::MIX_MODE) ? 2 : 3;
-
-            {
-                ImVec2 ic_pos = ImGui::GetCursorScreenPos();
-                ImDrawList* dl = ImGui::GetWindowDrawList();
-                SciFiHUD::DrawIcon(dl, ImVec2(ic_pos.x, ic_pos.y + 4), ImVec2(ic_pos.x + 14, ic_pos.y + 18), SciFiHUD::IconType::WORKSPACE_TARGET, 0xFF00E5FF, 1.2f);
-                ImGui::Dummy(ImVec2(16, 22));
-                ImGui::SameLine(0, 2);
-            }
-
-            ImGui::SetNextItemWidth(90);
-            if (ImGui::BeginCombo("##workspace_mode_select", mode_labels[cur_m_idx])) {
-                for (int m = 0; m < 4; m++) {
-                    bool is_sel = (cur_m_idx == m);
-                    if (ImGui::Selectable(mode_labels[m], is_sel)) {
-                        current_app_mode = (m == 0) ? AppMode::PRODUCE_MODE :
-                                           (m == 1) ? AppMode::BEAT_SLICING_MODE :
-                                           (m == 2) ? AppMode::MIX_MODE : AppMode::LIVE_MODE;
-                    }
-                    if (is_sel) ImGui::SetItemDefaultFocus();
+                if (RenderQuantumPad(wdl, "##qpad_piano", "Piano", SciFiHUD::IconType::PIANO_KEYS, show_piano_roll, "Piano Roll / Editor de Melodias (F7)")) {
+                    show_piano_roll = !show_piano_roll;
+                    if (show_piano_roll) g_need_focus_piano_roll = true;
                 }
-                ImGui::EndCombo();
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Modo do Cockpit de Trabalho");
-            ImGui::SameLine(0, 8);
+                ImGui::SameLine(0, 4);
 
-            {
-                ImVec2 ic_pos = ImGui::GetCursorScreenPos();
-                ImDrawList* dl = ImGui::GetWindowDrawList();
-                SciFiHUD::DrawIcon(dl, ImVec2(ic_pos.x, ic_pos.y + 4), ImVec2(ic_pos.x + 14, ic_pos.y + 18), SciFiHUD::IconType::PROJECT_VAULT, 0xFF44FF88, 1.2f);
-                ImGui::Dummy(ImVec2(16, 22));
-                ImGui::SameLine(0, 2);
-            }
+                if (RenderQuantumPad(wdl, "##qpad_rack", "Rack", SciFiHUD::IconType::CHANNEL_RACK, show_step_sequencer, "Channel Rack / Matrix 16-Passos (F6)")) {
+                    show_step_sequencer = !show_step_sequencer;
+                    if (show_step_sequencer) g_need_focus_step_sequencer = true;
+                }
+                ImGui::SameLine(0, 4);
 
-            ImGui::TextColored(ImVec4(0.40f, 0.85f, 0.60f, 1.0f), "%s", g_current_project_name.c_str());
-            
-            // Window Controls (Min, Max, Close) na direita
-            float menu_width = ImGui::GetWindowWidth();
-            ImGui::SameLine(menu_width - 120);
-            
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
-            if (ImGui::Button("_", ImVec2(30, 20))) {
-                GLFWwindow* win = glfwGetCurrentContext();
-                if (win) glfwIconifyWindow(win);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("[ ]", ImVec2(30, 20))) {
-                GLFWwindow* win = glfwGetCurrentContext();
-                if (win) {
-                    if (glfwGetWindowAttrib(win, GLFW_MAXIMIZED)) glfwRestoreWindow(win);
-                    else glfwMaximizeWindow(win);
+                if (RenderQuantumPad(wdl, "##qpad_mixer", "Mixer", SciFiHUD::IconType::MIXER_FADERS, show_mixer, "Console Mixer & Canais de FX (F9)")) {
+                    show_mixer = !show_mixer;
+                }
+                ImGui::SameLine(0, 4);
+
+                if (RenderQuantumPad(wdl, "##qpad_browser", "Browser", SciFiHUD::IconType::BROWSER_FOLDER, show_browser, "Browser de Samples e Pastas (F8)")) {
+                    show_browser = !show_browser;
+                }
+                ImGui::SameLine(0, 4);
+
+                if (RenderQuantumPad(wdl, "##qpad_app_hub", "Hub", SciFiHUD::IconType::APP_DRAWER_HUB, g_show_app_drawer, "Central de Aplicativos estilo Android Hub (F12)")) {
+                    g_show_app_drawer = !g_show_app_drawer;
+                }
+                ImGui::SameLine(0, 4);
+
+                if (RenderQuantumPad(wdl, "##qpad_ai_stems", "AI Stems", SciFiHUD::IconType::AI_NEURAL_STEMS, g_cloud_stem_ui.getOpenState(), "Separador Neural de Stems por IA (F10)")) {
+                    g_cloud_stem_ui.toggle();
+                }
+                ImGui::SameLine(0, 4);
+
+                if (RenderQuantumPad(wdl, "##qpad_psy_bass", "Psy Bass", SciFiHUD::IconType::CHANNEL_RACK, g_psy_rolling_bass_ui.is_open, "Kuro Psytrance Rolling Bass Engine")) {
+                    g_psy_rolling_bass_ui.is_open = !g_psy_rolling_bass_ui.is_open;
+                    if (g_psy_rolling_bass_ui.is_open) g_psy_rolling_bass_ui.need_focus = true;
+                }
+                ImGui::SameLine(0, 4);
+
+                if (RenderQuantumPad(wdl, "##qpad_dj_studio", "Modo DJ", SciFiHUD::IconType::DJ_VINYL_DECKS, show_dj_modal, "Abduction DJ Studio / Pioneer DDJ-200 (F11)")) {
+                    show_dj_modal = !show_dj_modal;
                 }
             }
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
-            if (ImGui::Button("X", ImVec2(30, 20))) {
-                GLFWwindow* win = glfwGetCurrentContext();
-                if (win) glfwSetWindowShouldClose(win, GLFW_TRUE);
-            }
-            ImGui::PopStyleColor(); // text
-            ImGui::PopStyleColor(); // bg
-
-            ImGui::EndMenuBar();
+            ImGui::EndGroup();
         }
+        ImGui::End();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(3);
     }
+
 
     inline void RenderModulationOverlay(float active_val, float min_val, float max_val) {
         ImVec2 rect_min = ImGui::GetItemRectMin();
@@ -5129,8 +4724,6 @@ static void RenderFlexBrowserContent() {
 
     // Função Raiz que gerencia a janela principal (Fase 24)
     static void RenderMainApp(StemSeparationEngine& ai_engine) {
-        RenderMainMenu(ai_engine);
-
         switch (current_app_mode) {
             case AppMode::PRODUCE_MODE:
                 RenderStudioMode(ai_engine);
@@ -5215,7 +4808,12 @@ static void RenderFlexBrowserContent() {
         }
 
         if (show_step_sequencer) {
-            ImGui::SetNextWindowSize(ImVec2(740, 420), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(780, 440), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(245, 60), ImGuiCond_FirstUseEver);
+            if (g_need_focus_step_sequencer) {
+                ImGui::SetNextWindowFocus();
+                g_need_focus_step_sequencer = false;
+            }
             ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.14f, 0.17f, 0.20f, 0.98f));
             ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.19f, 0.22f, 0.26f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.22f, 0.26f, 0.31f, 1.0f));
@@ -5234,6 +4832,69 @@ static void RenderFlexBrowserContent() {
         if (show_modulation_panel) {
             KuroUI::RenderModulationPanel(&show_modulation_panel);
         }
+
+        if (g_request_open_instrument_ch >= 0 && g_request_open_instrument_ch < MAX_TRACKS) {
+            int ch = g_request_open_instrument_ch;
+            g_request_open_instrument_ch = -1;
+            selected_track_idx = ch;
+
+            switch (g_channel_slots[ch].type) {
+                case ChannelInstrumentType::KURO_RHYTHM_BASS:
+                    g_psy_rolling_bass_ui.is_open = true;
+                    g_psy_rolling_bass_ui.need_focus = true;
+                    g_psy_rolling_bass_ui.current_layer_tab = g_channel_slots[ch].kuro_layer_tab;
+                    break;
+                case ChannelInstrumentType::FL_FLEX_SYNTH:
+                    show_flex_browser = true;
+                    active_flex_channel = ch;
+                    break;
+                case ChannelInstrumentType::DIRECTWAVE:
+                    g_directwave_ui.open();
+                    break;
+                case ChannelInstrumentType::SYTRUS_FM:
+                    g_sytrus_synth_ui.open();
+                    break;
+                case ChannelInstrumentType::HARMOR_ADDITIVE:
+                    g_harmor_synth_ui.open();
+                    break;
+                case ChannelInstrumentType::FRUITY_GRANULIZER:
+                    g_granulizer_ui.open();
+                    break;
+                case ChannelInstrumentType::SLICEX:
+                    g_slicex_ui.open();
+                    break;
+                case ChannelInstrumentType::DELAY_LAMA:
+                    show_delay_lama = true;
+                    focus_delay_lama = true;
+                    break;
+                case ChannelInstrumentType::CONTRABASS:
+                    show_contrabass_window = true;
+                    break;
+                case ChannelInstrumentType::SOUNDFONT_PLAYER:
+                    g_soundfont_player_ui.open();
+                    break;
+                case ChannelInstrumentType::OSC_3X:
+                    g_3xosc_ui.open();
+                    break;
+                case ChannelInstrumentType::AUDIO_SAMPLE:
+                    show_sampler_settings = true;
+                    break;
+                case ChannelInstrumentType::ALIEN_LED:
+                    g_piano_synth.flex_channel_instrument[ch] = KuroAudio::MidiInstrument::ALIEN_LED_SYNTH;
+                    g_piano_synth.triggerNote(60, 0.5f, 0.85f, ch);
+                    break;
+                case ChannelInstrumentType::VST3_CLAP_PLUGIN:
+                    show_sampler_settings = true;
+                    break;
+            }
+        }
+
+        if (g_open_psy_rolling_bass_window) {
+            g_psy_rolling_bass_ui.is_open = true;
+            g_psy_rolling_bass_ui.need_focus = true;
+            g_open_psy_rolling_bass_window = false;
+        }
+        g_psy_rolling_bass_ui.render(g_clip_manager, ::timeline.getBPM(), selected_track_idx);
 
         // ==========================================
         // 5. HUD MODAL DE CARREGAMENTO (FASE 26)
@@ -5262,7 +4923,39 @@ static void RenderFlexBrowserContent() {
         }
         ImGui::PopStyleColor(2);
 
+        // ==========================================
+        // 6. MODO DJ STUDIO PRO (FULLSCREEN PERFORMANCE DECK)
+        // ==========================================
+        if (show_dj_modal && g_dj_engine) {
+            g_dj_studio_ui.render(*g_dj_engine, &show_dj_modal);
+        }
+
         // ── ATALHOS GLOBAIS DA DAW (FL STUDIO STYLE) ──────────
+        // Teclas de Função F5-F10 sempre operam globalmente (mesmo com foco em campos de busca)
+        if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
+            show_playlist = !show_playlist;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F6)) {
+            show_step_sequencer = !show_step_sequencer;
+            if (show_step_sequencer) g_need_focus_step_sequencer = true;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
+            show_piano_roll = !show_piano_roll;
+            if (show_piano_roll) g_need_focus_piano_roll = true;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
+            show_browser = !show_browser;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F9)) {
+            show_mixer = !show_mixer;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
+            g_cloud_stem_ui.toggle();
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_F11)) {
+            show_dj_modal = !show_dj_modal;
+        }
+
         ImGuiIO& main_io = ImGui::GetIO();
         if (!main_io.WantTextInput) {
             if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
@@ -5273,24 +4966,6 @@ static void RenderFlexBrowserContent() {
             }
             if (main_io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y)) {
                 g_clip_manager.redo();
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
-                show_playlist = !show_playlist;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F6)) {
-                show_step_sequencer = !show_step_sequencer;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F7)) {
-                show_piano_roll = !show_piano_roll;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
-                show_browser = !show_browser;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F9)) {
-                show_mixer = !show_mixer;
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_F10)) {
-                g_cloud_stem_ui.toggle();
             }
         }
     }

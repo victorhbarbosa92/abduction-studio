@@ -1,0 +1,89 @@
+{
+  "plugin": "Kuro Psytrance Rolling Bass",
+  "elements": [
+    {
+      "name": "bg_chassis",
+      "crop": [0, 0, 1376, 768],
+      "resize": [1040, 580],
+      "type": "raw"
+    },
+    {
+      "name": "btn_gen_pr",
+      "crop": [75, 650, 665, 735],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "btn_gen_pl",
+      "crop": [705, 650, 1295, 735],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "btn_kbbb",
+      "crop": [960, 190, 1120, 245],
+      "type": "rounded_rect",
+      "corner_radius": 4.0
+    },
+    {
+      "name": "btn_kbb",
+      "crop": [1135, 190, 1295, 245],
+      "type": "rounded_rect",
+      "corner_radius": 4.0
+    },
+    {
+      "name": "btn_kb",
+      "crop": [960, 250, 1120, 305],
+      "type": "rounded_rect",
+      "corner_radius": 4.0
+    },
+    {
+      "name": "btn_octave",
+      "crop": [1135, 250, 1295, 305],
+      "type": "rounded_rect",
+      "corner_radius": 4.0
+    },
+    {
+      "name": "btn_wave_saw",
+      "crop": [65, 175, 165, 275],
+      "type": "circle",
+      "margin": 2.0
+    },
+    {
+      "name": "btn_wave_square",
+      "crop": [180, 175, 280, 275],
+      "type": "circle",
+      "margin": 2.0
+    },
+    {
+      "name": "btn_wave_subsine",
+      "crop": [295, 175, 395, 275],
+      "type": "circle",
+      "margin": 2.0
+    },
+    {
+      "name": "dial_phase",
+      "type": "procedural_knob",
+      "size": 256,
+      "base_color": [28, 38, 48],
+      "notch_color": [0, 238, 255]
+    },
+    {
+      "name": "knob_metallic",
+      "type": "procedural_knob",
+      "size": 256,
+      "base_color": [28, 38, 48],
+      "notch_color": [0, 238, 255]
+    },
+    {
+      "name": "kuro_logo",
+      "crop": [45, 25, 410, 115],
+      "type": "raw"
+    },
+    {
+      "name": "eq_bar",
+      "crop": [972, 355, 988, 595],
+      "type": "raw"
+    }
+  ]
+}

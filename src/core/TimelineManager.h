@@ -28,6 +28,21 @@ namespace KuroDSP {
         float getBPM() const { return bpm; }
         void setBPM(float b) { bpm = b; }
         
+        // Groove Swing / Shuffle Global (0.0 a 1.0)
+        float swing_amount = 0.0f;
+        float getSwing() const { return swing_amount; }
+        void setSwing(float s) { swing_amount = std::clamp(s, 0.0f, 1.0f); }
+
+        float getSwungTime(float orig_t, float snap) const {
+            if (swing_amount <= 0.001f || snap <= 0.0001f) return orig_t;
+            float step_f = orig_t / snap;
+            int step_i = (int)std::round(step_f);
+            if ((step_i % 2 == 1) && std::abs(step_f - (float)step_i) < 0.25f) {
+                return orig_t + swing_amount * (snap * 0.333f);
+            }
+            return orig_t;
+        }
+        
         void setMasterFrame(uint64_t frame) { master_frame.store(frame, std::memory_order_relaxed); }
         // 16 passos (1 Compass = 4 tempos = 16 semicolcheias)
         std::atomic<bool> seq_grid[16];
@@ -143,6 +158,11 @@ namespace KuroDSP {
             if (idx < section_markers.size()) section_markers.erase(section_markers.begin() + idx);
         }
 
+        void clearSectionMarkers() {
+            std::lock_guard<std::mutex> lock(timeline_mutex);
+            section_markers.clear();
+        }
+
         void setLoopRegion(bool enabled, float start_sec, float end_sec) {
             std::lock_guard<std::mutex> lock(timeline_mutex);
             loop_enabled = enabled;
@@ -184,6 +204,27 @@ namespace KuroDSP {
             // Deprecated
         }
 
+        float getSongEndSec() const {
+            float max_t = 0.0f;
+            if (clip_manager) {
+                for (int i = 0; i < MAX_TRACKS; i++) {
+                    for (const auto& c : clip_manager->track_midi_clips[i]) {
+                        max_t = (std::max)(max_t, c.start_time_sec + c.length_sec);
+                    }
+                    for (const auto& c : clip_manager->track_clips[i]) {
+                        max_t = (std::max)(max_t, c.start_time_sec + c.length_sec);
+                    }
+                    for (const auto& c : clip_manager->track_auto_clips[i]) {
+                        max_t = (std::max)(max_t, c.start_time_sec + c.length_sec);
+                    }
+                }
+            }
+            for (const auto& m : section_markers) {
+                max_t = (std::max)(max_t, m.time_sec);
+            }
+            return max_t;
+        }
+
         struct AutomationEvent {
             std::string target_node_id;
             int param_index;
@@ -203,6 +244,26 @@ namespace KuroDSP {
                 uint64_t loop_start_frame = (uint64_t)(loop_start_sec * sample_rate);
                 if (master_frame >= loop_end_frame) {
                     master_frame = loop_start_frame;
+                }
+            } else if (!is_pattern_mode) {
+                // Auto-Stop ou Wrap no fim da música na Playlist (Modo SONG)
+                float song_end = getSongEndSec();
+                if (song_end > 0.5f) {
+                    float bar_dur = (60.0f / bpm) * 4.0f;
+                    float full_end_sec = song_end + bar_dur * 0.5f; // Margem para cauda de reverb
+                    uint64_t full_end_frame = (uint64_t)(full_end_sec * sample_rate);
+                    if (master_frame >= full_end_frame) {
+                        if (loop_enabled) {
+                            master_frame = 0;
+                        } else {
+                            extern bool is_playing;
+                            this->is_playing = false;
+                            ::is_playing = false;
+                            master_frame = 0;
+                            current_step.store(0, std::memory_order_relaxed);
+                            return {fired_events, auto_events};
+                        }
+                    }
                 }
             }
 
@@ -269,7 +330,8 @@ namespace KuroDSP {
                                 // Linear Full Song Timeline Mode: Disparo direto e 100% sincronizado com o áudio
                                 for (auto& note : ch_notes) {
                                     if (note.is_muted) continue;
-                                    if (note.start_time >= t_start && note.start_time < t_end) {
+                                    float n_time = getSwungTime(note.start_time, snap_step);
+                                    if (n_time >= t_start && n_time < t_end) {
                                         float rand_val = (float)rand() / RAND_MAX;
                                         if (rand_val <= note.probability) {
                                             fired_events.push_back({c, note.pitch, note.duration, note.velocity});
@@ -285,6 +347,7 @@ namespace KuroDSP {
                                 
                                 for (auto& note : ch_notes) {
                                     if (note.is_muted) continue;
+                                    float n_time = getSwungTime(note.start_time, snap_step);
                                     
                                     float loop_t_start = fmodf(t_start, ch_loop_len);
                                     float loop_t_end = loop_t_start + (t_end - t_start);
@@ -292,23 +355,17 @@ namespace KuroDSP {
                                     
                                     bool trigger = false;
                                     if (!wrapped) {
-                                        if (note.start_time >= loop_t_start && note.start_time < loop_t_end) {
+                                        if (n_time >= loop_t_start && n_time < loop_t_end) {
                                             trigger = true;
                                         }
                                     } else {
-                                        note.is_playing = false;
-                                        if ((note.start_time >= loop_t_start && note.start_time < ch_loop_len) ||
-                                            (note.start_time >= 0.0f && note.start_time < loop_t_end - ch_loop_len)) {
+                                        if ((n_time >= loop_t_start && n_time < ch_loop_len) ||
+                                            (n_time >= 0.0f && n_time < (loop_t_end - ch_loop_len))) {
                                             trigger = true;
                                         }
                                     }
                                     
-                                    if (trigger && note.is_playing) {
-                                        trigger = false;
-                                    }
-                                    
                                     if (trigger) {
-                                        note.is_playing = true;
                                         float rand_val = (float)rand() / RAND_MAX;
                                         if (rand_val <= note.probability) {
                                             fired_events.push_back({c, note.pitch, note.duration, note.velocity});
@@ -332,45 +389,67 @@ namespace KuroDSP {
 
                         for (auto& clip : clip_manager->track_midi_clips[i]) {
                             if (clip.is_muted) continue;
-                            float clip_t_start = t_start - clip.start_time_sec;
-                            float clip_t_end = t_end - clip.start_time_sec;
-                            
-                            if (t_end >= clip.start_time_sec && t_start <= clip.start_time_sec + clip.length_sec) {
+                            if (t_end >= clip.start_time_sec && t_start < clip.start_time_sec + clip.length_sec) {
+                                float rel_start = std::max(0.0f, t_start - clip.start_time_sec);
+                                float rel_end = std::min(clip.length_sec, t_end - clip.start_time_sec);
+                                if (rel_start >= rel_end) continue;
+
                                 Pattern* p = nullptr;
                                 for (auto& pat : clip_manager->global_patterns) {
                                     if (pat.id == clip.pattern_id) { p = &pat; break; }
                                 }
                                 
                                 if (p) {
-                                    int c = i;
-                                    if (p->getChannelNotes(c).empty() && (i % 2 == 1)) {
-                                        c = i / 2; // Mapeia trilha MIDI ímpar (1, 3, 5, 7) para o canal de synth correspondente
+                                    // Determina quais canais do pattern tocar
+                                    // Se o canal 'i' possui notas, toca canal 'i' (trilha dedicada da Playlist)
+                                    // Caso contrário, toca todos os canais do pattern que possuírem notas
+                                    std::vector<int> target_channels;
+                                    if (i >= 0 && i < MAX_TRACKS && !p->getChannelNotes(i).empty()) {
+                                        target_channels.push_back(i);
+                                    } else {
+                                        for (int ch = 0; ch < MAX_TRACKS; ch++) {
+                                            if (!p->getChannelNotes(ch).empty()) target_channels.push_back(ch);
+                                        }
                                     }
-                                    if (c >= 0 && c < MAX_TRACKS) {
+
+                                    for (int c : target_channels) {
                                         auto& ch_notes = p->getChannelNotes(c);
-                                        float note_loop_len = track_steps_limit[c] * snap_step;
+                                        if (ch_notes.empty()) continue;
+
+                                        // Calcula duração real do padrão musical baseando-se nas notas
+                                        float max_note_time = 0.0f;
+                                        for (const auto& note : ch_notes) {
+                                            if (note.start_time + note.duration > max_note_time) {
+                                                max_note_time = note.start_time + note.duration;
+                                            }
+                                        }
+
+                                        float bar_dur = (60.0f / bpm) * 4.0f;
+                                        float note_loop_len = clip.length_sec;
+                                        if (max_note_time > 0.001f && bar_dur > 0.001f) {
+                                            float bars = std::ceil(max_note_time / bar_dur);
+                                            if (bars < 1.0f) bars = 1.0f;
+                                            note_loop_len = bars * bar_dur;
+                                        }
                                         if (note_loop_len <= 0.001f) note_loop_len = clip.length_sec;
-                                        
-                                        float local_t_start = fmodf(clip_t_start, note_loop_len);
-                                        float local_t_end = local_t_start + (t_end - t_start);
+
+                                        float local_t_start = fmodf(rel_start, note_loop_len);
+                                        float local_t_end = local_t_start + (rel_end - rel_start);
                                         bool local_wrapped = (local_t_end > note_loop_len);
-                                        
+
                                         for (auto& note : ch_notes) {
                                             if (note.is_muted) continue;
-                                            
+                                            float n_time = getSwungTime(note.start_time, snap_step);
+
                                             bool note_trigger = false;
                                             if (!local_wrapped) {
-                                                if (note.start_time >= local_t_start && note.start_time < local_t_end) note_trigger = true;
+                                                if (n_time >= local_t_start && n_time < local_t_end) note_trigger = true;
                                             } else {
-                                                note.is_playing = false;
-                                                if ((note.start_time >= local_t_start && note.start_time < note_loop_len) ||
-                                                    (note.start_time >= 0.0f && note.start_time < local_t_end - note_loop_len)) note_trigger = true;
+                                                if ((n_time >= local_t_start && n_time < note_loop_len) ||
+                                                    (n_time >= 0.0f && n_time < (local_t_end - note_loop_len))) note_trigger = true;
                                             }
-                                            
-                                            if (note_trigger && note.is_playing) note_trigger = false;
-                                            
+
                                             if (note_trigger) {
-                                                note.is_playing = true;
                                                 float rand_val = (float)rand() / RAND_MAX;
                                                 if (rand_val <= note.probability) {
                                                     fired_events.push_back({c, note.pitch, note.duration, note.velocity});

@@ -1,0 +1,258 @@
+{
+  "bpm": 140.000000,
+  "swing": 0.350000,
+  "track_volumes": [-2.49877, -2.49877, -3.09804, -2.49877, -3.09804, -2.85335, -3.34982, -3.09804, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877, -2.49877],
+  "track_mutes": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+  "track_solos": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+  "channel_samples": [
+    {
+      "channel": 0,
+      "filepath": "assets/samples/adhana_signature/Adhana_Astrix_Kick_Punch_01.wav",
+      "root_note": 36,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 1,
+      "filepath": "",
+      "root_note": 38,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 2,
+      "filepath": "",
+      "root_note": 42,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 3,
+      "filepath": "",
+      "root_note": 39,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 4,
+      "filepath": "",
+      "root_note": 46,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 5,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 6,
+      "filepath": "",
+      "root_note": 49,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 7,
+      "filepath": "",
+      "root_note": 51,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 8,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 9,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 10,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 11,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 12,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 13,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 14,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 15,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 16,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 17,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 18,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    },
+    {
+      "channel": 19,
+      "filepath": "",
+      "root_note": 60,
+      "pitch": 0.000000,
+      "vol": 0.800000,
+      "pan": 0.000000
+    }
+  ],
+  "current_pattern_idx": 0,
+  "patterns": [
+    {
+      "id": 1,
+      "name": "Pattern 1",
+      "color": -16718337,
+      "length": 4.000000,
+      "channel_notes": [
+        [{"p": 36,"st": 0.000000,"d": 0.250000,"v": 0.900000,"pan": 0.500000,"poff": 0.000000}, {"p": 36,"st": 0.500000,"d": 0.250000,"v": 0.900000,"pan": 0.500000,"poff": 0.000000}, {"p": 36,"st": 1.000000,"d": 0.250000,"v": 0.900000,"pan": 0.500000,"poff": 0.000000}, {"p": 36,"st": 1.500000,"d": 0.250000,"v": 0.900000,"pan": 0.500000,"poff": 0.000000}],
+        [{"p": 33,"st": 0.125000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}, {"p": 33,"st": 0.250000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}, {"p": 33,"st": 0.375000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}, {"p": 33,"st": 0.625000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}, {"p": 33,"st": 0.750000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}, {"p": 33,"st": 0.875000,"d": 0.120000,"v": 0.850000,"pan": 0.500000,"poff": 0.000000}],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    }
+  ],
+  "playlist_midi_clips": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "playlist_audio_clips": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "track_midi_notes": [],
+  "kurowave": {
+    "wt_position": 2.000000,
+    "unison_voices": 7,
+    "unison_detune": 0.150000,
+    "cutoff": 2000.000000,
+    "resonance": 1.500000,
+    "lfo_wt_mod": 0.500000
+  },
+  "piano_synth": {
+    "instrument": 0,
+    "flex_instruments": [0, 27, 22, 0, 0, 0, 7, 24, 22, 26, 29, 25, 17, 0, 18, 28, 0, 0, 0, 0],
+    "flex_active": [false, true, true, false, false, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false]
+  }
+}

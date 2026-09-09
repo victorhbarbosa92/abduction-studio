@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <mutex>
+#include <filesystem>
 #include "../core/MidiNote.h"
 #include "KuroWave.h"
 
@@ -915,6 +916,31 @@ namespace KuroAudio {
             return drum_variants[ch][v];
         }
 
+        bool loadTrackSample(int track_idx, const std::string& filepath) {
+            if (track_idx < 0 || track_idx >= MAX_TRACKS) return false;
+            int v = std::clamp(selected_variant[track_idx], 0, MAX_DRUM_VARIANTS - 1);
+            drum_variants[track_idx][v].load(filepath);
+            bool ok = drum_variants[track_idx][v].loaded;
+            if (ok) {
+                flex_active[track_idx] = false;
+                std::string fname = std::filesystem::path(filepath).filename().string();
+                if (fname.find("_A1") != std::string::npos || fname.find(" A1") != std::string::npos) sampler_settings[track_idx].root_note = 33;
+                else if (fname.find("_A2") != std::string::npos || fname.find(" A2") != std::string::npos) sampler_settings[track_idx].root_note = 45;
+                else if (fname.find("_A3") != std::string::npos || fname.find(" A3") != std::string::npos) sampler_settings[track_idx].root_note = 57;
+                else if (fname.find("_A4") != std::string::npos || fname.find(" A4") != std::string::npos) sampler_settings[track_idx].root_note = 69;
+                else if (fname.find("_A") != std::string::npos) sampler_settings[track_idx].root_note = 57;
+                else if (fname.find("_C2") != std::string::npos || fname.find(" C2") != std::string::npos) sampler_settings[track_idx].root_note = 36;
+                else if (fname.find("_C3") != std::string::npos || fname.find(" C3") != std::string::npos) sampler_settings[track_idx].root_note = 48;
+                else if (fname.find("_C4") != std::string::npos || fname.find(" C4") != std::string::npos) sampler_settings[track_idx].root_note = 60;
+                else if (fname.find("_C5") != std::string::npos || fname.find(" C5") != std::string::npos) sampler_settings[track_idx].root_note = 72;
+                else if (fname.find("_F#1") != std::string::npos || fname.find(" F#1") != std::string::npos) sampler_settings[track_idx].root_note = 30;
+                else if (fname.find("_F#2") != std::string::npos || fname.find(" F#2") != std::string::npos) sampler_settings[track_idx].root_note = 42;
+                else if (fname.find("_G1") != std::string::npos || fname.find(" G1") != std::string::npos) sampler_settings[track_idx].root_note = 31;
+                else if (fname.find("_G2") != std::string::npos || fname.find(" G2") != std::string::npos) sampler_settings[track_idx].root_note = 43;
+            }
+            return ok;
+        }
+
         DrumSample strings_sample;
         DrumSample guitar_sample;
         DrumSample cello_sample;
@@ -1023,6 +1049,19 @@ namespace KuroAudio {
             load_sample_file(piano_sample, "assets/samples/Real_Piano/Gz_C4ogg.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Piano\\Piano 2\\Gz_C4ogg.wav");
             load_sample_file(bass_sample, "assets/samples/Real_Bass/Real_Bass_Deep_C2.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Bass\\BASS_EfEm_C2.wav");
             load_sample_file(pad_sample, "assets/samples/Real_Strings/Orchestral_Pad_Strings.wav", "C:\\Program Files\\Image-Line\\FL Studio 2024\\Data\\Patches\\Packs\\Legacy\\Instruments\\Strings\\DNC_OrionString.wav");
+
+            // Configurar Notas Raiz padrão para baterias e instrumentos cromáticos
+            for (int i = 0; i < MAX_TRACKS; i++) {
+                sampler_settings[i].track = i + 1;
+                sampler_settings[i].root_note = 60; // Padrão C5
+            }
+            sampler_settings[0].root_note = 36; // C2 (Kick)
+            sampler_settings[1].root_note = 38; // D2 (Snare)
+            sampler_settings[2].root_note = 42; // F#2 (HiHat)
+            sampler_settings[3].root_note = 39; // D#2 (Clap)
+            sampler_settings[4].root_note = 46; // A#2 (OpenHat)
+            sampler_settings[6].root_note = 49; // C#3 (Crash)
+            sampler_settings[7].root_note = 51; // D#3 (Ride)
         }
 
         void setSampleRate(float sr) { sample_rate = sr; }
@@ -1142,17 +1181,24 @@ namespace KuroAudio {
                                   avail_frames = (uint64_t)(ss.length * avail_frames);
                               }
                               
-                              uint64_t play_frame = (uint64_t)(voice.current_time * ds.sample_rate * p_ratio);
+                              double exact_play_frame = (double)voice.current_time * (double)ds.sample_rate * (double)p_ratio;
+                              uint64_t play_frame = (uint64_t)exact_play_frame;
                               if (ss.reverse && avail_frames > 0) {
                                   play_frame = (avail_frames > play_frame) ? (avail_frames - play_frame) : 0;
                               }
                               
                               uint64_t target_frame = start_frame + play_frame;
                               if (target_frame < ds.total_frames && avail_frames > 0) {
+                                  double frac = exact_play_frame - (double)((uint64_t)exact_play_frame);
+                                  uint64_t next_frame = (target_frame + 1 < ds.total_frames) ? target_frame + 1 : target_frame;
                                   if (ds.channels == 1) {
-                                      s = ds.sample_data[target_frame];
+                                      float s0 = ds.sample_data[target_frame];
+                                      float s1 = ds.sample_data[next_frame];
+                                      s = s0 + (float)frac * (s1 - s0);
                                   } else if (ds.channels >= 2) {
-                                      s = ds.sample_data[target_frame * ds.channels];
+                                      float s0 = ds.sample_data[target_frame * ds.channels];
+                                      float s1 = ds.sample_data[next_frame * ds.channels];
+                                      s = s0 + (float)frac * (s1 - s0);
                                   }
                               } else {
                                   s = 0.0f;
@@ -1411,6 +1457,18 @@ namespace KuroAudio {
                          float p = std::clamp(ss.pan + ss.misc_pan + ::dummy_pan[drum_idx], -1.0f, 1.0f);
                          pan_l = std::min(1.0f, 1.0f - p);
                          pan_r = std::min(1.0f, 1.0f + p);
+
+                         // De-clicking micro-fade (2.0ms attack & 2.5ms release)
+                         constexpr float declick_att_sec = 0.0020f;
+                         if (voice.current_time < declick_att_sec) {
+                             s *= (voice.current_time / declick_att_sec);
+                         }
+                         float rem_dur = voice.duration - voice.current_time;
+                         constexpr float declick_rel_sec = 0.0025f;
+                         if (rem_dur < declick_rel_sec && rem_dur >= 0.0f) {
+                             s *= std::max(0.0f, rem_dur / declick_rel_sec);
+                         }
+
                      } else if (drum_idx >= 0) {
                          channel_gain = ::dummy_vol[drum_idx];
                          float p = ::dummy_pan[drum_idx];
@@ -1475,46 +1533,126 @@ namespace KuroAudio {
                     
                     float phase_inc = freq / sample_rate;
                     
-                    if (voice.current_time >= voice.duration + 0.5f) { // +0.5s para release
+                    int ch_idx_mt = std::clamp(voice.track_idx, 0, 19);
+                    int drum_idx = -1;
+                    int sfx_idx = -1;
+                    
+                    if (voice.pitch < -90) {
+                        sfx_idx = -100 - voice.pitch;
+                    } else if (getDrumSample(ch_idx_mt).loaded || !flex_active[ch_idx_mt]) {
+                        drum_idx = ch_idx_mt; // Se o canal tem sample carregado, ou não tem flex, toca no sampler cromático!
+                    }
+
+                    // Extensão inteligente do tempo de voz para samples one-shot
+                    float max_voice_dur = voice.duration + 0.5f;
+                    if (drum_idx >= 0 && getDrumSample(drum_idx).loaded && !sampler_settings[drum_idx].env_enabled) {
+                        auto& ds_dur = getDrumSample(drum_idx);
+                        float pitch_st_dur = sampler_settings[drum_idx].pitch + (voice.pitch - sampler_settings[drum_idx].root_note);
+                        float p_ratio_dur = std::pow(2.0f, pitch_st_dur / 12.0f);
+                        if (p_ratio_dur < 0.05f) p_ratio_dur = 0.05f;
+                        float sample_len_sec = (float)ds_dur.total_frames / (ds_dur.sample_rate * p_ratio_dur);
+                        if (sample_len_sec + 0.15f > max_voice_dur) max_voice_dur = sample_len_sec + 0.15f;
+                    }
+                    
+                    if (voice.current_time >= max_voice_dur) { // Respeita cauda completa do sample
                         voice.active = false;
                         continue;
                     }
 
-                    float s = 0.0f;
-                    int drum_idx = -1;
-                    int sfx_idx = -1;
-                    int ch_idx_mt = std::clamp(voice.track_idx, 0, 19);
-                    
-                    if (voice.pitch < -90) {
-                        sfx_idx = -100 - voice.pitch;
-                    } else if ((ch_idx_mt == 0 || ch_idx_mt == 1 || ch_idx_mt == 2) && !flex_active[ch_idx_mt]) {
-                        drum_idx = ch_idx_mt; // Drum sampler channels: Kick (0), Snare (1), HiHat (2)
-                    } else if (getDrumSample(ch_idx_mt).loaded && !flex_active[ch_idx_mt]) {
-                        drum_idx = ch_idx_mt;
-                    }
+                    float s_l = 0.0f;
+                    float s_r = 0.0f;
 
                     if (sfx_idx >= 0 && sfx_idx < (int)sfx_library.size() && sfx_library[sfx_idx].sample.loaded) {
                         auto& ds = sfx_library[sfx_idx].sample;
                         uint64_t frame_idx = (uint64_t)(voice.current_time * ds.sample_rate);
                         if (frame_idx < ds.total_frames) {
                             if (ds.channels == 1) {
-                                s = ds.sample_data[frame_idx];
+                                s_l = s_r = ds.sample_data[frame_idx];
                             } else if (ds.channels >= 2) {
-                                s = ds.sample_data[frame_idx * ds.channels];
+                                s_l = ds.sample_data[frame_idx * ds.channels];
+                                s_r = ds.sample_data[frame_idx * ds.channels + 1];
                             }
                         }
                     } else if (drum_idx >= 0 && getDrumSample(drum_idx).loaded) {
                         auto& ds = getDrumSample(drum_idx);
-                        uint64_t frame_idx = (uint64_t)(voice.current_time * ds.sample_rate);
-                        if (frame_idx < ds.total_frames) {
+                        auto& ss = sampler_settings[drum_idx];
+
+                        // Cálculo Cromático de Pitch Completo (FL Studio Style)
+                        float pitch_st = ss.pitch + (voice.pitch - ss.root_note) + ss.time_pitch + (ss.fine_tune / 100.0f);
+                        float p_ratio = std::pow(2.0f, pitch_st / 12.0f) * ss.time_mul;
+                        if (p_ratio < 0.02f) p_ratio = 0.02f;
+
+                        uint64_t start_frame = (uint64_t)(ss.smp_start * ds.total_frames);
+                        uint64_t avail_frames = (ds.total_frames > start_frame) ? (ds.total_frames - start_frame) : 0;
+                        if (ss.length < 0.999f) {
+                            avail_frames = (uint64_t)(ss.length * avail_frames);
+                        }
+
+                        double exact_play_frame = (double)voice.current_time * (double)ds.sample_rate * (double)p_ratio;
+                        uint64_t play_frame = (uint64_t)exact_play_frame;
+                        if (ss.reverse && avail_frames > 0) {
+                            play_frame = (avail_frames > play_frame) ? (avail_frames - play_frame) : 0;
+                        }
+
+                        uint64_t target_frame = start_frame + play_frame;
+                        if (target_frame < ds.total_frames && avail_frames > 0) {
+                            // Interpolação Linear de Alta Fidelidade True Stereo
+                            double frac = exact_play_frame - (double)((uint64_t)exact_play_frame);
+                            uint64_t next_frame = (target_frame + 1 < ds.total_frames) ? target_frame + 1 : target_frame;
+
                             if (ds.channels == 1) {
-                                s = ds.sample_data[frame_idx];
+                                float s0 = ds.sample_data[target_frame];
+                                float s1 = ds.sample_data[next_frame];
+                                s_l = s_r = s0 + (float)frac * (s1 - s0);
                             } else if (ds.channels >= 2) {
-                                s = ds.sample_data[frame_idx * ds.channels];
+                                float s0_l = ds.sample_data[target_frame * ds.channels];
+                                float s1_l = ds.sample_data[next_frame * ds.channels];
+                                s_l = s0_l + (float)frac * (s1_l - s0_l);
+
+                                float s0_r = ds.sample_data[target_frame * ds.channels + 1];
+                                float s1_r = ds.sample_data[next_frame * ds.channels + 1];
+                                s_r = s0_r + (float)frac * (s1_r - s0_r);
                             }
+                        } else {
+                            s_l = s_r = 0.0f;
+                        }
+
+                        // Fade In / Fade Out do Sampler
+                        if (ss.fade_in > 0.001f) {
+                            float fade_in_sec = ss.fade_in * 0.5f;
+                            if (voice.current_time < fade_in_sec) {
+                                float f_in = (voice.current_time / fade_in_sec);
+                                s_l *= f_in;
+                                s_r *= f_in;
+                            }
+                        }
+                        if (ss.fade_out > 0.001f && avail_frames > 0) {
+                            float total_dur = (float)avail_frames / (ds.sample_rate * p_ratio);
+                            float rem = total_dur - voice.current_time;
+                            if (rem < ss.fade_out) {
+                                float f_out = std::max(0.0f, rem / ss.fade_out);
+                                s_l *= f_out;
+                                s_r *= f_out;
+                            }
+                        }
+
+                        // Ganho de volume e polaridade
+                        s_l *= ss.vol;
+                        s_r *= ss.vol;
+                        if (ss.rev_polarity) {
+                            s_l = -s_l;
+                            s_r = -s_r;
+                        }
+
+                        // Envelope ADSR
+                        if (ss.env_enabled) {
+                            float adsr_smp = getSamplerEnvelope(ss, voice.current_time, voice.duration);
+                            s_l *= adsr_smp;
+                            s_r *= adsr_smp;
                         }
                     } else {
                         // Math synthesis fallbacks
+                        float s = 0.0f;
                         float t = voice.current_time;
                         float p_mul = 1.0f;
                         float v_mul = 1.0f;
@@ -1522,7 +1660,8 @@ namespace KuroAudio {
                         if (drum_idx >= 0 && drum_idx < 8) {
                             auto& ss = sampler_settings[drum_idx];
                             t = ss.reverse ? std::max(0.0f, voice.duration - voice.current_time) : voice.current_time;
-                            p_mul = std::pow(2.0f, ss.pitch / 12.0f);
+                            float pitch_st = ss.pitch + (voice.pitch - ss.root_note) + ss.time_pitch + (ss.fine_tune / 100.0f);
+                            p_mul = std::pow(2.0f, pitch_st / 12.0f);
                             v_mul = ss.vol;
                             rev_pol = ss.rev_polarity;
                         }
@@ -1548,18 +1687,23 @@ namespace KuroAudio {
                             // 5. Saturated Analog Punch
                             float raw_kick = (sub_body * 1.35f) + (click_osc * 0.85f) + (click_noise * 0.45f);
                             s = std::tanh(raw_kick * 1.6f) * 1.3f;
-                        } else if (drum_idx == 1) { // Snare
+                        } else if (drum_idx == 1 || drum_idx == 3) { // Snare & Smash Clap
                             static thread_local uint32_t rand_seed = 12345;
                             rand_seed = rand_seed * 196314165 + 907633385;
                             float noise = ((float)rand_seed / 4294967296.0f) - 0.5f;
                             float tone = std::sin(KURO_TWO_PI * 180.0f * p_mul * t) * std::exp(-35.0f * t);
                             s = (tone * 0.35f + noise * 0.65f) * std::exp(-12.0f * t) * 1.0f;
-                        } else if (drum_idx == 2) { // Hihat
+                        } else if (drum_idx == 2 || drum_idx == 5) { // Hihat & Closed Hats / Shakers
                             static thread_local uint32_t rand_seed = 54321;
                             rand_seed = rand_seed * 196314165 + 907633385;
                             float noise = ((float)rand_seed / 4294967296.0f) - 0.5f;
                             s = noise * std::exp(-70.0f * t) * 0.8f;
-                        } else if (drum_idx == 6) { // Clap
+                        } else if (drum_idx == 4 || drum_idx == 7) { // Open Hat
+                            static thread_local uint32_t rand_seed = 65432;
+                            rand_seed = rand_seed * 196314165 + 907633385;
+                            float noise = ((float)rand_seed / 4294967296.0f) - 0.5f;
+                            s = noise * std::exp(-8.0f * t) * 0.7f;
+                        } else if (drum_idx == 6) { // Clap / Percussion
                             static thread_local uint32_t rand_seed = 98765;
                             rand_seed = rand_seed * 196314165 + 907633385;
                             float noise = ((float)rand_seed / 4294967296.0f) - 0.5f;
@@ -1569,11 +1713,6 @@ namespace KuroAudio {
                             else if (t < 0.03f) env = 0.6f;
                             else env = std::exp(-15.0f * (t - 0.03f));
                             s = noise * env * 0.7f;
-                        } else if (drum_idx == 7) { // Open Hat
-                            static thread_local uint32_t rand_seed = 65432;
-                            rand_seed = rand_seed * 196314165 + 907633385;
-                            float noise = ((float)rand_seed / 4294967296.0f) - 0.5f;
-                            s = noise * std::exp(-8.0f * t) * 0.7f;
                         } else if (drum_idx >= 0) { // Other drum fallback
                             float pitch_env = std::exp(-30.0f * t);
                             float tom_freq = (80.0f + 70.0f * pitch_env) * p_mul;
@@ -1634,6 +1773,8 @@ namespace KuroAudio {
                                 s = synthesize(inst_to_play, freq, voice.current_time, voice.phase, voice.duration);
                             }
                         }
+                        s_l = s;
+                        s_r = s;
                     }
 
                     // Aplica Envelope ADSR dos Knobs do FLEX para todos os canais flex-active
@@ -1660,7 +1801,8 @@ namespace KuroAudio {
                                 voice.active = false;
                             }
                         }
-                        s *= adsr;
+                        s_l *= adsr;
+                        s_r *= adsr;
                         
                         // Aplica Filtro Cutoff Ressonante (Macro + Knob + Master Filter + Filter Env)
                         float flt_env_decay = std::exp(-5.0f * voice.current_time);
@@ -1668,8 +1810,25 @@ namespace KuroAudio {
                         cutoff_target = std::max(0.005f, std::min(0.99f, cutoff_target));
                         
                         // Filtro IIR com ressonância dinâmica
-                        voice.filter_state = voice.filter_state + cutoff_target * (s - voice.filter_state);
-                        s = voice.filter_state * (1.0f + fs.filter_res * 0.9f);
+                        voice.filter_state = voice.filter_state + cutoff_target * (s_l - voice.filter_state);
+                        s_l = voice.filter_state * (1.0f + fs.filter_res * 0.9f);
+                        s_r = s_l;
+                    }
+
+                    // ── DE-CLICKING / MICRO-FADE DE TRANSIÇÃO (Anti-Pop) ──
+                    // 2.0ms na subida e 2.5ms no corte/término da voz
+                    constexpr float declick_att_sec = 0.0020f;
+                    if (voice.current_time < declick_att_sec) {
+                        float declick = voice.current_time / declick_att_sec;
+                        s_l *= declick;
+                        s_r *= declick;
+                    }
+                    float rem_voice_t = max_voice_dur - voice.current_time;
+                    constexpr float declick_rel_sec = 0.0025f;
+                    if (rem_voice_t < declick_rel_sec && rem_voice_t >= 0.0f) {
+                        float declick = std::max(0.0f, rem_voice_t / declick_rel_sec);
+                        s_l *= declick;
+                        s_r *= declick;
                     }
 
                     int trk = (voice.track_idx >= 0 && voice.track_idx < MAX_TRACKS) ? voice.track_idx : 0;
@@ -1686,14 +1845,15 @@ namespace KuroAudio {
                         pan_r = std::min(1.0f, 1.0f + p);
                     }
 
-                    float base_sample = s * voice.velocity * 0.3f * voice_gain * channel_gain;
+                    float base_l = s_l * voice.velocity * 0.3f * voice_gain * channel_gain;
+                    float base_r = s_r * voice.velocity * 0.3f * voice_gain * channel_gain;
                     
                     if (trk >= 0 && trk < MAX_TRACKS) {
-                        track_outs_l[trk][i] += base_sample * pan_l;
-                        track_outs_r[trk][i] += base_sample * pan_r;
-                        float abs_s = std::abs(base_sample);
-                        if (abs_s > block_peaks[trk]) {
-                            block_peaks[trk] = abs_s;
+                        track_outs_l[trk][i] += base_l * pan_l;
+                        track_outs_r[trk][i] += base_r * pan_r;
+                        float peak_val = std::max(std::abs(base_l), std::abs(base_r));
+                        if (peak_val > block_peaks[trk]) {
+                            block_peaks[trk] = peak_val;
                         }
                     }
 

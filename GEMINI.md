@@ -17,3 +17,15 @@ Sempre que for solicitado fazer testes, auditar bugs ou validar funcionalidades:
    - Quando o usuário for testar manualmente com seu próprio mouse/teclado, a DAW é iniciada e mantida aberta com o chat pronto.
    - A cada clique ou interação do usuário, snapshots visuais da sessão são registrados.
    - O usuário envia seu áudio descrevendo o que sentiu e o agente analisa os prints cronológicos, correlaciona com o áudio e aplica as correções no código imediatamente.
+
+## Padrão Obrigatório de Processamento de UI e Recorte de Assets (Transparência Alfa e Anti-Aliasing)
+Sempre que uma nova interface, plugin, módulo ou mockup visual for criado ou selecionado:
+1. **Pipeline Padrão Unificado (`tools/ui_asset_processor.py`)**:
+   - É obrigatório utilizar a ferramenta oficial de recorte e processamento de assets.
+   - Criar/manter a receita correspondente em `tools/recipes/<nome_plugin>_recipe.json`.
+2. **Proibição Estrita de Bordas Quadradas sem Canal Alfa**:
+   - É estritamente proibido renderizar elementos circulares (knobs, dials, botões de onda) como retângulos opacos (`Alpha = 255`).
+   - Todo knob rotativo, dial e botão circular DEVE possuir canal alfa 100% transparente fora do seu raio (`Alpha = 0.0`), com suavização anti-aliased sub-pixel na borda externa.
+3. **Geração e Empacotamento de Alta Fidelidade**:
+   - Knobs e Dials devem utilizar a textura de metal escovado anisotrópico gerada proceduralmente ou recortada com máscara alfa circular perfeita.
+   - Os assets devem ser compilados no pacote binário (`textures.bin` / formato `KUROTEX1`) para carregamento instantâneo via C++ no ImGui/OpenGL.

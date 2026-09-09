@@ -13,9 +13,11 @@
 extern KuroAudio::SynthEngine g_piano_synth;
 
 #include "../core/ClipManager.h"
+#include "ChannelInstrumentManager.h"
 
 namespace KuroUI {
     extern CommandManager g_command_manager;
+    extern bool g_open_psy_rolling_bass_window;
 
     enum class PianoRollTool { Draw, Paint, Erase, Mute, Slice, Select };
 
@@ -228,6 +230,8 @@ namespace KuroUI {
         }
     }
 
+    inline bool g_piano_roll_show_ghost_notes = true;
+
     inline void RenderPianoRoll(bool* open, KuroDSP::TimelineManager& timeline_mgr, int track_idx, float bpm, unsigned long long* current_sample_ptr, bool is_playing, ClipManager& clip_manager, std::vector<KuroDSP::MidiNote>* ghost_notes = nullptr) {
         if (!*open) return;
         static int active_ch_idx = 0;
@@ -247,6 +251,7 @@ namespace KuroUI {
         static bool open_riff_modal = false;
         static bool open_ai_inpainting_modal = false;
         static int bottom_lane_mode = 0;   // 0=Velocity, 1=Pan, 2=Pitch Offset
+        static bool auto_sync_playlist = true;
 
         // Estado do Piano Roll (Definidos antes para acesso pelo botão FIT)
         static float pan_x = 0.0f;
@@ -262,8 +267,14 @@ namespace KuroUI {
             request_auto_fit = true;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(1050, 720), ImGuiCond_FirstUseEver);
-        ImGuiWindowFlags pr_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoFocusOnAppearing;
+        ImGui::SetNextWindowSize(ImVec2(1050, 640), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(245, 50), ImGuiCond_FirstUseEver);
+        extern bool g_need_focus_piano_roll;
+        if (g_need_focus_piano_roll) {
+            ImGui::SetNextWindowFocus();
+            g_need_focus_piano_roll = false;
+        }
+        ImGuiWindowFlags pr_flags = ImGuiWindowFlags_MenuBar;
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.05f, 0.07f, 0.09f, 1.0f));
         if (!ImGui::Begin("Piano Roll###GlobalPianoRollWindow", open, pr_flags)) {
             ImGui::PopStyleColor();
@@ -289,8 +300,16 @@ namespace KuroUI {
 
             // Botões de Transporte (Play / Stop)
             ImGui::SetCursorScreenPos(ImVec2(r_p0.x + 8, r_p0.y + 8));
-            if (ImGui::Button("▶", ImVec2(30, 30))) { ::is_playing = true; } ImGui::SameLine();
-            if (ImGui::Button("■", ImVec2(30, 30))) { ::is_playing = false; } ImGui::SameLine();
+            if (ImGui::Button("▶", ImVec2(30, 30))) {
+                KuroUI::TransportController::Play(timeline_mgr);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play / Reproduzir (Barra de Espaço)");
+            ImGui::SameLine();
+            if (ImGui::Button("■", ImVec2(30, 30))) {
+                KuroUI::TransportController::Stop(timeline_mgr);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop / Parar e Rebobinar");
+            ImGui::SameLine();
 
             // 1. Target Channel Selector com Tag Colorida
             extern std::string track_names[20];
@@ -299,7 +318,7 @@ namespace KuroUI {
             int cur_c = std::clamp(ch_idx, 0, 15);
             snprintf(ch_combo_label, sizeof(ch_combo_label), "%02d. %s", cur_c + 1, ::track_names[cur_c].c_str());
             
-            ImGui::SetNextItemWidth(190);
+            ImGui::SetNextItemWidth(145);
             if (ImGui::BeginCombo("##pr_channel_select", ch_combo_label)) {
                 for (int t = 0; t < 16; t++) {
                     bool is_sel = (ch_idx == t);
@@ -314,6 +333,59 @@ namespace KuroUI {
                     if (is_sel) ImGui::SetItemDefaultFocus();
                 }
                 ImGui::EndCombo();
+            }
+            ImGui::SameLine(0, 4);
+
+            // 1.1 Pílula do Instrumento Ativo com Ícone e 1-Clique para Abrir Editor
+            char inst_pill_lbl[96];
+            snprintf(inst_pill_lbl, sizeof(inst_pill_lbl), "%s %s##pr_pill", GetChannelIcon(cur_c), GetChannelInstrumentName(cur_c));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.16f, 0.22f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.16f, 0.24f, 0.32f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.08f, 0.30f, 0.38f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.00f, 0.90f, 1.00f, 1.0f));
+            if (ImGui::Button(inst_pill_lbl, ImVec2(0, 24))) {
+                TriggerOpenInstrument(cur_c);
+            }
+            ImGui::PopStyleColor(4);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Abrir Editor Gráfico: %s (1 Clique)", GetChannelInstrumentName(cur_c));
+            }
+            ImGui::SameLine(0, 3);
+
+            // 1.2 Botão de Menu de 4 Pontinhos (☷) para Trocar Instrumento Diretamente do Piano Roll
+            std::string pr_popup_id = "##pr_inst_menu_" + std::to_string(cur_c);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.18f, 0.24f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.28f, 0.38f, 1.0f));
+            if (ImGui::Button("☷##pr_m4_btn", ImVec2(24, 24))) {
+                ImGui::OpenPopup(pr_popup_id.c_str());
+            }
+            ImGui::PopStyleColor(2);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Substituir Instrumento / Carregar Sample / Opções da Faixa");
+            }
+
+            if (ImGui::BeginPopup(pr_popup_id.c_str())) {
+                float beat_dur = 60.0f / (bpm > 20.0f ? bpm : 140.0f);
+                float s_step = beat_dur * 0.25f;
+                RenderChannelInstrumentMenu(cur_c, clip_manager, s_step, nullptr);
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 4);
+
+            // 1.3 Botão Rápido para Abrir o Editor de Sample (ADSR, Pitch, Waveform)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.16f, 0.22f, 0.28f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.22f, 0.32f, 0.42f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.00f, 0.85f, 1.00f, 1.0f));
+            if (ImGui::Button("🎛️ Sample##pr_sample_btn", ImVec2(0, 24))) {
+                extern bool show_sampler_settings;
+                extern int active_sampler_channel;
+                selected_track_idx = cur_c;
+                active_sampler_channel = cur_c;
+                show_sampler_settings = true;
+            }
+            ImGui::PopStyleColor(3);
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Abrir Editor de Sample desta Faixa (ADSR, Pitch, Waveform, Filtro)");
             }
             ImGui::SameLine(0, 6);
 
@@ -465,6 +537,53 @@ namespace KuroUI {
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("AI Note Inpainting: Variação e mutação generativa de melodias, acordes e baixo (Suno / FL)");
 
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.65f, 0.55f, 0.95f));
+            if (ImGui::Button("🛸 Rolling Bass")) {
+                g_open_psy_rolling_bass_window = true;
+                if (open) *open = false;
+            }
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Abrir Gerador Especializado de Rolling Bassline de Psytrance (Kuro Rolling Bass Engine)");
+
+            ImGui::SameLine();
+            if (auto_sync_playlist) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.65f, 0.35f, 0.95f));
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.28f, 0.32f, 0.95f));
+            }
+            if (ImGui::Button(auto_sync_playlist ? "📌 Auto-Sync Playlist [ON]" : "📌 Auto-Sync Playlist [OFF]")) {
+                auto_sync_playlist = !auto_sync_playlist;
+            }
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Quando ativado, envia e atualiza automaticamente este Pattern na Trilha correspondente da Playlist!");
+
+            ImGui::SameLine();
+            if (ImGui::Button("🚀 Enviar p/ Playlist")) {
+                auto& p_notes = clip_manager.global_patterns[clip_manager.current_pattern_idx].getChannelNotes(ch_idx);
+                float max_t = 0.0f;
+                for (const auto& n : p_notes) {
+                    if (n.start_time + n.duration > max_t) max_t = n.start_time + n.duration;
+                }
+                float bar_len = (60.0f / bpm) * 4.0f;
+                float clip_len = (std::max)(bar_len * 4.0f, std::ceil(max_t / bar_len) * bar_len);
+                int pat_id = clip_manager.global_patterns[clip_manager.current_pattern_idx].id;
+                clip_manager.addPatternClip(ch_idx, 0.0f, clip_len, pat_id);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Cria imediatamente um bloco deste Pattern na Playlist na faixa atual");
+
+            ImGui::SameLine();
+            if (g_piano_roll_show_ghost_notes) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.32f, 0.38f, 0.48f, 0.95f));
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.20f, 0.24f, 0.95f));
+            }
+            if (ImGui::Button(g_piano_roll_show_ghost_notes ? "👻 Ghost Notes [ON]" : "👻 Ghost Notes [OFF]")) {
+                g_piano_roll_show_ghost_notes = !g_piano_roll_show_ghost_notes;
+            }
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Exibir Notas Fantasma (Ghost Notes) de outros canais ativos do mesmo Pattern");
+
             // --- MODAL DO AI NOTE INPAINTING (SUNO / FL) ---
             if (open_ai_inpainting_modal) {
                 ImGui::OpenPopup("AINoteInpaintingModal");
@@ -574,9 +693,9 @@ namespace KuroUI {
         if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
         ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
         
-        // Fundo do Canvas & Moldura Neon Ciano Dupla
+        // Fundo do Canvas com contorno escuro sutil (moldura ciano unificada na janela externa)
         draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(12, 16, 23, 255));
-        draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(0, 229, 255, 255), 4.0f, 0, 2.0f);
+        draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(25, 35, 48, 255), 4.0f, 0, 1.0f);
         
         // --- Controles de Navegação Estilo FL Studio (Mouse Wheel, Shift, Ctrl) ---
         ImGuiIO& io = ImGui::GetIO();
@@ -777,7 +896,7 @@ namespace KuroUI {
                             
                             interaction_mode = (current_tool == PianoRollTool::Paint) ? 4 : 2; 
                             last_painted_time = time_snapped;
-                            g_piano_synth.triggerNote(pitch, 0.5f, 0.8f); // Preview
+                            g_piano_synth.triggerNote(pitch, 0.5f, 0.8f, ch_idx); // Preview no canal correto
                         }
                     } else if (current_tool == PianoRollTool::Erase) {
                         if (hovered_note_idx != -1) {
@@ -850,7 +969,7 @@ namespace KuroUI {
                     note.velocity = 0.8f;
                     notes.push_back(note);
                     last_painted_time = time_snapped;
-                    g_piano_synth.triggerNote(pitch, 0.5f, 0.8f);
+                    g_piano_synth.triggerNote(pitch, 0.5f, 0.8f, ch_idx);
                 }
             } else if (interaction_mode == 5) { // Erasing
                 for (auto it = notes.begin(); it != notes.end(); ) {
@@ -915,21 +1034,59 @@ namespace KuroUI {
         }
 
         // Render FL Studio Ghost Notes from other channels of active pattern
-        auto& current_pat = clip_manager.global_patterns[clip_manager.current_pattern_idx];
-        for (int c = 0; c < 8; c++) {
-            if (c == ch_idx) continue;
-            for (const auto& gnote : current_pat.getChannelNotes(c)) {
-                int row = (num_keys - 1) - (gnote.pitch - start_pitch);
-                float y0 = canvas_p0.y - pan_y + row * zoom_y;
-                float x0 = grid_start_x - pan_x + gnote.start_time * zoom_x;
-                float x1 = x0 + gnote.duration * zoom_x;
-                
-                if (y0 + zoom_y > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
-                    draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), IM_COL32(100, 110, 120, 80), 2.0f);
-                    draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), IM_COL32(130, 140, 150, 100), 2.0f);
+        if (g_piano_roll_show_ghost_notes) {
+            auto& current_pat = clip_manager.global_patterns[clip_manager.current_pattern_idx];
+            for (int c = 0; c < 8; c++) {
+                if (c == ch_idx) continue;
+                const auto& ch_notes = current_pat.getChannelNotes(c);
+                if (ch_notes.empty()) continue;
+
+                // Cores discretas para identificação visual dos canais
+                ImU32 ghost_fill = (c == 0) ? IM_COL32(155, 85, 75, 90)    // Kick (terracota suave)
+                                 : (c == 1) ? IM_COL32(50, 125, 165, 90)   // Bass (azul ardósia)
+                                 : (c == 2) ? IM_COL32(140, 140, 65, 90)   // Snare (amarelo suave)
+                                            : IM_COL32(110, 120, 135, 80);  // Outros
+
+                ImU32 ghost_border = (c == 0) ? IM_COL32(195, 110, 100, 160)
+                                   : (c == 1) ? IM_COL32(70, 165, 205, 160)
+                                   : (c == 2) ? IM_COL32(185, 185, 90, 160)
+                                              : IM_COL32(135, 145, 160, 140);
+
+                const char* ch_tag = (c == 0) ? "Kick" : (c == 1) ? "Bass" : (c == 2) ? "Snare" : "Ch";
+
+                for (const auto& gnote : ch_notes) {
+                    int row = (num_keys - 1) - (gnote.pitch - start_pitch);
+                    float y0 = canvas_p0.y - pan_y + row * zoom_y;
+                    float x0 = grid_start_x - pan_x + gnote.start_time * zoom_x;
+                    float x1 = x0 + gnote.duration * zoom_x;
+                    
+                    if (y0 + zoom_y > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
+                        draw_list->AddRectFilled(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), ghost_fill, 3.0f);
+                        draw_list->AddRect(ImVec2(x0, y0 + 1), ImVec2(x1 - 1, y0 + zoom_y - 1), ghost_border, 3.0f, 0, 1.0f);
+
+                        // Imprime tag do canal quando há espaço suficiente na nota
+                        if (x1 - x0 > 24.0f && zoom_y >= 12.0f) {
+                            draw_list->AddText(ImVec2(x0 + 3.0f, y0 + 1.0f), ghost_border, ch_tag);
+                        }
+                    }
                 }
             }
         }
+
+        // Cálculo Preciso do Playhead e Tempo de Loop do Pattern (Sincronizado)
+        float pr_beat_len = 60.0f / (bpm > 20.0f ? bpm : 140.0f);
+        float pr_max_note_t = 0.0f;
+        for (const auto& n : notes) {
+            if (n.start_time + n.duration > pr_max_note_t) pr_max_note_t = n.start_time + n.duration;
+        }
+        float pr_total_beats = std::ceil(pr_max_note_t / pr_beat_len);
+        if (pr_total_beats < 4.0f) pr_total_beats = 4.0f; // Mínimo 1 compasso
+        float pr_loop_beats = std::ceil(pr_total_beats / 4.0f) * 4.0f;
+        float pr_loop_len = pr_loop_beats * pr_beat_len;
+
+        float raw_playhead_t = (float)(*current_sample_ptr) / 44100.0f;
+        float playhead_time = is_playing ? fmodf(raw_playhead_t, pr_loop_len) : 0.0f;
+        float playhead_x = grid_start_x - pan_x + playhead_time * zoom_x;
 
         for (auto& note : notes) {
             int row = (num_keys - 1) - (note.pitch - start_pitch);
@@ -941,14 +1098,15 @@ namespace KuroUI {
             if (y1 > canvas_p0.y && y0 < canvas_p1.y && x1 > grid_start_x && x0 < canvas_p1.x) {
                 // Paleta de Cores Reimaginada (Ciano Elétrico #00E5FF & Magenta Neon #FF007F)
                 bool is_magenta = (note.pitch >= 57 && note.pitch <= 64 && note.start_time >= 1.2f);
-                ImU32 color = note.is_playing ? IM_COL32(57, 255, 20, 255) : (is_magenta ? IM_COL32(255, 0, 127, 230) : IM_COL32(0, 229, 255, 230));
+                bool is_note_active = is_playing && (playhead_time >= note.start_time && playhead_time < note.start_time + (note.duration > 0.05f ? note.duration : 0.15f));
+                ImU32 color = is_note_active ? IM_COL32(57, 255, 140, 255) : (is_magenta ? IM_COL32(255, 0, 127, 230) : IM_COL32(0, 229, 255, 230));
                 if (note.is_muted) color = IM_COL32(80, 90, 100, 150);
-                ImU32 border_col = note.is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 255, 255, 220);
-                float border_thickness = note.is_selected ? 2.5f : 1.5f;
+                ImU32 border_col = (is_note_active || note.is_selected) ? IM_COL32(255, 255, 255, 255) : IM_COL32(255, 255, 255, 220);
+                float border_thickness = (is_note_active || note.is_selected) ? 2.5f : 1.5f;
                 
                 // Bloco Neon com Textura PNG Sprite e cantos arredondados
                 GLuint note_tex = is_magenta ? g_piano_sprites.neon_note_purple_tex : g_piano_sprites.neon_note_cyan_tex;
-                if (note_tex && !note.is_playing && !note.is_muted) {
+                if (note_tex && !is_note_active && !note.is_muted) {
                     draw_list->AddImage((ImTextureID)(intptr_t)note_tex, ImVec2(x0, y0 + 2.0f), ImVec2(x1 - 1.0f, y1 - 2.0f));
                 } else {
                     draw_list->AddRectFilled(ImVec2(x0, y0 + 2.0f), ImVec2(x1 - 1.0f, y1 - 2.0f), color, 4.0f);
@@ -1096,10 +1254,7 @@ namespace KuroUI {
         draw_list->AddLine(ImVec2(grid_start_x, canvas_p0.y), ImVec2(grid_start_x, canvas_p0.y + pr_ruler_h), IM_COL32(35, 50, 70, 255), 2.0f);
         draw_list->AddText(ImVec2(canvas_p0.x + 8.0f, canvas_p0.y + 6.0f), IM_COL32(0, 229, 255, 255), "🎹 PIANO ROLL");
 
-        float playhead_time = (float)(*current_sample_ptr) / 44100.0f;
-        float playhead_x = grid_start_x - pan_x + playhead_time * zoom_x;
-        
-        // Laser Playhead vermelho / ciano brilhante
+        // Laser Playhead ciano brilhante com triângulo marcador sincronizado com o loop
         draw_list->PushClipRect(ImVec2(grid_start_x, canvas_p0.y), canvas_p1, true);
         if (playhead_x >= grid_start_x && playhead_x < canvas_p1.x) {
             draw_list->AddLine(ImVec2(playhead_x, canvas_p0.y), ImVec2(playhead_x, canvas_p1.y), IM_COL32(0, 255, 255, 255), 2.0f);
@@ -1194,6 +1349,21 @@ namespace KuroUI {
                 GLuint w_tex = g_piano_sprites.white_key_tex;
                 draw_list->AddImage((ImTextureID)(intptr_t)w_tex, ImVec2(canvas_p0.x, y), ImVec2(canvas_p0.x + key_width, y + zoom_y));
             }
+
+            // Animação de Tecla Pressionada / Iluminada ao Tocar
+            bool key_is_active = false;
+            if (is_playing) {
+                for (const auto& n : notes) {
+                    if (n.pitch == pitch && playhead_time >= n.start_time && playhead_time < n.start_time + (n.duration > 0.05f ? n.duration : 0.15f)) {
+                        key_is_active = true;
+                        break;
+                    }
+                }
+            }
+            if (key_is_active) {
+                draw_list->AddRectFilled(ImVec2(canvas_p0.x + 2, y + 1), ImVec2(canvas_p0.x + key_width - 2, y + zoom_y - 1), IM_COL32(0, 229, 255, 170), 3.0f);
+                draw_list->AddRect(ImVec2(canvas_p0.x + 2, y + 1), ImVec2(canvas_p0.x + key_width - 2, y + zoom_y - 1), IM_COL32(255, 255, 255, 240), 3.0f, 0, 1.5f);
+            }
             
             // Nomes das notas e oitavas
             if (zoom_y > 12.0f) {
@@ -1254,7 +1424,7 @@ namespace KuroUI {
                         if (last_slide_pitch != -1) {
                             g_piano_synth.releaseNote(last_slide_pitch);
                         }
-                        g_piano_synth.triggerNote(hovered_pitch, 10.0f, 0.8f);
+                        g_piano_synth.triggerNote(hovered_pitch, 1.5f, 0.8f, ch_idx);
                         last_slide_pitch = hovered_pitch;
                     }
                 }
@@ -1306,6 +1476,16 @@ namespace KuroUI {
                 // Fundo da Pílula
                 v_draw->AddRectFilled(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(20, 26, 35, 255), 6.0f);
                 v_draw->AddRect(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(50, 65, 80, 255), 6.0f);
+
+                bool is_step_active = false;
+                if (i < (int)ch_notes.size()) {
+                    auto& n = ch_notes[i];
+                    is_step_active = is_playing && (playhead_time >= n.start_time && playhead_time < n.start_time + (n.duration > 0.05f ? n.duration : 0.15f));
+                }
+                if (is_step_active) {
+                    v_draw->AddRectFilled(ImVec2(px + 2, py_top), ImVec2(px + pill_w - 2, py_bot), IM_COL32(255, 255, 255, 45), 6.0f);
+                    v_draw->AddRect(ImVec2(px + 1, py_top - 1), ImVec2(px + pill_w - 1, py_bot + 1), IM_COL32(57, 255, 140, 255), 6.0f, 0, 2.0f);
+                }
 
                 if (i < (int)ch_notes.size()) {
                     auto& n = ch_notes[i];
@@ -1501,6 +1681,29 @@ namespace KuroUI {
         float max_pan_y = std::max(0.0f, total_height - canvas_sz.y);
         ImGui::VSliderFloat("##pan_y", ImVec2(15.0f, canvas_sz.y), &pan_y, max_pan_y, 0.0f, "");
         ImGui::PopStyleColor();
+
+        // Auto-Sync Automático Inteligente para a Playlist: garante que as notas do Piano Roll estejam visíveis na Playlist
+        if (auto_sync_playlist && !notes.empty() && clip_manager.current_pattern_idx >= 0 && clip_manager.current_pattern_idx < (int)clip_manager.global_patterns.size()) {
+            float max_t = 0.0f;
+            for (const auto& n : notes) {
+                if (n.start_time + n.duration > max_t) max_t = n.start_time + n.duration;
+            }
+            float bar_len = (60.0f / bpm) * 4.0f;
+            float needed_len = (std::max)(bar_len * 4.0f, std::ceil(max_t / bar_len) * bar_len);
+            int pat_id = clip_manager.global_patterns[clip_manager.current_pattern_idx].id;
+
+            auto existing = clip_manager.getMidiClips(ch_idx);
+            bool found = false;
+            for (const auto& mc : existing) {
+                if (mc.pattern_id == pat_id) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                clip_manager.addPatternClip(ch_idx, 0.0f, needed_len, pat_id);
+            }
+        }
 
         ImGui::PopStyleColor(); // Pop WindowBg color
         ImGui::End();

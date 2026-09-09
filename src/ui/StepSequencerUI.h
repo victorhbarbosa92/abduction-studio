@@ -9,6 +9,7 @@
 #include <string>
 
 #include "../core/ClipManager.h"
+#include "ChannelInstrumentManager.h"
 
 extern float dummy_vol[MAX_TRACKS];
 extern float dummy_pan[MAX_TRACKS];
@@ -204,9 +205,14 @@ namespace KuroUI {
             float header_right_w = 180.0f;
             ImGui::SameLine(ImGui::GetContentRegionAvail().x - header_right_w);
 
-            // Swing Knob
-            static float swing_amount = 0.0f;
-            FLKnob("##cr_swing", &swing_amount, 0.0f, 1.0f, 6.5f, "Swing: %.0f%%");
+            // Swing Knob (Conectado ao motor de áudio)
+            float cr_swing = timeline_mgr.getSwing();
+            if (FLKnob("##cr_swing", &cr_swing, 0.0f, 1.0f, 6.5f, "Swing: %.0f%%")) {
+                timeline_mgr.setSwing(cr_swing);
+            }
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Groove Swing / Shuffle Global: %.0f%%", cr_swing * 100.0f);
+            }
             ImGui::SameLine(0, 10);
 
             // Global Options [...]
@@ -228,6 +234,10 @@ namespace KuroUI {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
             if (ImGui::Button("🎹##cr_pr_toggle", ImVec2(22, 20))) {
                 show_piano_roll = !show_piano_roll;
+                if (show_piano_roll) {
+                    extern bool g_need_focus_piano_roll;
+                    g_need_focus_piano_roll = true;
+                }
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Alternar Visualização do Piano Roll (F7)");
             ImGui::PopStyleColor(2);
@@ -339,11 +349,34 @@ namespace KuroUI {
                 }
                 cur_x += 28.0f;
 
-                // 3.5 Botão Tátil do Canal (FL Studio Name Button com chanfro e cor)
+                // 3.5.1 Ícone do Instrumento (Atalho de 1 Clique para Abrir o Editor Gráfico)
+                ImVec2 icon_p0 = ImVec2(cur_x, cur_y + 1.0f);
+                ImVec2 icon_p1 = ImVec2(cur_x + 22.0f, cur_y + 21.0f);
+                bool is_icon_hovered = io.MousePos.x >= icon_p0.x && io.MousePos.x <= icon_p1.x && io.MousePos.y >= icon_p0.y && io.MousePos.y <= icon_p1.y;
+
+                ImU32 icon_bg = is_icon_hovered ? IM_COL32(32, 46, 60, 255) : IM_COL32(20, 25, 32, 255);
+                draw->AddRectFilled(icon_p0, icon_p1, icon_bg, 3.0f);
+                draw->AddRect(icon_p0, icon_p1, is_icon_hovered ? IM_COL32(0, 229, 255, 220) : IM_COL32(35, 45, 55, 255), 3.0f);
+
+                const char* inst_icon = GetChannelIcon(inst);
+                ImVec2 icon_sz = ImGui::CalcTextSize(inst_icon);
+                draw->AddText(ImVec2(icon_p0.x + (22.0f - icon_sz.x) * 0.5f, icon_p0.y + 2.0f), IM_COL32(255, 255, 255, 255), inst_icon);
+
+                ImGui::SetCursorScreenPos(icon_p0);
+                if (ImGui::InvisibleButton("##inst_icon_btn", ImVec2(22, 20))) {
+                    selected_track_idx = inst;
+                    TriggerOpenInstrument(inst);
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Abrir Editor: %s (1 Clique)", GetChannelInstrumentName(inst));
+                }
+                cur_x += 24.0f;
+
+                // 3.5.2 Botão Tátil do Canal (FL Studio Name Button com chanfro e cor)
                 bool is_selected = (selected_track_idx == inst);
                 const char* ch_name = (!::track_names[inst].empty()) ? ::track_names[inst].c_str() : default_names[inst % 16];
                 
-                float btn_w = 110.0f;
+                float btn_w = 86.0f;
                 float btn_h = 20.0f;
                 ImVec2 btn_p0 = ImVec2(cur_x, cur_y + 1.0f);
                 ImVec2 btn_p1 = ImVec2(cur_x + btn_w, cur_y + 1.0f + btn_h);
@@ -361,8 +394,13 @@ namespace KuroUI {
                 draw->AddLine(ImVec2(btn_p0.x, btn_p1.y), btn_p1, IM_COL32(18, 22, 26, 255));
                 draw->AddRect(btn_p0, btn_p1, is_selected ? IM_COL32(0, 220, 255, 220) : IM_COL32(22, 26, 30, 255), 2.0f);
 
+                // Tarja inferior de cor personalizada se definida
+                if (g_channel_slots[inst].custom_color != 0) {
+                    draw->AddLine(ImVec2(btn_p0.x + 2.0f, btn_p1.y - 1.5f), ImVec2(btn_p1.x - 2.0f, btn_p1.y - 1.5f), g_channel_slots[inst].custom_color, 2.0f);
+                }
+
                 // Texto do Instrumento
-                draw->AddText(ImVec2(btn_p0.x + 8.0f, btn_p0.y + 3.0f), is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(210, 220, 230, 255), ch_name);
+                draw->AddText(ImVec2(btn_p0.x + 6.0f, btn_p0.y + 3.0f), is_selected ? IM_COL32(255, 255, 255, 255) : IM_COL32(210, 220, 230, 255), ch_name);
 
                 ImGui::SetCursorScreenPos(btn_p0);
                 if (ImGui::InvisibleButton("##ch_btn", ImVec2(btn_w, btn_h))) {
@@ -377,51 +415,47 @@ namespace KuroUI {
                     selected_track_idx = inst;
                     ImGui::OpenPopup(popup_name.c_str());
                 }
+                if (g_force_open_popup_ch == inst) {
+                    selected_track_idx = inst;
+                    ImGui::OpenPopup(popup_name.c_str());
+                    g_force_open_popup_ch = -1;
+                }
+
+                cur_x += btn_w + 2.0f;
+
+                // 3.5.3 Botão de Menu de 4 Pontinhos (☷) para Troca Direta de Instrumento / Sample
+                ImVec2 m4_p0 = ImVec2(cur_x, cur_y + 1.0f);
+                ImVec2 m4_p1 = ImVec2(cur_x + 19.0f, cur_y + 21.0f);
+                bool is_m4_hovered = io.MousePos.x >= m4_p0.x && io.MousePos.x <= m4_p1.x && io.MousePos.y >= m4_p0.y && io.MousePos.y <= m4_p1.y;
+
+                ImU32 m4_bg = is_m4_hovered ? IM_COL32(45, 58, 72, 255) : IM_COL32(26, 32, 40, 255);
+                draw->AddRectFilled(m4_p0, m4_p1, m4_bg, 3.0f);
+                draw->AddRect(m4_p0, m4_p1, is_m4_hovered ? IM_COL32(0, 229, 255, 200) : IM_COL32(36, 44, 52, 255), 3.0f);
+
+                // Desenho geométrico dos 4 pontinhos vetoriais (2x2)
+                float m4_cx = m4_p0.x + 9.5f;
+                float m4_cy = m4_p0.y + 10.0f;
+                ImU32 dot_col = is_m4_hovered ? IM_COL32(0, 240, 255, 255) : IM_COL32(180, 195, 210, 220);
+                draw->AddCircleFilled(ImVec2(m4_cx - 3.2f, m4_cy - 3.2f), 1.5f, dot_col);
+                draw->AddCircleFilled(ImVec2(m4_cx + 3.2f, m4_cy - 3.2f), 1.5f, dot_col);
+                draw->AddCircleFilled(ImVec2(m4_cx - 3.2f, m4_cy + 3.2f), 1.5f, dot_col);
+                draw->AddCircleFilled(ImVec2(m4_cx + 3.2f, m4_cy + 3.2f), 1.5f, dot_col);
+
+                ImGui::SetCursorScreenPos(m4_p0);
+                if (ImGui::InvisibleButton("##m4_menu_btn", ImVec2(19, 20))) {
+                    selected_track_idx = inst;
+                    ImGui::OpenPopup(popup_name.c_str());
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Menu de Instrumentos, Sintetizadores & Opções da Faixa");
+                }
 
                 if (ImGui::BeginPopup(popup_name.c_str())) {
-                    ImGui::TextColored(ImVec4(0.00f, 0.85f, 1.00f, 1.0f), "🎛️ %s", ch_name);
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("🎹 Abrir no Piano Roll (F7)")) {
-                        selected_track_idx = inst;
-                        show_piano_roll = true;
-                    }
-                    if (ImGui::MenuItem("🎛️ Configurações do Sampler / Envelopes")) {
-                        selected_track_idx = inst;
-                        show_sampler_settings = true;
-                    }
-                    if (ImGui::MenuItem("🎹 Sintetizador FLEX (WaveTable)")) {
-                        selected_track_idx = inst;
-                        show_flex_browser = true;
-                    }
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("⚡ Preencher a cada 2 passos (8 avos)")) {
-                        auto& notes = active_pat.getChannelNotes(inst);
-                        notes.clear();
-                        for (int s = 0; s < 16; s += 2) {
-                            notes.push_back(KuroDSP::MidiNote(track_pitches[inst], s * snap_step, snap_step * 0.85f, 0.90f, 1.0f, inst));
-                        }
-                    }
-                    if (ImGui::MenuItem("⚡ Preencher a cada 4 passos (4-on-the-floor)")) {
-                        auto& notes = active_pat.getChannelNotes(inst);
-                        notes.clear();
-                        for (int s = 0; s < 16; s += 4) {
-                            notes.push_back(KuroDSP::MidiNote(track_pitches[inst], s * snap_step, snap_step * 0.85f, 0.95f, 1.0f, inst));
-                        }
-                    }
-                    if (ImGui::MenuItem("⚡ Preencher a cada 8 passos")) {
-                        auto& notes = active_pat.getChannelNotes(inst);
-                        notes.clear();
-                        for (int s = 0; s < 16; s += 8) {
-                            notes.push_back(KuroDSP::MidiNote(track_pitches[inst], s * snap_step, snap_step * 0.85f, 0.95f, 1.0f, inst));
-                        }
-                    }
-                    if (ImGui::MenuItem("🧹 Limpar todos os passos")) {
-                        active_pat.getChannelNotes(inst).clear();
-                    }
+                    RenderChannelInstrumentMenu(inst, clip_manager, snap_step, track_pitches);
                     ImGui::EndPopup();
                 }
 
-                cur_x += btn_w + 5.0f;
+                cur_x += 21.0f;
 
                 // 3.6 Barra de Atividade / Áudio (Pill Vertical que brilha verde quando tocado)
                 float act_val = g_channel_activity[inst];
@@ -545,7 +579,9 @@ namespace KuroUI {
                     ImGui::PopID();
                 }
 
-                ImGui::SetCursorScreenPos(ImVec2(row_p0.x, row_p0.y + row_h + 3.0f));
+                // Declarar a área da linha para o ImGui expandir as bordas e scrollbars corretamente
+                ImGui::SetCursorScreenPos(ImVec2(row_p0.x, row_p0.y));
+                ImGui::Dummy(ImVec2(cur_x - row_p0.x + 10.0f, row_h + 3.0f));
                 ImGui::PopID();
             }
         }
@@ -587,5 +623,8 @@ namespace KuroUI {
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();
+
+        // Modal de renomeação de faixa (se ativo)
+        RenderTrackRenameModal();
     }
 }

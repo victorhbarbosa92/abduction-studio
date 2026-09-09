@@ -1315,5 +1315,663 @@ namespace KuroDSP {
             ImGui::PopStyleColor();
         }
     };
+
+    // 10. Psytrance Rolling Bass Synth (Kuro Rolling Bass Engine)
+    class PsytranceRollingBassSynth : public MpeSynthNode {
+    public:
+        struct VoiceMoogState {
+            float y1 = 0.0f, y2 = 0.0f, y3 = 0.0f, y4 = 0.0f;
+            float oldx = 0.0f, oldy1 = 0.0f, oldy2 = 0.0f, oldy3 = 0.0f;
+        };
+
+        struct Voice {
+            int note_id = 0;
+            int key = 36;
+            float freq = 55.0f;
+            float phase = 0.0f;
+            float sub_phase = 0.0f;
+            float velocity = 1.0f;
+            float env_filter = 1.0f;
+            float env_amp = 1.0f;
+            float env_pitch = 1.0f;
+            float time_alive = 0.0f;
+            bool active = false;
+            bool note_on = false;
+            float click_time = 0.0f;
+            VoiceMoogState filter_state;
+        };
+
+        struct BiquadHPF {
+            float x1 = 0.0f, x2 = 0.0f;
+            float y1 = 0.0f, y2 = 0.0f;
+            inline float process(float in, float b0, float b1, float b2, float a1, float a2) {
+                float out = b0 * in + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+                x2 = x1; x1 = in;
+                y2 = y1; y1 = out;
+                return out;
+            }
+            void reset() { x1 = x2 = y1 = y2 = 0.0f; }
+        };
+
+    private:
+        std::vector<Voice> voices;
+        BiquadHPF hpf_stage1;
+        BiquadHPF hpf_stage2;
+
+        // Parâmetros DSP
+        int osc_type = 0; // 0=Psy Saw, 1=Square, 2=Sub-Sine, 3=Morph Saw/Square
+        float phase_retrigger_deg = 90.0f; // 0 a 360 graus
+        float transient_click = 0.45f;
+        float cutoff_hz = 450.0f;
+        float resonance = 0.40f;
+        float env_decay_sec = 0.085f;
+        float env_amount = 0.85f;
+        float drive_amt = 0.35f;
+        float sub_level = 0.40f;
+        float master_vol = 0.90f;
+
+        // Laser Pitch Punch & Sub Low-Cut
+        float pitch_depth_semitones = 18.0f;
+        float pitch_decay_sec = 0.004f;
+        float hpf_cutoff_hz = 32.0f;
+
+        // Targets para interpolação suave
+        float cutoff_target = 450.0f;
+        float resonance_target = 0.40f;
+        float env_decay_target = 0.085f;
+        float env_amount_target = 0.85f;
+        float drive_target = 0.35f;
+        float sub_target = 0.40f;
+        float click_target = 0.45f;
+        float pitch_depth_target = 18.0f;
+        float pitch_decay_target = 0.004f;
+        float hpf_cutoff_target = 32.0f;
+
+        int synth_model = 0; // 0=Kuro Moog 24dB, 1=Virus TI Hyper-Saw, 2=Nord Lead Punch, 3=FM Sub-Rolling Bass, 4=Analog Monster Sub
+
+        // ── MOTOR DE SÍNTESE DO KICK DRUM INTEGRADO (PUNCH + SUB + PHASE ALIGN) ──
+        bool kick_enabled = true;
+        bool kick_active = false;
+        float kick_time = 0.0f;
+        float kick_phase = 0.0f;
+        float kick_velocity = 1.0f;
+        float kick_start_hz = 185.0f;      // Frequência de ataque do punch (120Hz a 350Hz)
+        float kick_end_hz = 50.0f;         // Fundamental do sub-grave afinado (35Hz a 75Hz)
+        float kick_pitch_decay_ms = 36.0f; // Queda rápida de afinação (15ms a 70ms)
+        float kick_amp_decay_ms = 220.0f;  // Duração do corpo/cauda (100ms a 380ms)
+        float kick_click = 0.80f;          // Transiente de marreta/clique mecânico (0 a 1)
+        float kick_drive = 0.60f;          // Saturação analógica e pegada de fita (0 a 1)
+        float kick_vol = 0.95f;            // Volume independente do bumbo
+        float kick_phase_align = 0.0f;     // Alinhamento fino de fase (0 a 360 graus) relativo ao baixo
+
+        // ── MOTOR DE SÍNTESE DO PSY SNARE / CLAP INTEGRADO ──
+        bool snare_enabled = true;
+        bool snare_active = false;
+        float snare_time = 0.0f;
+        float snare_phase = 0.0f;
+        float snare_velocity = 1.0f;
+        float snare_tone_hz = 210.0f;        // Frequência do corpo do tambor
+        float snare_noise_decay_ms = 135.0f; // Cauda de ruído estalado
+        float snare_snap = 0.85f;            // Estalo de transiente agudo
+        float snare_vol = 0.80f;             // Volume independente da caixa
+        float snare_bpf1 = 0.0f, snare_bpf2 = 0.0f;
+
+        // Buffer do Osciloscópio Vetorial Expandido (2048 amostras para travamento perfeito de zero-crossing)
+        static const int OSC_BUF_SIZE = 2048;
+        float osc_buffer[OSC_BUF_SIZE] = { 0 };
+        int osc_write_idx = 0;
+
+        // PolyBLEP anti-aliasing residual
+        static inline float poly_blep(float t, float dt) {
+            if (t < dt) {
+                t /= dt;
+                return t + t - t * t - 1.0f;
+            } else if (t > 1.0f - dt) {
+                t = (t - 1.0f) / dt;
+                return t * t + t + t + 1.0f;
+            }
+            return 0.0f;
+        }
+
+        // 4-Pole Moog Ladder Filter
+        inline float processMoogLadder(float in, float cutoff, float res, VoiceMoogState& st) {
+            float f = 2.0f * cutoff / sample_rate;
+            f = std::clamp(f, 0.001f, 0.95f);
+            float k = 3.6f * f - 1.6f * f * f - 1.0f;
+            float p = (k + 1.0f) * 0.5f;
+            float scale = std::exp((1.0f - p) * 1.386249f);
+            float r = res * scale;
+
+            float x = in - r * st.y4;
+            x = std::tanh(x * 1.15f); // Saturação não-linear do circuito
+
+            st.y1 = x * p + st.oldx * p - k * st.y1;
+            st.y2 = st.y1 * p + st.oldy1 * p - k * st.y2;
+            st.y3 = st.y2 * p + st.oldy2 * p - k * st.y3;
+            st.y4 = st.y3 * p + st.oldy3 * p - k * st.y4;
+
+            st.oldx = x; st.oldy1 = st.y1; st.oldy2 = st.y2; st.oldy3 = st.y3;
+            return st.y4;
+        }
+
+    public:
+        PsytranceRollingBassSynth(const std::string& id) 
+            : MpeSynthNode(id, "Kuro Psytrance Rolling Bass") {
+            voices.resize(8);
+        }
+
+        void setSynthModel(int model) { synth_model = std::clamp(model, 0, 4); }
+        int getSynthModel() const { return synth_model; }
+
+        void setOscType(int type) { osc_type = std::clamp(type, 0, 3); }
+        int getOscType() const { return osc_type; }
+
+        void setPhaseRetrigger(float deg) { phase_retrigger_deg = std::clamp(deg, 0.0f, 360.0f); }
+        float getPhaseRetrigger() const { return phase_retrigger_deg; }
+
+        void setCutoff(float hz) { cutoff_target = std::clamp(hz, 20.0f, 16000.0f); }
+        float getCutoff() const { return cutoff_target; }
+
+        void setResonance(float r) { resonance_target = std::clamp(r, 0.0f, 0.95f); }
+        float getResonance() const { return resonance_target; }
+
+        void setEnvDecay(float sec) { env_decay_target = std::clamp(sec, 0.01f, 0.5f); }
+        float getEnvDecay() const { return env_decay_target; }
+
+        void setEnvAmount(float amt) { env_amount_target = std::clamp(amt, 0.0f, 1.0f); }
+        float getEnvAmount() const { return env_amount_target; }
+
+        void setDrive(float d) { drive_target = std::clamp(d, 0.0f, 1.0f); }
+        float getDrive() const { return drive_target; }
+
+        void setSubLevel(float s) { sub_target = std::clamp(s, 0.0f, 1.0f); }
+        float getSubLevel() const { return sub_target; }
+
+        void setTransientClick(float c) { click_target = std::clamp(c, 0.0f, 1.0f); }
+        float getTransientClick() const { return click_target; }
+
+        void setPitchDepth(float st) { pitch_depth_target = std::clamp(st, 0.0f, 36.0f); }
+        float getPitchDepth() const { return pitch_depth_target; }
+
+        void setPitchDecay(float sec) { pitch_decay_target = std::clamp(sec, 0.001f, 0.025f); }
+        float getPitchDecay() const { return pitch_decay_target; }
+
+        void setHpfCutoff(float hz) { hpf_cutoff_target = std::clamp(hz, 15.0f, 80.0f); }
+        float getHpfCutoff() const { return hpf_cutoff_target; }
+
+        // ── CONTROLES DO KICK DRUM INTEGRADO ──
+        void setKickStartFreq(float f) { kick_start_hz = std::clamp(f, 100.0f, 400.0f); }
+        float getKickStartFreq() const { return kick_start_hz; }
+
+        void setKickEndFreq(float f) { kick_end_hz = std::clamp(f, 30.0f, 95.0f); }
+        float getKickEndFreq() const { return kick_end_hz; }
+
+        void setKickPitchDecay(float ms) { kick_pitch_decay_ms = std::clamp(ms, 15.0f, 100.0f); }
+        float getKickPitchDecay() const { return kick_pitch_decay_ms; }
+
+        void setKickAmpDecay(float ms) { kick_amp_decay_ms = std::clamp(ms, 80.0f, 450.0f); }
+        float getKickAmpDecay() const { return kick_amp_decay_ms; }
+
+        void setKickClick(float c) { kick_click = std::clamp(c, 0.0f, 1.0f); }
+        float getKickClick() const { return kick_click; }
+
+        void setKickDrive(float d) { kick_drive = std::clamp(d, 0.0f, 1.0f); }
+        float getKickDrive() const { return kick_drive; }
+
+        void setKickVolume(float v) { kick_vol = std::clamp(v, 0.0f, 1.5f); }
+        float getKickVolume() const { return kick_vol; }
+
+        void setKickPhaseAlign(float deg) { kick_phase_align = std::clamp(deg, 0.0f, 360.0f); }
+        float getKickPhaseAlign() const { return kick_phase_align; }
+
+        void setKickEnabled(bool b) { kick_enabled = b; }
+        bool isKickEnabled() const { return kick_enabled; }
+
+        void triggerKick(float velocity = 1.0f) {
+            kick_active = true;
+            kick_time = 0.0f;
+            kick_phase = kick_phase_align / 360.0f;
+            kick_velocity = std::clamp(velocity, 0.1f, 1.0f);
+        }
+
+        // Afinação inteligente do bumbo para a tônica da música
+        void tuneKickToRootNote(int root_idx) {
+            static const float root_sub_freqs[12] = {
+                32.7f, 34.6f, 36.7f, 38.9f, 41.2f, 43.6f,
+                46.2f, 49.0f, 51.9f, 55.0f, 58.3f, 61.7f
+            };
+            if (root_idx >= 0 && root_idx < 12) {
+                kick_end_hz = root_sub_freqs[root_idx];
+            }
+        }
+
+        // ── CONTROLES DO PSY SNARE / CLAP INTEGRADO ──
+        void setSnareTone(float f) { snare_tone_hz = std::clamp(f, 120.0f, 350.0f); }
+        float getSnareTone() const { return snare_tone_hz; }
+
+        void setSnareNoiseDecay(float ms) { snare_noise_decay_ms = std::clamp(ms, 50.0f, 350.0f); }
+        float getSnareNoiseDecay() const { return snare_noise_decay_ms; }
+
+        void setSnareSnap(float s) { snare_snap = std::clamp(s, 0.0f, 1.0f); }
+        float getSnareSnap() const { return snare_snap; }
+
+        void setSnareVolume(float v) { snare_vol = std::clamp(v, 0.0f, 1.5f); }
+        float getSnareVolume() const { return snare_vol; }
+
+        void setSnareEnabled(bool b) { snare_enabled = b; }
+        bool isSnareEnabled() const { return snare_enabled; }
+
+        void triggerSnare(float velocity = 1.0f) {
+            snare_active = true;
+            snare_time = 0.0f;
+            snare_phase = 0.0f;
+            snare_velocity = std::clamp(velocity, 0.1f, 1.0f);
+            snare_bpf1 = 0.0f;
+            snare_bpf2 = 0.0f;
+        }
+
+        void stopAllDrums() {
+            kick_active = false;
+            snare_active = false;
+        }
+
+        // Síntese imediata da forma de onda quando em repouso (reflete 100% dos botões e knobs em tempo real)
+        void getWaveformPreview(float* out_data, int size, int preview_mode = 0) {
+            if (preview_mode == 1) {
+                // ── PREVIEW DO KICK DRUM ──
+                for (int i = 0; i < size; ++i) {
+                    float t = (float)i / (float)size;
+                    float cur_f = kick_end_hz + (kick_start_hz - kick_end_hz) * std::exp(-t * (800.0f / kick_pitch_decay_ms));
+                    float amp = std::exp(-t * (1000.0f / kick_amp_decay_ms));
+                    float click_layer = (t < 0.04f) ? (1.0f - t / 0.04f) * kick_click : 0.0f;
+                    float kick_val = std::sin(t * cur_f * 0.38f + kick_phase_align * 0.01745f) * amp + click_layer;
+                    kick_val = std::tanh(kick_val * (1.0f + kick_drive * 1.6f));
+                    out_data[i] = std::clamp(kick_val * 0.90f, -0.98f, 0.98f);
+                }
+                return;
+            } else if (preview_mode == 2) {
+                // ── PREVIEW DO PSY SNARE / CLAP ──
+                for (int i = 0; i < size; ++i) {
+                    float t = (float)i / (float)size;
+                    float tone = std::sin(t * snare_tone_hz * 0.35f) * std::exp(-t * 22.0f) * 0.5f;
+                    float noise = std::sin(t * 3200.0f) * std::cos(t * 1800.0f) * std::exp(-t * (1000.0f / snare_noise_decay_ms));
+                    float snap = (t < 0.04f) ? (1.0f - t / 0.04f) * snare_snap : 0.0f;
+                    float snare_val = std::tanh((tone + noise * 0.8f + snap * 0.7f) * 1.2f);
+                    out_data[i] = std::clamp(snare_val * 0.88f, -0.98f, 0.98f);
+                }
+                return;
+            } else if (preview_mode == 3) {
+                // ── PREVIEW DO FULL K&B (KICK + ROLLING BASS JUNTOS) ──
+                int half = size / 2;
+                for (int i = 0; i < size; ++i) {
+                    if (i < half) {
+                        float t = (float)i / (float)half;
+                        float cur_f = kick_end_hz + (kick_start_hz - kick_end_hz) * std::exp(-t * (800.0f / kick_pitch_decay_ms));
+                        float amp = std::exp(-t * (1000.0f / kick_amp_decay_ms));
+                        float click_layer = (t < 0.05f) ? (1.0f - t / 0.05f) * kick_click : 0.0f;
+                        float k = std::tanh((std::sin(t * cur_f * 0.35f) * amp + click_layer) * (1.0f + kick_drive * 1.5f));
+                        out_data[i] = std::clamp(k * 0.90f, -0.98f, 0.98f);
+                    } else {
+                        float t = (float)(i - half) / (float)half;
+                        float ph = std::fmod(t * 2.0f, 1.0f);
+                        float b = (1.0f - ph * 2.0f) * 0.7f + std::sin(ph * 6.283185f * 0.5f) * 0.3f;
+                        out_data[i] = std::clamp(b * 0.85f, -0.98f, 0.98f);
+                    }
+                }
+                return;
+            }
+
+            // ── PREVIEW DO ROLLING BASS (PADRÃO) ──
+            float phase_start = phase_retrigger_deg / 360.0f;
+            float filter_damp = std::clamp(cutoff_target / 3200.0f, 0.12f, 1.0f);
+            float reso_bump = resonance_target * 0.42f;
+            float sub_amt = sub_target * 0.45f;
+            float click_amt = click_target * 0.35f;
+
+            for (int i = 0; i < size; ++i) {
+                float t = (float)i / (float)size; // 2 ciclos para visualização clara
+                float ph = std::fmod(phase_start + t * 2.0f, 1.0f);
+                float ph_sub = std::fmod((phase_start * 0.5f) + t * 1.0f, 1.0f);
+
+                float raw = 0.0f;
+                if (osc_type == 0) { // Saw
+                    raw = (1.0f - ph * 2.0f);
+                    raw = raw * filter_damp + std::sin(ph * 6.283185f) * (1.0f - filter_damp);
+                } else if (osc_type == 1) { // Square
+                    raw = (ph < 0.5f ? 0.85f : -0.85f);
+                    raw = raw * filter_damp + std::sin(ph * 6.283185f) * (1.0f - filter_damp);
+                } else if (osc_type == 2) { // Sub-sine
+                    raw = std::sin(ph * 6.283185f);
+                } else { // Morph
+                    float saw_part = (1.0f - ph * 2.0f);
+                    float sq_part = (ph < 0.5f ? 0.85f : -0.85f);
+                    raw = 0.6f * saw_part + 0.4f * sq_part;
+                }
+
+                float sub_w = std::sin(ph_sub * 6.283185f) * sub_amt;
+                float ring = std::sin(ph * 6.283185f * (3.0f + resonance_target * 4.5f)) * reso_bump * std::exp(-ph * 3.5f);
+                float click_w = 0.0f;
+                if (t < 0.08f) {
+                    click_w = std::sin(t * 150.0f) * (1.0f - t / 0.08f) * click_amt;
+                }
+
+                float combined = (raw * 0.72f + sub_w + ring + click_w);
+                if (synth_model == 1) { // Virus TI Hyper-Saw
+                    combined += 0.22f * (1.0f - std::fmod(ph + 0.05f, 1.0f) * 2.0f);
+                } else if (synth_model == 2) { // Nord Lead Punch
+                    combined = std::tanh(combined * 1.5f);
+                } else if (synth_model == 3) { // FM Sub-Rolling
+                    combined = std::sin(ph * 6.283185f + 1.1f * std::sin(ph * 12.56637f));
+                } else if (synth_model == 4) { // Analog Monster
+                    combined = 0.5f * combined + 0.5f * std::sin(ph * 6.283185f);
+                }
+
+                out_data[i] = std::clamp(combined * 0.82f, -0.98f, 0.98f);
+            }
+        }
+
+        void getOscilloscopeBuffer(float* out_data, int size, int preview_mode = 0) {
+            // Analisa pico de energia no buffer recente
+            float peak_lvl = 0.0f;
+            int scan_len = std::min(size * 4, OSC_BUF_SIZE);
+            int start_scan = (osc_write_idx - scan_len + OSC_BUF_SIZE) % OSC_BUF_SIZE;
+            for (int i = 0; i < scan_len; ++i) {
+                float v = std::abs(osc_buffer[(start_scan + i) % OSC_BUF_SIZE]);
+                if (v > peak_lvl) peak_lvl = v;
+            }
+
+            if (peak_lvl > 0.015f) {
+                // Áudio ativo: Busca por zero-crossing ascendente para travar a fase (Trigger Sync)
+                int trigger_idx = (osc_write_idx - size * 2 + OSC_BUF_SIZE) % OSC_BUF_SIZE;
+                for (int i = 0; i < size; ++i) {
+                    int i0 = (trigger_idx + i) % OSC_BUF_SIZE;
+                    int i1 = (i0 + 1) % OSC_BUF_SIZE;
+                    if (osc_buffer[i0] <= 0.0f && osc_buffer[i1] > 0.0f) {
+                        trigger_idx = i1;
+                        break;
+                    }
+                }
+                for (int i = 0; i < size; ++i) {
+                    out_data[i] = osc_buffer[(trigger_idx + i) % OSC_BUF_SIZE];
+                }
+            } else {
+                // Em repouso: forma de onda viva em tempo real dos parâmetros atuais
+                getWaveformPreview(out_data, size, preview_mode);
+            }
+        }
+
+        void process(float* left, float* right, unsigned int frames) override {
+            if (getBypass()) return;
+
+            MpeMidiEvent m_ev;
+            while (midi_queue.pop(m_ev)) {
+                if (m_ev.note_id == -999) {
+                    for (auto& v : voices) v.active = false;
+                    continue;
+                }
+                if (m_ev.is_note_on) {
+                    // Alocar voz (monofônico prioritário para bassline com retrigger)
+                    Voice* target_voice = nullptr;
+                    for (auto& v : voices) {
+                        if (!v.active) { target_voice = &v; break; }
+                    }
+                    if (!target_voice) target_voice = &voices[0];
+
+                    target_voice->note_id = m_ev.note_id;
+                    target_voice->key = m_ev.key;
+                    target_voice->freq = getFrequency(m_ev.key, m_ev.pitch_bend);
+                    // Phase lock retrigger exato
+                    target_voice->phase = phase_retrigger_deg / 360.0f;
+                    target_voice->sub_phase = target_voice->phase * 0.5f;
+                    target_voice->velocity = m_ev.velocity;
+                    target_voice->env_filter = 1.0f;
+                    target_voice->env_amp = 1.0f;
+                    target_voice->env_pitch = 1.0f;
+                    target_voice->time_alive = 0.0f;
+                    target_voice->click_time = 0.003f; // 3ms click de ataque
+                    target_voice->active = true;
+                    target_voice->note_on = true;
+                    target_voice->filter_state = VoiceMoogState(); // Reset de estados
+                } else {
+                    for (auto& v : voices) {
+                        if (v.active && v.note_id == m_ev.note_id) {
+                            v.note_on = false;
+                        }
+                    }
+                }
+            }
+
+            ParamChangeEvent p_ev;
+            while (param_queue.pop(p_ev)) {
+                switch (p_ev.param_index) {
+                    case 0: osc_type = (int)p_ev.target_value; break;
+                    case 1: phase_retrigger_deg = p_ev.target_value; break;
+                    case 2: click_target = p_ev.target_value; break;
+                    case 3: cutoff_target = p_ev.target_value; break;
+                    case 4: resonance_target = p_ev.target_value; break;
+                    case 5: env_decay_target = p_ev.target_value; break;
+                    case 6: env_amount_target = p_ev.target_value; break;
+                    case 7: drive_target = p_ev.target_value; break;
+                    case 8: sub_target = p_ev.target_value; break;
+                    case 9: pitch_depth_target = p_ev.target_value; break;
+                    case 10: pitch_decay_target = p_ev.target_value; break;
+                    case 11: hpf_cutoff_target = p_ev.target_value; break;
+                }
+            }
+
+            bool any_active = false;
+            for (const auto& v : voices) {
+                if (v.active) { any_active = true; break; }
+            }
+            if (!any_active) return;
+
+            float dt = 1.0f / sample_rate;
+
+            // Coeficientes do High-Pass Filter Butterworth 24dB (2 estágios)
+            float w0 = 2.0f * 3.14159265f * hpf_cutoff_hz / sample_rate;
+            w0 = std::clamp(w0, 0.0005f, 0.35f);
+            float cos_w = std::cos(w0);
+            float sin_w = std::sin(w0);
+            float alpha = sin_w / (2.0f * 0.70710678f);
+            float a0 = 1.0f + alpha;
+            float b0 = ((1.0f + cos_w) * 0.5f) / a0;
+            float b1 = (-(1.0f + cos_w)) / a0;
+            float b2 = ((1.0f + cos_w) * 0.5f) / a0;
+            float a1 = (-2.0f * cos_w) / a0;
+            float a2 = (1.0f - alpha) / a0;
+
+            for (unsigned int i = 0; i < frames; ++i) {
+                // Interpolação suave de parâmetros
+                cutoff_hz = lerp(cutoff_hz, cutoff_target, 0.02f);
+                resonance = lerp(resonance, resonance_target, 0.02f);
+                env_decay_sec = lerp(env_decay_sec, env_decay_target, 0.02f);
+                env_amount = lerp(env_amount, env_amount_target, 0.02f);
+                drive_amt = lerp(drive_amt, drive_target, 0.02f);
+                sub_level = lerp(sub_level, sub_target, 0.02f);
+                transient_click = lerp(transient_click, click_target, 0.02f);
+                pitch_depth_semitones = lerp(pitch_depth_semitones, pitch_depth_target, 0.02f);
+                pitch_decay_sec = lerp(pitch_decay_sec, pitch_decay_target, 0.02f);
+                hpf_cutoff_hz = lerp(hpf_cutoff_hz, hpf_cutoff_target, 0.02f);
+
+                float mix = 0.0f;
+
+                for (auto& v : voices) {
+                    if (!v.active) continue;
+
+                    // Envelope de decaimento do filtro ultra-rápido logarítmico (Psytrance Pluck)
+                    float decay_coeff = std::exp(-dt / std::max(0.005f, env_decay_sec));
+                    v.env_filter *= decay_coeff;
+
+                    // Envelope de amplitude
+                    if (!v.note_on) {
+                        v.env_amp *= std::exp(-dt / 0.015f); // Release seco de 15ms
+                        if (v.env_amp < 0.001f) {
+                            v.active = false;
+                            continue;
+                        }
+                    }
+
+                    // Envelope de afinação exponencial ultrarrápido (Laser Pitch Punch)
+                    float pitch_decay_coeff = std::exp(-dt / std::max(0.0008f, pitch_decay_sec));
+                    v.env_pitch *= pitch_decay_coeff;
+                    float pitch_mult = std::pow(2.0f, (v.env_pitch * pitch_depth_semitones) / 12.0f);
+                    float current_freq = v.freq * pitch_mult;
+
+                    // Frequência modulada por pitch punch
+                    float dt_phase = current_freq / sample_rate;
+                    v.phase += dt_phase;
+                    if (v.phase >= 1.0f) v.phase -= 1.0f;
+
+                    v.sub_phase += (current_freq * 0.5f) / sample_rate;
+                    if (v.sub_phase >= 1.0f) v.sub_phase -= 1.0f;
+
+                    // Geração de onda anti-aliased (PolyBLEP)
+                    float raw_saw = 2.0f * v.phase - 1.0f;
+                    float blep_saw = raw_saw - poly_blep(v.phase, dt_phase);
+
+                    float raw_sq = (v.phase < 0.5f) ? 1.0f : -1.0f;
+                    float blep_sq = raw_sq + poly_blep(v.phase, dt_phase) - poly_blep(std::fmod(v.phase + 0.5f, 1.0f), dt_phase);
+
+                    float osc_out = 0.0f;
+                    if (osc_type == 0) osc_out = blep_saw;
+                    else if (osc_type == 1) osc_out = blep_sq;
+                    else if (osc_type == 2) osc_out = std::sin(KURO_TWO_PI * v.phase);
+                    else osc_out = 0.7f * blep_saw + 0.3f * blep_sq; // Morph Saw/Square
+
+                    // Timbre específico do modelo de sintetizador selecionado
+                    if (synth_model == 1) { // Virus TI Hyper-Saw (Detuned dual saw)
+                        float ph2 = std::fmod(v.phase + 0.04f, 1.0f);
+                        float blep_saw2 = (2.0f * ph2 - 1.0f) - poly_blep(ph2, dt_phase);
+                        osc_out = 0.65f * osc_out + 0.35f * blep_saw2;
+                    } else if (synth_model == 2) { // Nord Lead Punch 303 (Saturação cortante)
+                        osc_out = std::tanh(osc_out * 1.5f);
+                    } else if (synth_model == 3) { // FM Sub-Rolling Bass (Modulação de fase FM)
+                        float mod = std::sin(KURO_TWO_PI * v.phase * 2.0f) * 0.8f;
+                        osc_out = std::sin(KURO_TWO_PI * v.phase + mod);
+                    } else if (synth_model == 4) { // Analog Monster Sub (Mistura densa de pulso e sub)
+                        osc_out = 0.55f * blep_saw + 0.45f * blep_sq;
+                    }
+
+                    // Sub-oscilador (Sub-grave puro em oitava abaixo)
+                    float sub_sig = std::sin(KURO_TWO_PI * v.sub_phase) * sub_level;
+
+                    // Transient Click (Estalo cirúrgico de transiente no ataque)
+                    float click_sig = 0.0f;
+                    if (v.click_time > 0.0f) {
+                        float click_phase = (0.003f - v.click_time) / 0.003f;
+                        click_sig = std::sin(KURO_TWO_PI * 3500.0f * v.time_alive) * (1.0f - click_phase) * transient_click;
+                        v.click_time -= dt;
+                    }
+
+                    float raw_synth = (osc_out * 0.8f + sub_sig * 0.6f + click_sig * 0.5f);
+
+                    // Cutoff modulado pelo envelope do filtro
+                    float dynamic_cutoff = cutoff_hz + env_amount * 4500.0f * (v.env_filter * v.env_filter);
+                    dynamic_cutoff = std::clamp(dynamic_cutoff, 20.0f, 18000.0f);
+
+                    // Passar pelo Moog Ladder 24dB
+                    float filtered = processMoogLadder(raw_synth, dynamic_cutoff, resonance, v.filter_state);
+
+                    // Saturação de fita / Drive de graves
+                    if (drive_amt > 0.01f) {
+                        float drive_gain = 1.0f + drive_amt * 4.0f;
+                        filtered = std::tanh(filtered * drive_gain) / std::sqrt(drive_gain);
+                    }
+
+                    mix += filtered * v.velocity * v.env_amp * master_vol;
+                    v.time_alive += dt;
+                }
+
+                // Passar pelo High-Pass Filter 24dB (Limpeza cirúrgica de Sub-Low Cut)
+                float hpf_out = hpf_stage1.process(mix, b0, b1, b2, a1, a2);
+                hpf_out = hpf_stage2.process(hpf_out, b0, b1, b2, a1, a2);
+
+                // ── MOTOR DE SÍNTESE DO KICK DRUM INTEGRADO ──
+                float kick_out = 0.0f;
+                if (kick_active && kick_enabled) {
+                    float cur_k_freq = kick_end_hz + (kick_start_hz - kick_end_hz) * std::exp(-kick_time * (800.0f / (kick_pitch_decay_ms * 0.001f * sample_rate)));
+                    kick_phase += cur_k_freq / sample_rate;
+                    if (kick_phase >= 1.0f) kick_phase -= 1.0f;
+
+                    float k_amp = std::exp(-kick_time / (kick_amp_decay_ms * 0.001f * sample_rate));
+                    float k_click_amp = (kick_time < 0.004f * sample_rate) ? (1.0f - kick_time / (0.004f * sample_rate)) * kick_click : 0.0f;
+                    float k_click_val = std::sin(KURO_TWO_PI * 4200.0f * (kick_time / sample_rate)) * k_click_amp;
+
+                    float raw_kick = std::sin(KURO_TWO_PI * kick_phase) * k_amp + k_click_val;
+                    kick_out = std::tanh(raw_kick * (1.0f + kick_drive * 1.8f)) * kick_velocity * kick_vol;
+
+                    kick_time += 1.0f;
+                    if (k_amp < 0.001f && kick_time > 0.08f * sample_rate) {
+                        kick_active = false;
+                    }
+                }
+
+                // ── MOTOR DE SÍNTESE DO PSY SNARE / CLAP INTEGRADO ──
+                float snare_out = 0.0f;
+                if (snare_active && snare_enabled) {
+                    float cur_snare_freq = snare_tone_hz * std::exp(-snare_time / (0.025f * sample_rate));
+                    snare_phase += cur_snare_freq / sample_rate;
+                    if (snare_phase >= 1.0f) snare_phase -= 1.0f;
+                    float tone_body = std::sin(KURO_TWO_PI * snare_phase) * std::exp(-snare_time / (0.060f * sample_rate)) * 0.5f;
+
+                    float noise_env = std::exp(-snare_time / (snare_noise_decay_ms * 0.001f * sample_rate));
+                    float white_noise = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * noise_env;
+                    snare_bpf1 += 0.28f * (white_noise - snare_bpf1);
+                    snare_bpf2 += 0.28f * (snare_bpf1 - snare_bpf2);
+                    float filtered_noise = (snare_bpf1 - snare_bpf2) * 2.2f;
+
+                    float snap_layer = (snare_time < 0.003f * sample_rate) ? (1.0f - snare_time / (0.003f * sample_rate)) * snare_snap : 0.0f;
+                    snare_out = std::tanh((tone_body + filtered_noise * 0.85f + snap_layer * 0.6f) * 1.2f) * snare_velocity * snare_vol;
+
+                    snare_time += 1.0f;
+                    if (noise_env < 0.001f && snare_time > 0.08f * sample_rate) {
+                        snare_active = false;
+                    }
+                }
+
+                float final_mix = hpf_out + kick_out + snare_out;
+
+                left[i] += final_mix;
+                right[i] += final_mix;
+
+                // Alimentar buffer do osciloscópio com sinal final
+                osc_buffer[osc_write_idx] = final_mix;
+                osc_write_idx = (osc_write_idx + 1) % OSC_BUF_SIZE;
+            }
+        }
+
+        void renderCustomUI() override {
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.8f, 1.0f), "KURO PSYTRANCE ROLLING BASS ENGINE");
+            ImGui::Separator();
+            
+            const char* osc_names[] = { "Psy Sawtooth (Nord)", "Square / Pulse", "Sub Sine Pure", "Morph Saw-Square" };
+            int cur_osc = osc_type;
+            if (ImGui::Combo("Forma de Onda", &cur_osc, osc_names, IM_ARRAYSIZE(osc_names))) {
+                setOscType(cur_osc);
+            }
+
+            float p_deg = phase_retrigger_deg;
+            if (ImGui::SliderFloat("Phase Retrigger", &p_deg, 0.0f, 360.0f, "%.0f deg")) {
+                setPhaseRetrigger(p_deg);
+            }
+
+            float c_hz = cutoff_target, r_val = resonance_target, d_sec = env_decay_target, amt_val = env_amount_target;
+            if (ImGui::SliderFloat("Filtro Cutoff", &c_hz, 30.0f, 6000.0f, "%.0f Hz")) setCutoff(c_hz);
+            if (ImGui::SliderFloat("Ressonancia Moog", &r_val, 0.0f, 0.95f)) setResonance(r_val);
+            if (ImGui::SliderFloat("Decay do Pluck", &d_sec, 0.02f, 0.35f, "%.3f s")) setEnvDecay(d_sec);
+            if (ImGui::SliderFloat("Envelope Depth", &amt_val, 0.0f, 1.0f)) setEnvAmount(amt_val);
+
+            float drv = drive_target, sub = sub_target, clk = click_target;
+            if (ImGui::SliderFloat("Drive / Saturação", &drv, 0.0f, 1.0f)) setDrive(drv);
+            if (ImGui::SliderFloat("Sub Harmonic Level", &sub, 0.0f, 1.0f)) setSubLevel(sub);
+            if (ImGui::SliderFloat("Transient Click", &clk, 0.0f, 1.0f)) setTransientClick(clk);
+
+            float p_depth = pitch_depth_target, p_decay = pitch_decay_target, hpf_cut = hpf_cutoff_target;
+            if (ImGui::SliderFloat("Laser Pitch Depth", &p_depth, 0.0f, 36.0f, "%.1f st")) setPitchDepth(p_depth);
+            if (ImGui::SliderFloat("Pitch Decay", &p_decay, 0.001f, 0.025f, "%.4f s")) setPitchDecay(p_decay);
+            if (ImGui::SliderFloat("30Hz Sub Low-Cut", &hpf_cut, 15.0f, 80.0f, "%.0f Hz")) setHpfCutoff(hpf_cut);
+        }
+    };
 }
+
 

@@ -1,0 +1,21 @@
+{
+  "folders": [
+    { "id": "all", "name": "Todas as Músicas", "icon": "music", "is_system": true },
+    { "id": "computer_files", "name": "Do Computador", "icon": "laptop", "is_system": true },
+    { "id": "prog_psy", "name": "Progressive Psytrance", "icon": "fire", "is_system": true },
+    { "id": "psy_fullon", "name": "Psytrance / Full-On", "icon": "bolt", "is_system": true },
+    { "id": "tech_house", "name": "Tech House / Bass", "icon": "compact-disc", "is_system": true },
+    { "id": "acid_techno", "name": "Acid Techno / Peak", "icon": "sliders", "is_system": true },
+    { "id": "melodic_techno", "name": "Melodic Techno", "icon": "headphones", "is_system": true },
+    { "id": "cloud", "name": "Busca Online / Nuvem", "icon": "cloud", "is_system": true }
+  ],
+  "tracks": [
+    { "id": "test_free", "title": "Free", "artist": "Vintage Culture", "album": "", "subgenre": "Tech House", "folder_id": "tech_house", "bpm": 124, "key": "11B / A", "duration_sec": 210, "local_wav": "scratch/tracks\\test_free.wav", "is_downloaded": true },
+    { "id": "test_ygmaf", "title": "You Give Me a Feeling", "artist": "Vintage Culture", "album": "", "subgenre": "Tech House", "folder_id": "tech_house", "bpm": 126, "key": "8A / Am", "duration_sec": 185, "local_wav": "scratch/tracks\\test_ygmaf.wav", "is_downloaded": true },
+    { "id": "track_1659092811", "title": "You Give Me a Feeling", "artist": "Vintage Culture & James Hype", "album": "", "subgenre": "Tech House", "folder_id": "tech_house", "bpm": 126, "key": "8A / Am", "duration_sec": 185, "local_wav": "scratch/tracks\\track_1659092811.wav", "is_downloaded": true },
+    { "id": "track_1725169850", "title": "Weak", "artist": "Vintage Culture & Maverick Sabre", "album": "", "subgenre": "Tech House", "folder_id": "tech_house", "bpm": 125, "key": "9A / Em", "duration_sec": 202, "local_wav": "scratch/tracks\\track_1725169850.wav", "is_downloaded": true },
+    { "id": "track_1843160620", "title": "track_1843160620", "artist": "DJ Local", "album": "", "subgenre": "Tech House", "folder_id": "tech_house", "bpm": 128, "key": "8A / Am", "duration_sec": 240, "local_wav": "scratch/tracks\\track_1843160620.wav", "is_downloaded": true },
+    { "id": "track_1894735727", "title": "Cliffjumper", "artist": "Aura Vortex & Klipsun", "album": "", "subgenre": "Progressive Psytrance", "folder_id": "prog_psy", "bpm": 138, "key": "9B / G", "duration_sec": 366, "local_wav": "scratch/tracks\\track_1894735727.wav", "is_downloaded": true },
+    { "id": "track_demo_djw", "title": "Deep Jungle Walk", "artist": "Astrix", "album": "", "subgenre": "Psytrance / Full-On", "folder_id": "psy_fullon", "bpm": 138, "key": "8A / Am", "duration_sec": 372, "local_wav": "scratch/tracks\\track_demo_djw.wav", "is_downloaded": true }
+  ]
+}

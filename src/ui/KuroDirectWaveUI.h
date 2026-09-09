@@ -121,6 +121,7 @@ namespace KuroUI {
         }
 
         bool& getOpenState() { return is_open; }
+        bool& isOpen() { return is_open; }
         void open() { is_open = true; }
         void close() { is_open = false; }
         void toggle() { is_open = !is_open; }

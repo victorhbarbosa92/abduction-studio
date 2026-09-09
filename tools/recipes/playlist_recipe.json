@@ -1,0 +1,215 @@
+{
+  "plugin": "Abduction Playlist & Arranger V2",
+  "mockup": "playlist_redesign_mockup_1788667255856.jpg",
+  "elements": [
+    {
+      "name": "toolbar_tools_capsule",
+      "crop": [
+        390,
+        16,
+        730,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 14.0
+    },
+    {
+      "name": "tool_pencil",
+      "crop": [
+        390,
+        16,
+        465,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 10.0
+    },
+    {
+      "name": "tool_brush",
+      "crop": [
+        465,
+        16,
+        532,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "tool_razor",
+      "crop": [
+        532,
+        16,
+        600,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "tool_slip",
+      "crop": [
+        600,
+        16,
+        665,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "tool_select",
+      "crop": [
+        665,
+        16,
+        730,
+        115
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "snap_pill",
+      "crop": [
+        780,
+        36,
+        940,
+        95
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 10.0
+    },
+    {
+      "name": "track_card_drums",
+      "crop": [
+        12,
+        170,
+        435,
+        252
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 8.0
+    },
+    {
+      "name": "track_card_psy_bass",
+      "crop": [
+        12,
+        255,
+        435,
+        337
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 8.0
+    },
+    {
+      "name": "track_card_acid_lead",
+      "crop": [
+        12,
+        425,
+        435,
+        507
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 8.0
+    },
+    {
+      "name": "track_card_automation",
+      "crop": [
+        12,
+        510,
+        435,
+        592
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 8.0
+    },
+    {
+      "name": "clip_audio_stereo_waveform",
+      "crop": [
+        510,
+        170,
+        1340,
+        252
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "clip_audio_synth_dual",
+      "crop": [
+        780,
+        255,
+        1340,
+        337
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "clip_midi_pattern_purple",
+      "crop": [
+        640,
+        340,
+        920,
+        422
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "clip_midi_pattern_drop",
+      "crop": [
+        1020,
+        340,
+        1340,
+        422
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "clip_automation_bezier",
+      "crop": [
+        445,
+        510,
+        1340,
+        650
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "playhead_laser_pointer",
+      "crop": [
+        668,
+        115,
+        706,
+        170
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 4.0
+    },
+    {
+      "name": "btn_mute_solo_pair",
+      "crop": [
+        350,
+        185,
+        425,
+        240
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    },
+    {
+      "name": "fader_slider_glow",
+      "crop": [
+        80,
+        205,
+        335,
+        240
+      ],
+      "type": "rounded_rect",
+      "corner_radius": 6.0
+    }
+  ]
+}

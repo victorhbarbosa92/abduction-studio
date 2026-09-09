@@ -18,7 +18,15 @@ namespace SciFiHUD {
         STOP,               // Solid Stop Matrix Box
         RECORD,             // Pulsing Atomic Recording Reticle
         PROJECT_VAULT,      // Holographic Project Disk / Node
-        WORKSPACE_TARGET    // HUD Reticle Target
+        WORKSPACE_TARGET,   // HUD Reticle Target
+        METRONOME,          // Metronome pendulum
+        TYPING_KEYBOARD,    // Typing-to-Piano virtual keyboard
+        COUNTDOWN_PRECOUNT, // 3.2.1 Recording Countdown
+        LOOP_RECORD,        // Loop Recording Cycle
+        APP_DRAWER_HUB,     // Android 3x3 App Launcher Matrix
+        SNAP_MAGNET,        // Magnetic Snap Tool
+        PLUGIN_PICKER,      // VST / Audio Plugin Connector
+        DJ_VINYL_DECKS      // Pioneer DJ Turntable & Vinyl
     };
 
     // Vector drawing routine for crisp spaceship console HUD glyphs
@@ -221,6 +229,85 @@ namespace SciFiHUD {
                 draw->AddLine(ImVec2(cx + w * 0.18f, cy), ImVec2(cx + w * 0.48f, cy), col, 1.2f);
                 draw->AddLine(ImVec2(cx, cy - h * 0.48f), ImVec2(cx, cy - h * 0.18f), col, 1.2f);
                 draw->AddLine(ImVec2(cx, cy + h * 0.18f), ImVec2(cx, cy + h * 0.48f), col, 1.2f);
+                break;
+            }
+
+            case IconType::METRONOME: {
+                // Inverted V Metronome Body & Pendulum
+                draw->AddTriangle(ImVec2(cx, p_min.y + 1.0f), ImVec2(p_min.x + 2.0f, p_max.y - 1.0f), ImVec2(p_max.x - 2.0f, p_max.y - 1.0f), col, thickness);
+                draw->AddLine(ImVec2(cx, p_max.y - 3.0f), ImVec2(cx + w * 0.22f, p_min.y + h * 0.35f), col, 1.3f);
+                draw->AddCircleFilled(ImVec2(cx + w * 0.18f, p_min.y + h * 0.42f), 1.8f, col, 8);
+                break;
+            }
+
+            case IconType::TYPING_KEYBOARD: {
+                // Keyboard frame and keys
+                draw->AddRect(ImVec2(p_min.x, p_min.y + 2.0f), ImVec2(p_max.x, p_max.y - 2.0f), col, 2.0f, 0, thickness);
+                float kw = (w - 6.0f) / 3.0f;
+                float kh = (h - 8.0f) / 2.0f;
+                for (int r = 0; r < 2; r++) {
+                    for (int c = 0; c < 3; c++) {
+                        float kx = p_min.x + 2.0f + c * (kw + 1.0f);
+                        float ky = p_min.y + 4.0f + r * (kh + 1.0f);
+                        draw->AddRectFilled(ImVec2(kx, ky), ImVec2(kx + kw, ky + kh), (col & 0x00FFFFFF) | 0x99000000);
+                    }
+                }
+                break;
+            }
+
+            case IconType::COUNTDOWN_PRECOUNT: {
+                // Clock countdown indicator
+                draw->AddCircle(ImVec2(cx, cy), w * 0.40f, col, 16, thickness);
+                draw->AddLine(ImVec2(cx, cy), ImVec2(cx, cy - h * 0.28f), col, 1.2f);
+                draw->AddLine(ImVec2(cx, cy), ImVec2(cx + w * 0.24f, cy), col, 1.2f);
+                break;
+            }
+
+            case IconType::LOOP_RECORD: {
+                // Circular arrows / repeat loop
+                draw->AddCircle(ImVec2(cx, cy), w * 0.38f, col, 16, thickness);
+                draw->AddTriangleFilled(ImVec2(cx + w * 0.38f, cy - 2.0f), ImVec2(cx + w * 0.38f + 3.0f, cy + 3.0f), ImVec2(cx + w * 0.38f - 3.0f, cy + 3.0f), col);
+                break;
+            }
+
+            case IconType::APP_DRAWER_HUB: {
+                // Android 3x3 App Launcher Matrix
+                float dot_r = 1.3f;
+                float sp = w / 3.4f;
+                for (int r = -1; r <= 1; r++) {
+                    for (int c = -1; c <= 1; c++) {
+                        draw->AddCircleFilled(ImVec2(cx + c * sp, cy + r * sp), dot_r, col, 8);
+                    }
+                }
+                break;
+            }
+
+            case IconType::SNAP_MAGNET: {
+                // Horseshoe magnet
+                float mw = w * 0.32f;
+                draw->AddLine(ImVec2(cx - mw, p_min.y + 2.0f), ImVec2(cx - mw, cy + 1.0f), col, 1.5f);
+                draw->AddLine(ImVec2(cx + mw, p_min.y + 2.0f), ImVec2(cx + mw, cy + 1.0f), col, 1.5f);
+                draw->AddBezierCubic(ImVec2(cx - mw, cy + 1.0f), ImVec2(cx - mw, p_max.y), ImVec2(cx + mw, p_max.y), ImVec2(cx + mw, cy + 1.0f), col, 1.5f);
+                break;
+            }
+
+            case IconType::PLUGIN_PICKER: {
+                // Plug connector
+                draw->AddRect(ImVec2(cx - w * 0.25f, cy - h * 0.25f), ImVec2(cx + w * 0.25f, cy + h * 0.35f), col, 1.0f, 0, thickness);
+                draw->AddLine(ImVec2(cx - w * 0.15f, p_min.y + 1.0f), ImVec2(cx - w * 0.15f, cy - h * 0.25f), col, 1.5f);
+                draw->AddLine(ImVec2(cx + w * 0.15f, p_min.y + 1.0f), ImVec2(cx + w * 0.15f, cy - h * 0.25f), col, 1.5f);
+                draw->AddLine(ImVec2(cx, cy + h * 0.35f), ImVec2(cx, p_max.y), col, 1.2f);
+                break;
+            }
+
+            case IconType::DJ_VINYL_DECKS: {
+                // Vinyl disc outer ring
+                float r = h * 0.42f;
+                draw->AddCircle(ImVec2(cx - 1.0f, cy), r, col, 16, thickness);
+                // Center spindle hole
+                draw->AddCircleFilled(ImVec2(cx - 1.0f, cy), r * 0.30f, col, 12);
+                // Tonearm needle
+                draw->AddLine(ImVec2(p_max.x - 1.0f, p_min.y + 1.0f), ImVec2(cx + r * 0.15f, cy - r * 0.15f), col, 1.2f);
                 break;
             }
         }

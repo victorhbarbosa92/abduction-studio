@@ -115,12 +115,19 @@ struct MidiClip {
     std::string name = "";
 };
 
+struct TimelineMarker {
+    float time_sec = 0.0f;
+    std::string name = "";
+    unsigned int color = 0xFF00E5FF;
+};
+
 class ClipManager {
 public:
     std::vector<AudioClip> track_clips[MAX_TRACKS];
     std::vector<MidiClip> track_midi_clips[MAX_TRACKS];
     std::vector<AutomationClip> track_auto_clips[MAX_TRACKS];
     std::vector<Pattern> global_patterns;
+    std::vector<TimelineMarker> timeline_markers;
     int current_pattern_idx = 0;
     std::mutex clip_mutex;
     int next_id = 1;
@@ -130,6 +137,7 @@ public:
         std::vector<MidiClip> track_midi_clips[MAX_TRACKS];
         std::vector<AutomationClip> track_auto_clips[MAX_TRACKS];
         std::vector<Pattern> global_patterns;
+        std::vector<TimelineMarker> timeline_markers;
         int current_pattern_idx = 0;
     };
     
@@ -151,6 +159,7 @@ public:
             snap.track_auto_clips[i] = track_auto_clips[i];
         }
         snap.global_patterns = global_patterns;
+        snap.timeline_markers = timeline_markers;
         snap.current_pattern_idx = current_pattern_idx;
         undo_stack.push_back(snap);
         if (undo_stack.size() > 50) undo_stack.erase(undo_stack.begin());
@@ -168,6 +177,7 @@ public:
             current_snap.track_auto_clips[i] = track_auto_clips[i];
         }
         current_snap.global_patterns = global_patterns;
+        current_snap.timeline_markers = timeline_markers;
         current_snap.current_pattern_idx = current_pattern_idx;
         redo_stack.push_back(current_snap);
         
@@ -180,6 +190,7 @@ public:
             track_auto_clips[i] = prev.track_auto_clips[i];
         }
         global_patterns = prev.global_patterns;
+        timeline_markers = prev.timeline_markers;
         current_pattern_idx = prev.current_pattern_idx;
     }
 
@@ -194,6 +205,7 @@ public:
             current_snap.track_auto_clips[i] = track_auto_clips[i];
         }
         current_snap.global_patterns = global_patterns;
+        current_snap.timeline_markers = timeline_markers;
         current_snap.current_pattern_idx = current_pattern_idx;
         undo_stack.push_back(current_snap);
         
@@ -206,6 +218,7 @@ public:
             track_auto_clips[i] = next_s.track_auto_clips[i];
         }
         global_patterns = next_s.global_patterns;
+        timeline_markers = next_s.timeline_markers;
         current_pattern_idx = next_s.current_pattern_idx;
     }
 
@@ -340,13 +353,15 @@ public:
         for(int i=0; i<MAX_TRACKS; i++) {
             track_clips[i].clear();
             track_midi_clips[i].clear();
+            track_auto_clips[i].clear();
         }
+        timeline_markers.clear();
         global_patterns.clear();
         Pattern p;
         p.id = 1;
         p.name = "Pattern 1";
         p.color = 0xFF00E5FF;
-        for (int c = 0; c < 8; c++) {
+        for (int c = 0; c < MAX_TRACKS; c++) {
             p.channel_notes[c].clear();
         }
         global_patterns.push_back(p);

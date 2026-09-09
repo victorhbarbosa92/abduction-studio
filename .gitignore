@@ -36,3 +36,6 @@ request_screenshot.txt
 # MacOS/Linux temp files
 .DS_Store
 
+# Large Archives & Exports
+*.zip
+scratch/tracks/export/

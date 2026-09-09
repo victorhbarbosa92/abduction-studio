@@ -18,6 +18,11 @@ namespace KuroUtils {
         std::stringstream ss;
         ss << std::put_time(std::localtime(&in_time_t), "[%H:%M:%S] ") << msg;
         
+        std::ofstream flog("startup_debug.log", std::ios::app);
+        if (flog.is_open()) {
+            flog << ss.str() << std::endl;
+        }
+
         std::lock_guard<std::mutex> lock(debug_log_mutex);
         debug_logs.push_back(ss.str());
         
