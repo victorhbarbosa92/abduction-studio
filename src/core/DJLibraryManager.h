@@ -204,9 +204,100 @@ namespace KuroAudio {
             return "all";
         }
 
+        void loadFromFile() {
+            try {
+                std::filesystem::path p(db_path);
+                if (!std::filesystem::exists(p)) return;
+                std::ifstream f(p);
+                if (!f.is_open()) return;
+                std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+                // Parser simples e resiliente de JSON para faixas salvas
+                size_t t_pos = content.find("\"tracks\":");
+                if (t_pos != std::string::npos) {
+                    size_t start_arr = content.find('[', t_pos);
+                    size_t end_arr = content.rfind(']');
+                    if (start_arr != std::string::npos && end_arr != std::string::npos && end_arr > start_arr) {
+                        std::string arr_str = content.substr(start_arr + 1, end_arr - start_arr - 1);
+                        size_t obj_start = 0;
+                        while ((obj_start = arr_str.find('{', obj_start)) != std::string::npos) {
+                            size_t obj_end = arr_str.find('}', obj_start);
+                            if (obj_end == std::string::npos) break;
+                            std::string obj = arr_str.substr(obj_start, obj_end - obj_start + 1);
+
+                            auto extractField = [&](const std::string& key) -> std::string {
+                                std::string k = "\"" + key + "\":";
+                                size_t kp = obj.find(k);
+                                if (kp == std::string::npos) return "";
+                                size_t val_s = obj.find_first_not_of(" \t", kp + k.length());
+                                if (val_s == std::string::npos) return "";
+                                if (obj[val_s] == '"') {
+                                    size_t val_e = obj.find('"', val_s + 1);
+                                    if (val_e != std::string::npos) return obj.substr(val_s + 1, val_e - val_s - 1);
+                                } else {
+                                    size_t val_e = obj.find_first_of(",}\r\n", val_s);
+                                    if (val_e != std::string::npos) return obj.substr(val_s, val_e - val_s);
+                                }
+                                return "";
+                            };
+
+                            DJLibraryTrack t;
+                            t.id = extractField("id");
+                            t.title = extractField("title");
+                            t.artist = extractField("artist");
+                            t.album = extractField("album");
+                            t.subgenre = extractField("subgenre");
+                            t.folder_id = extractField("folder_id");
+                            std::string bpm_str = extractField("bpm");
+                            if (!bpm_str.empty()) try { t.bpm = std::stod(bpm_str); } catch (...) {}
+                            t.key = extractField("key");
+                            std::string dur_str = extractField("duration_sec");
+                            if (!dur_str.empty()) try { t.duration_sec = std::stod(dur_str); } catch (...) {}
+                            t.local_wav_path = extractField("local_wav");
+                            std::string down_str = extractField("is_downloaded");
+                            t.is_downloaded = (down_str == "true");
+
+                            std::error_code ec;
+                            if (!t.local_wav_path.empty() && std::filesystem::exists(t.local_wav_path, ec)) {
+                                t.is_downloaded = true;
+                            }
+
+                            if (!t.id.empty()) {
+                                bool exists = false;
+                                for (auto& ex : tracks) {
+                                    if (ex.id == t.id) {
+                                        ex = t;
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists) {
+                                    tracks.push_back(t);
+                                }
+                            }
+
+                            obj_start = obj_end + 1;
+                        }
+                    }
+                }
+            } catch (...) {}
+        }
+
+        DJLibraryTrack* getTrackById(const std::string& id) {
+            std::lock_guard<std::mutex> lock(lib_mutex);
+            for (auto& t : tracks) {
+                if (t.id == id) return &t;
+            }
+            return nullptr;
+        }
+
         // Varredura cirúrgica de todas as músicas locais já presentes na máquina
         void scanLocalTracks(const std::string& tracks_folder = "scratch/tracks") {
             std::lock_guard<std::mutex> lock(lib_mutex);
+            
+            // 1. Carrega banco persistido em disco para não perder nenhuma faixa
+            loadFromFile();
+
             std::error_code ec;
             std::filesystem::path dir(tracks_folder);
             if (!std::filesystem::exists(dir, ec)) return;
@@ -251,7 +342,7 @@ namespace KuroAudio {
                     }
                     if (exists) continue;
 
-                    // Busca metadados conhecidos
+                    // Busca metadados conhecidos ou em arquivo .meta
                     DJLibraryTrack t;
                     t.id = stem;
                     t.local_wav_path = full_path;
@@ -277,13 +368,53 @@ namespace KuroAudio {
                         }
                     }
 
+                    // Se não estava no hardcode, lê arquivo .meta se existir
+                    if (!matched) {
+                        std::string meta_path = (dir / (stem + ".meta")).string();
+                        if (std::filesystem::exists(meta_path, ec)) {
+                            try {
+                                std::ifstream mf(meta_path);
+                                std::string mstr((std::istreambuf_iterator<char>(mf)), std::istreambuf_iterator<char>());
+                                auto extractM = [&](const std::string& key) -> std::string {
+                                    std::string k = "\"" + key + "\":";
+                                    size_t kp = mstr.find(k);
+                                    if (kp == std::string::npos) return "";
+                                    size_t val_s = mstr.find_first_not_of(" \t", kp + k.length());
+                                    if (val_s == std::string::npos) return "";
+                                    if (mstr[val_s] == '"') {
+                                        size_t val_e = mstr.find('"', val_s + 1);
+                                        if (val_e != std::string::npos) return mstr.substr(val_s + 1, val_e - val_s - 1);
+                                    } else {
+                                        size_t val_e = mstr.find_first_of(",}\r\n", val_s);
+                                        if (val_e != std::string::npos) return mstr.substr(val_s, val_e - val_s);
+                                    }
+                                    return "";
+                                };
+                                std::string m_bpm = extractM("bpm");
+                                if (!m_bpm.empty()) t.bpm = std::stod(m_bpm);
+                                std::string m_key = extractM("key");
+                                if (!m_key.empty()) t.key = m_key;
+                                std::string m_title = extractM("title");
+                                if (!m_title.empty()) t.title = m_title;
+                                std::string m_artist = extractM("artist");
+                                if (!m_artist.empty()) t.artist = m_artist;
+                                std::string m_sub = extractM("subgenre");
+                                if (!m_sub.empty()) t.subgenre = m_sub;
+                                if (!t.title.empty()) matched = true;
+                            } catch (...) {}
+                        }
+                    }
+
                     if (!matched) {
                         t.title = stem;
                         t.artist = "DJ Local";
-                        t.bpm = 128.0;
-                        t.key = "8A / Am";
+                        if (t.bpm <= 0.0) t.bpm = 128.0;
+                        if (t.key.empty()) t.key = "8A / Am";
                         t.duration_sec = 240.0;
                         t.subgenre = classifySubgenre(t.artist, t.title, t.bpm);
+                        t.folder_id = getFolderIdForSubgenre(t.subgenre);
+                    } else {
+                        if (t.subgenre.empty()) t.subgenre = classifySubgenre(t.artist, t.title, t.bpm);
                         t.folder_id = getFolderIdForSubgenre(t.subgenre);
                     }
 
@@ -370,7 +501,7 @@ namespace KuroAudio {
             std::vector<DJLibraryTrack> res;
             for (const auto& t : tracks) {
                 if (folder_id == "all") {
-                    if (t.is_downloaded) res.push_back(t);
+                    res.push_back(t);
                 } else if (folder_id == "cloud") {
                     if (!t.is_downloaded) res.push_back(t);
                 } else if (t.folder_id == folder_id) {

@@ -295,7 +295,7 @@ namespace KuroAudio {
                 // Deck Esquerdo Ativo (Deck 1 ou Deck 3)
                 if (channel == 0) {
                     if (data1 == 0x0B) { // Play / Pause
-                        deck_left.togglePlay();
+                        deck_left.togglePlay(&deck_right);
                         sendShortMessage(0x90, 0x0B, deck_left.is_playing ? 127 : 30);
                     }
                     else if (data1 == 0x0C) { // Cue
@@ -314,8 +314,9 @@ namespace KuroAudio {
                         if (shift_deck_a) {
                             toggleLeftDeck();
                         } else {
-                            dj_engine->syncBPM(active_right_deck, active_left_deck);
-                            sendShortMessage(0x90, 0x58, 127);
+                            dj_engine->toggleSync(active_left_deck, active_right_deck);
+                            bool s_on = dj_engine->decks[active_left_deck].sync_active;
+                            sendShortMessage(0x90, 0x58, s_on ? 127 : 0);
                         }
                     }
                     else if (data1 == 0x54) { // Headphone Listen (PFL)
@@ -335,7 +336,7 @@ namespace KuroAudio {
                 // Deck Direito Ativo (Deck 2 ou Deck 4)
                 else if (channel == 1) {
                     if (data1 == 0x0B) {
-                        deck_right.togglePlay();
+                        deck_right.togglePlay(&deck_left);
                         sendShortMessage(0x91, 0x0B, deck_right.is_playing ? 127 : 30);
                     }
                     else if (data1 == 0x0C) {
@@ -354,8 +355,9 @@ namespace KuroAudio {
                         if (shift_deck_b) {
                             toggleRightDeck();
                         } else {
-                            dj_engine->syncBPM(active_left_deck, active_right_deck);
-                            sendShortMessage(0x91, 0x58, 127);
+                            dj_engine->toggleSync(active_right_deck, active_left_deck);
+                            bool s_on = dj_engine->decks[active_right_deck].sync_active;
+                            sendShortMessage(0x91, 0x58, s_on ? 127 : 0);
                         }
                     }
                     else if (data1 == 0x54) {
@@ -494,11 +496,11 @@ namespace KuroAudio {
                     // Tempo / Pitch Fader 14-bit
                     else if (data1 == 0x00) {
                         rate_msb_a = data2;
-                        deck_left.setRate14Bit(rate_msb_a, rate_lsb_a, 8.0f);
+                        deck_left.setRate14Bit(rate_msb_a, rate_lsb_a, deck_left.pitch_range);
                     }
                     else if (data1 == 0x20) {
                         rate_lsb_a = data2;
-                        deck_left.setRate14Bit(rate_msb_a, rate_lsb_a, 8.0f);
+                        deck_left.setRate14Bit(rate_msb_a, rate_lsb_a, deck_left.pitch_range);
                     }
                     // Volume Fader 14-bit
                     else if (data1 == 0x13) {
@@ -572,11 +574,11 @@ namespace KuroAudio {
                     }
                     else if (data1 == 0x00) {
                         rate_msb_b = data2;
-                        deck_right.setRate14Bit(rate_msb_b, rate_lsb_b, 8.0f);
+                        deck_right.setRate14Bit(rate_msb_b, rate_lsb_b, deck_right.pitch_range);
                     }
                     else if (data1 == 0x20) {
                         rate_lsb_b = data2;
-                        deck_right.setRate14Bit(rate_msb_b, rate_lsb_b, 8.0f);
+                        deck_right.setRate14Bit(rate_msb_b, rate_lsb_b, deck_right.pitch_range);
                     }
                     else if (data1 == 0x13) {
                         vol_msb_b = data2;

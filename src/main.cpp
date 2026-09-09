@@ -906,29 +906,49 @@ int main(int argc, char* argv[]) {
             KuroUI::show_dj_modal = true;
             if (g_dj_engine) {
                 std::string pA = "scratch/test_cliff.wav";
-                if (!std::filesystem::exists(pA)) pA = "scratch/tracks/track_1659092811.wav";
+                if (!std::filesystem::exists(pA)) pA = "scratch/tracks/track_1894735727.wav";
                 if (g_dj_engine->deckA.loadTrack(pA)) {
-                    g_dj_engine->deckA.track_title = "Cliffhanger (Original Mix)";
-                    g_dj_engine->deckA.track_artist = "Revoluo / Discip";
-                    g_dj_engine->deckA.bpm = 128.0;
-                    g_dj_engine->deckA.key_signature = "8A / Am";
-                    g_dj_engine->deckA.hot_cues[0].active = true;
-                    g_dj_engine->deckA.hot_cues[0].time_sec = 15.0;
-                    g_dj_engine->deckA.hot_cues[1].active = true;
-                    g_dj_engine->deckA.hot_cues[1].time_sec = 30.0;
+                    g_dj_engine->deckA.track_title = "Cliffjumper";
+                    g_dj_engine->deckA.track_artist = "Aura Vortex & Klipsun";
+                    g_dj_engine->deckA.bpm = 138.0;
+                    g_dj_engine->deckA.key_signature = "9B / G";
                     g_dj_engine->deckA.togglePlay();
                 }
 
                 std::string pB = "scratch/test_astrix.wav";
+                if (!std::filesystem::exists(pB)) pB = "scratch/tracks/track_demo_djw.wav";
                 if (g_dj_engine->deckB.loadTrack(pB)) {
                     g_dj_engine->deckB.track_title = "Deep Jungle Walk";
                     g_dj_engine->deckB.track_artist = "Astrix";
-                    g_dj_engine->deckB.bpm = 128.0;
-                    g_dj_engine->deckB.key_signature = "9A / Em";
-                    g_dj_engine->deckB.hot_cues[0].active = true;
-                    g_dj_engine->deckB.hot_cues[0].time_sec = 10.0;
-                    g_dj_engine->deckB.togglePlay();
+                    g_dj_engine->deckB.bpm = 138.0;
+                    g_dj_engine->deckB.key_signature = "8A / Am";
+                    g_dj_engine->toggleSync(1, 0);
+                    g_dj_engine->deckB.togglePlay(&g_dj_engine->deckA);
                 }
+            }
+        } else if (arg == "--test-beat-sync") {
+            KuroUI::show_dj_modal = true;
+            if (g_dj_engine) {
+                std::string pA = "scratch/test_cliff.wav";
+                if (!std::filesystem::exists(pA)) pA = "scratch/tracks/track_1894735727.wav";
+                g_dj_engine->deckA.loadTrack(pA);
+                g_dj_engine->deckA.track_title = "Cliffjumper";
+                g_dj_engine->deckA.track_artist = "Aura Vortex & Klipsun";
+                g_dj_engine->deckA.bpm = 138.0;
+                g_dj_engine->deckA.key_signature = "9B / G";
+                g_dj_engine->deckA.togglePlay();
+
+                std::string pB = "scratch/test_astrix.wav";
+                if (!std::filesystem::exists(pB)) pB = "scratch/tracks/track_demo_djw.wav";
+                g_dj_engine->deckB.loadTrack(pB);
+                g_dj_engine->deckB.track_title = "Deep Jungle Walk";
+                g_dj_engine->deckB.track_artist = "Astrix";
+                g_dj_engine->deckB.bpm = 138.0;
+                g_dj_engine->deckB.key_signature = "8A / Am";
+
+                // Ativa Pioneer Beat Sync: Deck B trancado ao Deck A
+                g_dj_engine->toggleSync(1, 0);
+                g_dj_engine->deckB.togglePlay(&g_dj_engine->deckA);
             }
         } else if (arg == "--test-usb-export") {
             KuroUI::show_dj_modal = true;
@@ -970,6 +990,31 @@ int main(int argc, char* argv[]) {
                 g_dj_engine->deckB.track_artist = "Astrix";
                 g_dj_engine->deckB.bpm = 138.0;
                 g_dj_engine->deckB.key_signature = "8A / Am";
+            }
+        } else if (arg == "--test-search-modal") {
+            KuroUI::show_dj_modal = true;
+            KuroUI::g_dj_studio_ui.show_search_modal = true;
+            KuroUI::g_dj_studio_ui.focus_search_modal = true;
+            if (std::filesystem::exists("scratch/tracks/search_results.tsv")) {
+                KuroUI::g_dj_studio_ui.spotify_service.parseSearchResultsTsv("scratch/tracks/search_results.tsv");
+            }
+            if (g_dj_engine) {
+                std::string pA = "scratch/tracks/track_1894735727.wav";
+                if (std::filesystem::exists(pA)) {
+                    g_dj_engine->deckA.loadTrack(pA);
+                    g_dj_engine->deckA.track_title = "Cliffjumper";
+                    g_dj_engine->deckA.track_artist = "Aura Vortex & Klipsun";
+                    g_dj_engine->deckA.bpm = 138.0;
+                    g_dj_engine->deckA.key_signature = "9B / G";
+                }
+                std::string pB = "scratch/tracks/track_demo_djw.wav";
+                if (std::filesystem::exists(pB)) {
+                    g_dj_engine->deckB.loadTrack(pB);
+                    g_dj_engine->deckB.track_title = "Deep Jungle Walk";
+                    g_dj_engine->deckB.track_artist = "Astrix";
+                    g_dj_engine->deckB.bpm = 138.0;
+                    g_dj_engine->deckB.key_signature = "8A / Am";
+                }
             }
         } else if (arg == "--run-export-test") {
             std::filesystem::create_directories("scratch/tracks/export");

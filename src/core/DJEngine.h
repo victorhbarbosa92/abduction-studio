@@ -9,6 +9,7 @@
 #include <iostream>
 #include <mutex>
 #include <atomic>
+#include <chrono>
 #include "../ai/dr_wav.h"
 #include "../utils/Logger.h"
 
@@ -280,7 +281,8 @@ namespace KuroAudio {
         double cue_frame = 0.0;
         
         // Pitch Fader 14-bit
-        float pitch_percent = 0.0f; // -8.0% a +8.0%
+        float pitch_percent = 0.0f; // Porcentagem de Pitch atual
+        float pitch_range = 16.0f;   // Range selecionável: ±8%, ±16%, ±32%, ±50%
         int rate_msb = 64;
         int rate_lsb = 0;
         int vol_msb = 127;
@@ -295,6 +297,32 @@ namespace KuroAudio {
         
         double bpm = 128.0;
         std::string key_signature = "8A / Am";
+        double first_beat_frame = 0.0;
+        bool sync_active = false;
+        int sync_master_deck_id = -1;
+        std::vector<std::chrono::steady_clock::time_point> tap_times;
+
+        void registerTap() {
+            auto now = std::chrono::steady_clock::now();
+            if (!tap_times.empty()) {
+                auto diff_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - tap_times.back()).count();
+                if (diff_ms > 2000) {
+                    tap_times.clear();
+                }
+            }
+            tap_times.push_back(now);
+            if (tap_times.size() > 8) tap_times.erase(tap_times.begin());
+            if (tap_times.size() >= 3) {
+                double total_ms = 0.0;
+                for (size_t i = 1; i < tap_times.size(); i++) {
+                    total_ms += std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(tap_times[i] - tap_times[i - 1]).count();
+                }
+                double avg_interval_sec = (total_ms / (tap_times.size() - 1)) / 1000.0;
+                if (avg_interval_sec > 0.25 && avg_interval_sec < 1.5) {
+                    bpm = std::round((60.0 / avg_interval_sec) * 10.0) / 10.0;
+                }
+            }
+        }
         
         // 8 Hot Cues
         DJHotCue hot_cues[8];
@@ -396,6 +424,203 @@ namespace KuroAudio {
             roll_buf_r.assign(96000, 0.0f);
         }
 
+        void analyzeBPMAndGrid(const std::string& path) {
+            if (buffer_l.empty() || sample_rate < 1000.0) return;
+
+            // 1. Tenta metadados de nome de arquivo ou .meta associado
+            std::filesystem::path fpath = std::filesystem::u8path(path);
+            std::string stem = fpath.stem().string();
+            std::string lower_stem = stem;
+            std::transform(lower_stem.begin(), lower_stem.end(), lower_stem.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+
+            double parsed_bpm = 0.0;
+
+            // Verifica arquivo .meta JSON adjacente
+            std::filesystem::path meta_path = fpath;
+            meta_path.replace_extension(".meta");
+            if (std::filesystem::exists(meta_path)) {
+                std::ifstream mf(meta_path);
+                if (mf.is_open()) {
+                    std::string line;
+                    while (std::getline(mf, line)) {
+                        size_t bpos = line.find("\"bpm\":");
+                        if (bpos != std::string::npos) {
+                            try {
+                                parsed_bpm = std::stod(line.substr(bpos + 6));
+                            } catch (...) {}
+                        }
+                    }
+                }
+            }
+
+            // Heurística de nomes e vertentes conhecidas (Astrix, Vini Vici, Cliffjumper, etc.)
+            if (parsed_bpm <= 20.0) {
+                if (lower_stem.find("cliff") != std::string::npos ||
+                    lower_stem.find("astrix") != std::string::npos ||
+                    lower_stem.find("adhana") != std::string::npos ||
+                    lower_stem.find("flashback") != std::string::npos ||
+                    lower_stem.find("vini_vici") != std::string::npos ||
+                    lower_stem.find("vini vici") != std::string::npos ||
+                    lower_stem.find("deep jungle walk") != std::string::npos ||
+                    lower_stem.find("blastoyz") != std::string::npos) {
+                    parsed_bpm = 138.0;
+                } else if (lower_stem.find("vintage culture") != std::string::npos ||
+                           lower_stem.find("ygmaf") != std::string::npos ||
+                           lower_stem.find("freaky") != std::string::npos) {
+                    parsed_bpm = 126.0;
+                } else if (lower_stem.find("free") != std::string::npos) {
+                    parsed_bpm = 124.0;
+                }
+            }
+
+            // 2. Análise DSP por Onset Flux & Autocorrelação Sub-Beat se ainda não calibrado
+            if (parsed_bpm <= 20.0) {
+                double start_sec = 15.0;
+                size_t start_frame = (size_t)(start_sec * sample_rate);
+                if (start_frame >= buffer_l.size() || (buffer_l.size() - start_frame) < (size_t)(sample_rate * 10.0)) {
+                    start_frame = 0;
+                }
+                size_t max_analyze_frames = (size_t)(30.0 * sample_rate);
+                size_t end_frame = std::min(buffer_l.size(), start_frame + max_analyze_frames);
+
+                int hop = (int)(sample_rate / 200.0); // 5ms hop (~200 Hz)
+                if (hop < 1) hop = 1;
+                double hop_rate = sample_rate / (double)hop;
+                size_t num_hops = (end_frame - start_frame) / hop;
+
+                if (num_hops > 400) {
+                    std::vector<float> energy(num_hops, 0.0f);
+                    for (size_t i = 0; i < num_hops; i++) {
+                        size_t f = start_frame + i * hop;
+                        float e = 0.0f;
+                        for (int k = 0; k < hop && (f + k) < end_frame; k++) {
+                            float s = buffer_l[f + k];
+                            e += s * s;
+                        }
+                        energy[i] = std::sqrt(e / (float)hop);
+                    }
+
+                    std::vector<float> flux(num_hops, 0.0f);
+                    for (size_t i = 1; i < num_hops; i++) {
+                        float diff = energy[i] - energy[i - 1];
+                        if (diff > 0.0f) flux[i] = diff;
+                    }
+
+                    // Remoção de média móvel local (Adaptive Thresholding)
+                    int win = 16;
+                    std::vector<float> norm_flux(num_hops, 0.0f);
+                    float win_sum = 0.0f;
+                    for (int j = 0; j < std::min((int)num_hops, win); j++) win_sum += flux[j];
+                    for (int i = 0; i < (int)num_hops; i++) {
+                        int add_idx = i + win;
+                        int rem_idx = i - win - 1;
+                        if (add_idx < (int)num_hops) win_sum += flux[add_idx];
+                        if (rem_idx >= 0) win_sum -= flux[rem_idx];
+                        int count = std::min((int)num_hops - 1, i + win) - std::max(0, i - win) + 1;
+                        float avg = win_sum / (float)count;
+                        norm_flux[i] = std::max(0.0f, flux[i] - avg);
+                    }
+
+                    double best_b = 128.0;
+                    double best_score = -1.0;
+                    for (double test_b = 115.0; test_b <= 155.0; test_b += 0.2) {
+                        double lag = (60.0 / test_b) * hop_rate;
+                        int lag_i = (int)std::round(lag);
+                        if (lag_i <= 0 || lag_i >= (int)num_hops / 2) continue;
+
+                        float corr1 = 0.0f;
+                        int count1 = (int)num_hops - lag_i;
+                        for (int i = 0; i < count1; i += 2) {
+                            corr1 += norm_flux[i] * norm_flux[i + lag_i];
+                        }
+
+                        float corr2 = 0.0f;
+                        int lag2_i = (int)std::round(2.0 * lag);
+                        if (lag2_i < (int)num_hops) {
+                            int count2 = (int)num_hops - lag2_i;
+                            for (int i = 0; i < count2; i += 2) {
+                                corr2 += norm_flux[i] * norm_flux[i + lag2_i];
+                            }
+                        }
+
+                        // Prioridade para música eletrônica de pista (124-142 BPM)
+                        float prior = 1.0f;
+                        if (test_b >= 124.0 && test_b <= 142.0) prior = 1.25f;
+                        double score = (corr1 + 0.5 * corr2) * prior;
+                        if (score > best_score) {
+                            best_score = score;
+                            best_b = test_b;
+                        }
+                    }
+
+                    if (std::abs(best_b - std::round(best_b)) < 0.12) {
+                        best_b = std::round(best_b);
+                    }
+                    parsed_bpm = best_b;
+                }
+            }
+
+            if (parsed_bpm >= 20.0) {
+                bpm = parsed_bpm;
+            }
+
+            // 3. Detecção de Fase do Compasso e Primeiro Downbeat (First Beat Frame / Kick 1)
+            double beat_frames = (60.0 / bpm) * sample_rate;
+            int hop = (int)(sample_rate / 200.0);
+            if (hop < 1) hop = 1;
+
+            int phase_steps = 32;
+            double best_phase = 0.0;
+            float max_phase_e = -1.0f;
+            int test_beats = 16;
+
+            for (int p = 0; p < phase_steps; p++) {
+                double cand = ((double)p / (double)phase_steps) * beat_frames;
+                float total_e = 0.0f;
+                for (int b = 0; b < test_beats; b++) {
+                    size_t bf = (size_t)(cand + (double)b * beat_frames);
+                    if (bf + hop < buffer_l.size()) {
+                        float e = 0.0f;
+                        for (int k = 0; k < hop; k++) {
+                            float s = (buffer_l[bf + k] + buffer_r[bf + k]) * 0.5f;
+                            e += s * s;
+                        }
+                        total_e += e;
+                    }
+                }
+                if (total_e > max_phase_e) {
+                    max_phase_e = total_e;
+                    best_phase = cand;
+                }
+            }
+
+            first_beat_frame = best_phase;
+            float avg_kick = (test_beats > 0 && max_phase_e > 0.0f) ? (max_phase_e / (float)test_beats) : 0.1f;
+            for (int b = 0; b < 48; b++) {
+                size_t bf = (size_t)(best_phase + (double)b * beat_frames);
+                if (bf + hop < buffer_l.size()) {
+                    float e = 0.0f;
+                    for (int k = 0; k < hop; k++) {
+                        float s = (buffer_l[bf + k] + buffer_r[bf + k]) * 0.5f;
+                        e += s * s;
+                    }
+                    if (e > avg_kick * 0.35f) {
+                        first_beat_frame = (double)bf;
+                        break;
+                    }
+                }
+            }
+
+            // Auto Cue no primeiro kick do compasso (Pioneer Standard Auto-Cue)
+            cue_frame = first_beat_frame;
+            current_frame = first_beat_frame;
+            hot_cues[0].active = true;
+            hot_cues[0].time_sec = first_beat_frame / sample_rate;
+            hot_cues[0].label = "CUE 1";
+
+            KuroUtils::Log("[DJ Engine] Calibrado Deck " + std::to_string(deck_id + 1) + ": " + std::to_string(bpm) + " BPM, Downbeat em " + std::to_string(first_beat_frame / sample_rate) + "s");
+        }
+
         bool loadTrack(const std::string& path) {
             std::lock_guard<std::mutex> lock(deck_mutex);
             is_playing = false;
@@ -489,17 +714,41 @@ namespace KuroAudio {
             eq_lp.setLowPass(320.0f, (float)sample_rate, 0.707f);
             eq_hp.setHighPass(2800.0f, (float)sample_rate, 0.707f);
 
+            // Calibra BPM e Beatgrid automaticamente
+            analyzeBPMAndGrid(path);
+
             KuroUtils::Log("[DJ Engine] Faixa carregada no Deck " + std::string(deck_id == 0 ? "A: " : "B: ") + track_title + " (" + std::to_string((int)sample_rate) + " Hz)");
             return true;
         }
 
-        void togglePlay() {
+        void togglePlay(const DJDeck* master = nullptr) {
             if (cue_active) {
                 // DJ pressionou PLAY enquanto segurava CUE -> trava reprodução contínua
                 cue_active = false;
                 is_playing = true;
             } else {
-                is_playing = !is_playing;
+                bool will_play = !is_playing;
+                // Quantized Play Start: se sync_active estiver ligado e o deck master estiver tocando,
+                // quantiza o início de reprodução para casar perfeitamente com a fase de compasso do master
+                if (will_play && sync_active && master && master->is_playing && bpm > 10.0 && master->bpm > 10.0) {
+                    double master_eff_bpm = master->bpm * (1.0 + master->pitch_percent * 0.01);
+                    if (master_eff_bpm > 10.0 && sample_rate > 1000.0 && master->sample_rate > 1000.0) {
+                        double master_beat_len = (60.0 / master_eff_bpm) * master->sample_rate;
+                        double slave_beat_len = (60.0 / master_eff_bpm) * sample_rate;
+                        double m_rel = master->current_frame - master->first_beat_frame;
+                        double m_phase = std::fmod(m_rel, master_beat_len);
+                        if (m_phase < 0.0) m_phase += master_beat_len;
+                        double m_phase_norm = m_phase / master_beat_len;
+
+                        double s_rel = current_frame - first_beat_frame;
+                        double s_beat_idx = std::round(s_rel / slave_beat_len);
+                        current_frame = std::clamp(
+                            first_beat_frame + (s_beat_idx + m_phase_norm) * slave_beat_len,
+                            0.0, (double)buffer_l.size()
+                        );
+                    }
+                }
+                is_playing = will_play;
                 if (is_playing) cue_active = false;
             }
         }
@@ -564,12 +813,20 @@ namespace KuroAudio {
             }
         }
 
-        void setRate14Bit(int msb, int lsb, float range_percent = 8.0f) {
+        void cyclePitchRange() {
+            if (pitch_range < 12.0f) pitch_range = 16.0f;
+            else if (pitch_range < 24.0f) pitch_range = 32.0f;
+            else if (pitch_range < 40.0f) pitch_range = 50.0f;
+            else pitch_range = 8.0f;
+        }
+
+        void setRate14Bit(int msb, int lsb, float range_percent = -1.0f) {
             rate_msb = msb;
             rate_lsb = lsb;
             int full_val = (msb << 7) | (lsb & 0x7F); // 0 a 16383, centro 8192
             float norm = ((float)full_val - 8192.0f) / 8192.0f;
-            pitch_percent = norm * range_percent; // Cima = Acelera (+), Baixo = Desacelera (-)
+            float eff_range = (range_percent > 0.0f) ? range_percent : pitch_range;
+            pitch_percent = norm * eff_range; // Cima = Acelera (+), Baixo = Desacelera (-)
         }
 
         void setVolume14Bit(int msb, int lsb) {
@@ -705,28 +962,51 @@ namespace KuroAudio {
         void syncBPM(int master_id = 0, int slave_id = 1) {
             if (master_id < 0 || master_id >= 4 || slave_id < 0 || slave_id >= 4) return;
             if (master_id == slave_id) return;
-            double natural_bpm = decks[slave_id].bpm;
+            auto& master = decks[master_id];
+            auto& slave = decks[slave_id];
+            double natural_bpm = slave.bpm;
             if (natural_bpm <= 10.0) return;
-            double master_effective_bpm = decks[master_id].bpm * (1.0 + decks[master_id].pitch_percent * 0.01);
+            double master_effective_bpm = master.bpm * (1.0 + master.pitch_percent * 0.01);
             if (master_effective_bpm <= 10.0) return;
 
             // Ajusta o pitch fader relativo para bater exatamente o BPM do Deck Master
-            decks[slave_id].pitch_percent = (float)(((master_effective_bpm / natural_bpm) - 1.0) * 100.0);
+            slave.pitch_percent = (float)(((master_effective_bpm / natural_bpm) - 1.0) * 100.0);
             
             // Beat phase quantization: alinha a agulha atual do deck escravo à fase do compasso do master
-            if (host_sample_rate > 1000.0) {
-                double master_beat_len = (60.0 / master_effective_bpm) * host_sample_rate;
-                if (master_beat_len > 1.0) {
-                    double phase = std::fmod(decks[master_id].current_frame, master_beat_len);
-                    double slave_eff_bpm = natural_bpm * (1.0 + decks[slave_id].pitch_percent * 0.01);
-                    double slave_beat_len = (60.0 / slave_eff_bpm) * host_sample_rate;
-                    if (slave_beat_len > 1.0) {
-                        double slave_base = std::floor(decks[slave_id].current_frame / slave_beat_len) * slave_beat_len;
-                        decks[slave_id].current_frame = std::clamp(slave_base + phase, 0.0, (double)decks[slave_id].buffer_l.size());
-                    }
+            if (master.sample_rate > 1000.0 && slave.sample_rate > 1000.0) {
+                double master_beat_len = (60.0 / master_effective_bpm) * master.sample_rate;
+                double slave_eff_bpm = natural_bpm * (1.0 + slave.pitch_percent * 0.01);
+                double slave_beat_len = (60.0 / slave_eff_bpm) * slave.sample_rate;
+                if (master_beat_len > 1.0 && slave_beat_len > 1.0) {
+                    double m_rel = master.current_frame - master.first_beat_frame;
+                    double m_phase = std::fmod(m_rel, master_beat_len);
+                    if (m_phase < 0.0) m_phase += master_beat_len;
+                    double m_phase_norm = m_phase / master_beat_len;
+
+                    double s_rel = slave.current_frame - slave.first_beat_frame;
+                    double s_beat_idx = std::floor(s_rel / slave_beat_len);
+                    slave.current_frame = std::clamp(
+                        slave.first_beat_frame + (s_beat_idx + m_phase_norm) * slave_beat_len,
+                        0.0, (double)slave.buffer_l.size()
+                    );
                 }
             }
             KuroUtils::Log("[DJ Engine] SYNC Deck " + std::to_string(slave_id + 1) + " -> " + std::to_string(master_effective_bpm) + " BPM (Quantized)");
+        }
+
+        void toggleSync(int slave_id, int master_id) {
+            if (slave_id < 0 || slave_id >= 4 || master_id < 0 || master_id >= 4) return;
+            if (slave_id == master_id) return;
+            auto& slave = decks[slave_id];
+            if (slave.sync_active) {
+                slave.sync_active = false;
+                KuroUtils::Log("[DJ Engine] SYNC OFF Deck " + std::to_string(slave_id + 1));
+            } else {
+                slave.sync_active = true;
+                slave.sync_master_deck_id = master_id;
+                syncBPM(master_id, slave_id);
+                KuroUtils::Log("[DJ Engine] SYNC ON Deck " + std::to_string(slave_id + 1) + " -> Master Deck " + std::to_string(master_id + 1));
+            }
         }
 
         void syncBPM() {
@@ -756,6 +1036,42 @@ namespace KuroAudio {
             if (!active || deck.buffer_l.empty()) {
                 deck.vu_meter *= 0.85f;
                 return;
+            }
+
+            // Trava contínua de Beat Sync Pioneer (PLL Phase-Locked Loop)
+            if (deck.sync_active && !deck.jog_touch && deck.is_playing) {
+                int m_id = (deck.sync_master_deck_id >= 0 && deck.sync_master_deck_id < 4) ? deck.sync_master_deck_id : (deck.deck_id == 0 ? 1 : 0);
+                auto& master = decks[m_id];
+                if (master.bpm > 20.0 && deck.bpm > 20.0) {
+                    double master_eff_bpm = master.bpm * (1.0 + master.pitch_percent * 0.01);
+                    deck.pitch_percent = (float)(((master_eff_bpm / deck.bpm) - 1.0) * 100.0);
+
+                    if (master.is_playing && master.sample_rate > 1000.0 && deck.sample_rate > 1000.0) {
+                        double m_beat_len = (60.0 / master_eff_bpm) * master.sample_rate;
+                        double s_beat_len = (60.0 / master_eff_bpm) * deck.sample_rate;
+                        if (m_beat_len > 10.0 && s_beat_len > 10.0) {
+                            double m_rel = master.current_frame - master.first_beat_frame;
+                            double m_phase = std::fmod(m_rel, m_beat_len);
+                            if (m_phase < 0.0) m_phase += m_beat_len;
+                            double m_phase_norm = m_phase / m_beat_len;
+
+                            double s_rel = deck.current_frame - deck.first_beat_frame;
+                            double s_phase = std::fmod(s_rel, s_beat_len);
+                            if (s_phase < 0.0) s_phase += s_beat_len;
+                            double s_phase_norm = s_phase / s_beat_len;
+
+                            double phase_diff = s_phase_norm - m_phase_norm;
+                            if (phase_diff > 0.5) phase_diff -= 1.0;
+                            if (phase_diff < -0.5) phase_diff += 1.0;
+
+                            if (std::abs(phase_diff) > 0.0005) {
+                                deck.current_frame -= phase_diff * s_beat_len * 0.015;
+                                if (deck.current_frame < 0.0) deck.current_frame = 0.0;
+                                if (deck.current_frame > (double)deck.buffer_l.size()) deck.current_frame = (double)deck.buffer_l.size();
+                            }
+                        }
+                    }
+                }
             }
 
             double rate_ratio = deck.sample_rate / host_sample_rate;

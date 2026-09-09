@@ -51,6 +51,7 @@ namespace KuroUI {
         bool show_playlist_drawer = false; // Oculto por padrão para dar foco total às waveforms
         bool show_export_modal = false;
         bool show_search_modal = false;
+        bool focus_search_modal = false;
         bool show_exit_confirm_modal = false;
         char online_search_query_buf[128] = "";
 
@@ -224,7 +225,6 @@ namespace KuroUI {
             if (is_fullscreen) {
                 ImGui::SetNextWindowPos(viewport->Pos);
                 ImGui::SetNextWindowSize(viewport->Size);
-                ImGui::SetNextWindowFocus();
             } else {
                 ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.95f, viewport->Size.y * 0.94f), ImGuiCond_FirstUseEver);
                 ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x + viewport->Size.x * 0.025f, viewport->Pos.y + viewport->Size.y * 0.03f), ImGuiCond_FirstUseEver);
@@ -304,10 +304,9 @@ namespace KuroUI {
                     renderUSBExportDrawer(engine);
                 }
 
-                // --- 6. MODAIS PROFISSIONAIS (BUSCA ONLINE & CONFIRMAÇÃO DE SAÍDA) ---
+                // --- 6. MODAIS PROFISSIONAIS POPUP (BUSCA ONLINE & CONFIRMAÇÃO DE SAÍDA) ---
                 renderSearchModal(engine);
                 renderExitConfirmModal(engine, p_open);
-
             }
             ImGui::End();
 
@@ -352,7 +351,15 @@ namespace KuroUI {
             ImGui::SameLine(0, 14);
             ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "BPM:");
             ImGui::SameLine();
-            ImGui::TextColored(col_deck_1, "%.2f", engine.decks[left_deck].bpm);
+            double l_eff = engine.decks[left_deck].bpm * (1.0 + engine.decks[left_deck].pitch_percent * 0.01);
+            double r_eff = engine.decks[right_deck].bpm * (1.0 + engine.decks[right_deck].pitch_percent * 0.01);
+            ImGui::TextColored(col_deck_1, "D%d: %.2f", left_deck + 1, l_eff);
+            ImGui::SameLine(0, 6);
+            ImGui::TextColored(col_deck_2, "D%d: %.2f", right_deck + 1, r_eff);
+            if (engine.decks[left_deck].sync_active || engine.decks[right_deck].sync_active) {
+                ImGui::SameLine(0, 6);
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.9f, 1.0f), ICON_FA_BOLT " [SYNC LOCKED]");
+            }
 
             // Ações do Topo: Músicas / Busca / Pen Drive / Playlist / Limpar / Tela Cheia / Sair
             float right_actions_w = 720.0f;
@@ -378,6 +385,7 @@ namespace KuroUI {
             ImGui::PushStyleColor(ImGuiCol_Button, show_search_modal ? ImVec4(0.00f, 0.70f, 0.85f, 1.0f) : ImVec4(0.15f, 0.35f, 0.45f, 0.90f));
             if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS " BUSCA ONLINE")) {
                 show_search_modal = !show_search_modal;
+                if (show_search_modal) focus_search_modal = true;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Abrir janela de busca online com capas, BPM e importação");
             ImGui::PopStyleColor();
@@ -463,16 +471,17 @@ namespace KuroUI {
                     size_t total_f = deck.buffer_l.size();
 
                     // Beat Grid Sincronizado (Linha Vermelha na cabeça de compasso 4/4 com triângulos superior/inferior)
-                    if (deck.bpm > 20.0) {
-                        double beat_len = (60.0 / deck.bpm) * deck.sample_rate;
+                    double eff_bpm = deck.bpm * (1.0 + deck.pitch_percent * 0.01);
+                    if (eff_bpm > 20.0) {
+                        double beat_len = (60.0 / eff_bpm) * deck.sample_rate;
                         if (beat_len > 10.0) {
-                            int b_start = (int)std::floor((double)start_f / beat_len);
-                            int b_end   = (int)std::ceil((double)(start_f + window_frames) / beat_len);
+                            int b_start = (int)std::floor(((double)start_f - deck.first_beat_frame) / beat_len);
+                            int b_end   = (int)std::ceil(((double)(start_f + window_frames) - deck.first_beat_frame) / beat_len);
                             for (int b = b_start; b <= b_end; b++) {
-                                double bf = (double)b * beat_len;
+                                double bf = deck.first_beat_frame + (double)b * beat_len;
                                 float bx = l_pos.x + (float)((bf - (double)start_f) / (double)window_frames) * w;
                                 if (bx >= l_pos.x && bx <= l_pos.x + w) {
-                                    bool is_bar = (b % 4 == 0);
+                                    bool is_bar = ((b % 4 + 4) % 4 == 0);
                                     if (is_bar) {
                                         // Linha Vermelha de Compasso com ponteiros triangulares
                                         dl->AddLine(ImVec2(bx, l_pos.y), ImVec2(bx, l_pos.y + lane_h), IM_COL32(255, 42, 55, 230), 1.5f);
@@ -542,16 +551,28 @@ namespace KuroUI {
                     }
                 }
 
-                // 4. Indicadores de Canto: Badge do Deck e Contador de Compassos
+                // 4. Indicadores de Canto: Badge do Deck, SYNC status e Contador de Compassos
                 char deck_badge[32];
                 snprintf(deck_badge, sizeof(deck_badge), "DECK %d", d_num);
                 dl->AddRectFilled(ImVec2(l_pos.x + 6, l_pos.y + 3), ImVec2(l_pos.x + 58, l_pos.y + 17), ImGui::GetColorU32(theme_col), 3.0f);
                 dl->AddText(ImVec2(l_pos.x + 10, l_pos.y + 3), IM_COL32(0, 0, 0, 255), deck_badge);
 
+                if (deck.sync_active) {
+                    dl->AddRectFilled(ImVec2(l_pos.x + 62, l_pos.y + 3), ImVec2(l_pos.x + 130, l_pos.y + 17), IM_COL32(0, 190, 255, 220), 3.0f);
+                    dl->AddText(ImVec2(l_pos.x + 66, l_pos.y + 3), IM_COL32(0, 0, 0, 255), "SYNC ON");
+                } else {
+                    int other_id = (deck.deck_id == active_l_id) ? active_r_id : active_l_id;
+                    if (engine.decks[other_id].sync_active) {
+                        dl->AddRectFilled(ImVec2(l_pos.x + 62, l_pos.y + 3), ImVec2(l_pos.x + 124, l_pos.y + 17), IM_COL32(255, 170, 0, 220), 3.0f);
+                        dl->AddText(ImVec2(l_pos.x + 66, l_pos.y + 3), IM_COL32(0, 0, 0, 255), "MASTER");
+                    }
+                }
+
                 // Contador de Compassos estilo Rekordbox (ex: -1.4Bars ou 1.1Bars ao lado da agulha central)
-                if (deck.bpm > 20.0 && deck.sample_rate > 1000.0) {
-                    double beat_len = (60.0 / deck.bpm) * deck.sample_rate;
-                    double bars = (deck.current_frame - deck.cue_frame) / (beat_len * 4.0);
+                double eff_bpm_bar = deck.bpm * (1.0 + deck.pitch_percent * 0.01);
+                if (eff_bpm_bar > 20.0 && deck.sample_rate > 1000.0) {
+                    double beat_len = (60.0 / eff_bpm_bar) * deck.sample_rate;
+                    double bars = (deck.current_frame - deck.first_beat_frame) / (beat_len * 4.0);
                     char bars_text[32];
                     snprintf(bars_text, sizeof(bars_text), "%+.1fBars", bars);
                     dl->AddText(ImVec2(center_x - 70.0f, l_pos.y + 3.0f), IM_COL32(0, 210, 255, 230), bars_text);
@@ -1011,6 +1032,7 @@ namespace KuroUI {
         }
 
         void renderDeckPanel(KuroAudio::DJDeck& deck, int deck_slot, ImVec4 theme_col, KuroAudio::DJEngine& engine) {
+            ImGui::PushID(deck.deck_id);
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 p_min = ImGui::GetCursorScreenPos();
             float w = ImGui::GetContentRegionAvail().x;
@@ -1072,6 +1094,7 @@ namespace KuroUI {
             ImGui::SetCursorScreenPos(ImVec2(ctrl_x, jog_start.y + 10));
 
             // PLAY / PAUSE
+            int master_deck = (deck_slot == 0) ? ddj_hardware.getActiveRightDeck() : ddj_hardware.getActiveLeftDeck();
             bool playing = deck.is_playing;
             if (playing) {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.85f, 0.45f, 1.0f));
@@ -1081,7 +1104,7 @@ namespace KuroUI {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.9f, 1.0f));
             }
             if (ImGui::Button(playing ? ICON_FA_PAUSE " PAUSE" : ICON_FA_PLAY " PLAY", ImVec2(68, 28))) {
-                deck.togglePlay();
+                deck.togglePlay(&engine.decks[master_deck]);
             }
             ImGui::PopStyleColor(2);
 
@@ -1106,19 +1129,24 @@ namespace KuroUI {
 
             ImGui::SameLine(0, 6);
 
-            // SYNC
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.25f, 0.35f, 0.9f));
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.9f, 1.0f, 1.0f));
-            if (ImGui::Button(ICON_FA_ARROWS_ROTATE " SYNC", ImVec2(56, 28))) {
-                int master_deck = (deck_slot == 0) ? ddj_hardware.getActiveRightDeck() : ddj_hardware.getActiveLeftDeck();
-                engine.syncBPM(master_deck, deck.deck_id);
+            // SYNC BUTTON COM ESTADO VISUAL LIGADO/DESLIGADO
+            bool sync_on = deck.sync_active;
+            if (sync_on) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.75f, 0.95f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+            } else {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.25f, 0.35f, 0.9f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.9f, 1.0f, 1.0f));
+            }
+            if (ImGui::Button(sync_on ? ICON_FA_BOLT " SYNC ON" : ICON_FA_ARROWS_ROTATE " SYNC", ImVec2(72, 28))) {
+                engine.toggleSync(deck.deck_id, master_deck);
             }
             ImGui::PopStyleColor(2);
 
             // BEAT LOOP
             ImGui::SetCursorScreenPos(ImVec2(ctrl_x, jog_start.y + 44));
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "BEAT LOOP:");
-            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "LOOP:");
+            ImGui::SameLine(0, 4);
             auto loopBtn = [&](double beats, const char* label) {
                 bool act = deck.loop_active && deck.loop_beats == beats;
                 if (act) ImGui::PushStyleColor(ImGuiCol_Button, theme_col);
@@ -1129,17 +1157,124 @@ namespace KuroUI {
             loopBtn(1.0, " 1 "); loopBtn(2.0, " 2 "); loopBtn(4.0, " 4 "); loopBtn(8.0, " 8 ");
             ImGui::NewLine();
 
-            // PITCH FADER 14-BIT VERTICAL
-            float pitch_col_x = std::max(ctrl_x + 140.0f, jog_start.x + w - 40.0f);
-            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x - 10, jog_start.y + 8));
-            ImGui::TextColored(ImVec4(0.7f, 0.8f, 0.9f, 1.0f), "%+.1f%%", deck.pitch_percent);
-
-            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x, jog_start.y + 24));
-            float pitch_norm = deck.pitch_percent / 8.0f;
-            if (ImGui::VSliderFloat("##PitchSlider", ImVec2(20, 120), &pitch_norm, -1.0f, 1.0f, "")) {
-                deck.pitch_percent = pitch_norm * 8.0f;
+            // MICRO-AJUSTE BEATGRID / TAP TEMPO
+            ImGui::SetCursorScreenPos(ImVec2(ctrl_x, jog_start.y + 72));
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "GRID:");
+            ImGui::SameLine(0, 4);
+            if (ImGui::SmallButton(" < ")) {
+                deck.first_beat_frame -= deck.sample_rate * 0.005;
             }
-            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Atrasar Beatgrid 5ms");
+            ImGui::SameLine(0, 2);
+            if (ImGui::SmallButton(" > ")) {
+                deck.first_beat_frame += deck.sample_rate * 0.005;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adiantar Beatgrid 5ms");
+            ImGui::SameLine(0, 5);
+            if (ImGui::SmallButton(" TAP ")) {
+                deck.registerTap();
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Clique no ritmo para calibrar BPM manualmente");
+            ImGui::NewLine();
+
+            // DISPLAY DIGITAL DE BPM ESTILO REKORDBOX (FONTE GRANDE + SETAS ▲/▼)
+            ImVec2 bpm_box_pos = ImVec2(ctrl_x, jog_start.y + 94);
+            float bpm_box_w = 124.0f;
+            float bpm_box_h = 36.0f;
+
+            // Painel LCD escuro com borda neon fina
+            dl->AddRectFilled(bpm_box_pos, ImVec2(bpm_box_pos.x + bpm_box_w, bpm_box_pos.y + bpm_box_h), IM_COL32(6, 8, 13, 255), 4.0f);
+            dl->AddRect(bpm_box_pos, ImVec2(bpm_box_pos.x + bpm_box_w, bpm_box_pos.y + bpm_box_h), ImGui::GetColorU32(theme_col), 4.0f, 0, 1.2f);
+
+            // Rótulo BPM pequeno
+            dl->AddText(ImVec2(bpm_box_pos.x + 5, bpm_box_pos.y + 2), IM_COL32(90, 130, 170, 220), "BPM");
+
+            // Texto gigante digital do BPM
+            double eff_b = deck.bpm * (1.0 + deck.pitch_percent * 0.01);
+            char bpm_str[32];
+            snprintf(bpm_str, sizeof(bpm_str), "%.2f", eff_b);
+
+            ImGui::SetCursorScreenPos(ImVec2(bpm_box_pos.x + 6, bpm_box_pos.y + 11));
+            ImGui::SetWindowFontScale(1.42f);
+            ImGui::TextColored(theme_col, "%s", bpm_str);
+            ImGui::SetWindowFontScale(1.0f);
+
+            // Interação com o mouse sobre o número do BPM (Scroll / Arraste)
+            ImGui::SetCursorScreenPos(bpm_box_pos);
+            ImGui::InvisibleButton("##BpmLcdHit", ImVec2(bpm_box_w - 22, bpm_box_h));
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("BPM Rekordbox: Use a roda do mouse ou setas ▲/▼ (+0.1 BPM, Shift p/ +0.01)");
+                if (ImGui::GetIO().MouseWheel != 0.0f) {
+                    deck.bpm += (ImGui::GetIO().MouseWheel > 0 ? 0.1 : -0.1);
+                    if (deck.bpm < 30.0) deck.bpm = 30.0;
+                    if (deck.bpm > 300.0) deck.bpm = 300.0;
+                }
+            }
+
+            // Setinhas ▲ e ▼ para alterar o BPM com o mouse igual no Rekordbox
+            float arr_x = bpm_box_pos.x + bpm_box_w - 20.0f;
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1, 0));
+            ImGui::SetCursorScreenPos(ImVec2(arr_x, bpm_box_pos.y + 2));
+            if (ImGui::Button("▲##BpmUp", ImVec2(17, 15))) {
+                deck.bpm += ImGui::GetIO().KeyShift ? 0.01 : 0.1;
+                if (deck.bpm > 300.0) deck.bpm = 300.0;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("+0.10 BPM (+0.01 com Shift)");
+
+            ImGui::SetCursorScreenPos(ImVec2(arr_x, bpm_box_pos.y + 18));
+            if (ImGui::Button("▼##BpmDown", ImVec2(17, 15))) {
+                deck.bpm -= ImGui::GetIO().KeyShift ? 0.01 : 0.1;
+                if (deck.bpm < 30.0) deck.bpm = 30.0;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("-0.10 BPM (-0.01 com Shift)");
+            ImGui::PopStyleVar();
+
+            // TOM MUSICAL (KEY)
+            ImGui::SetCursorScreenPos(ImVec2(bpm_box_pos.x + bpm_box_w + 6, bpm_box_pos.y + 10));
+            ImGui::TextColored(ImVec4(1.00f, 0.85f, 0.35f, 1.0f), "• %s", deck.key_signature.c_str());
+
+            // PITCH RESET & SYNC STATUS
+            ImGui::SetCursorScreenPos(ImVec2(ctrl_x, jog_start.y + 138));
+            if (ImGui::SmallButton("RESET 0%")) {
+                deck.pitch_percent = 0.0f;
+            }
+            ImGui::SameLine(0, 6);
+            if (deck.sync_active) {
+                ImGui::TextColored(ImVec4(0.0f, 0.95f, 0.90f, 1.0f), ICON_FA_LOCK " SYNC LOCKED");
+            } else {
+                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "MANUAL");
+            }
+
+            // PITCH FADER 14-BIT VERTICAL COM SELETOR DE RANGE (±8%, ±16%, ±32%)
+            float pitch_col_x = std::max(ctrl_x + 195.0f, jog_start.x + w - 42.0f);
+            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x - 14, jog_start.y + 6));
+            ImGui::TextColored(ImVec4(0.85f, 0.92f, 1.0f, 1.0f), "%+.1f%%", deck.pitch_percent);
+
+            // Botão Seletor de Range Pioneer CDJ (±8%, ±16%, ±32%)
+            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x - 12, jog_start.y + 22));
+            char rng_lbl[16];
+            snprintf(rng_lbl, sizeof(rng_lbl), "±%.0f%%", deck.pitch_range);
+            if (ImGui::SmallButton(rng_lbl)) {
+                deck.cyclePitchRange();
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Range do Pitch: Clique para alternar entre ±8%%, ±16%% e ±32%%");
+
+            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x, jog_start.y + 40));
+            float pitch_norm = deck.pitch_percent / deck.pitch_range;
+            if (ImGui::VSliderFloat("##PitchSlider", ImVec2(20, 105), &pitch_norm, -1.0f, 1.0f, "")) {
+                deck.pitch_percent = pitch_norm * deck.pitch_range;
+            }
+            if (ImGui::IsItemHovered()) {
+                if (ImGui::IsMouseDoubleClicked(0)) {
+                    deck.pitch_percent = 0.0f;
+                }
+                if (ImGui::GetIO().MouseWheel != 0.0f) {
+                    deck.pitch_percent = std::clamp(deck.pitch_percent + ImGui::GetIO().MouseWheel * 0.1f, -deck.pitch_range, deck.pitch_range);
+                }
+            }
+
+            ImGui::SetCursorScreenPos(ImVec2(pitch_col_x - 10, jog_start.y + 148));
+            if (ImGui::SmallButton("0%##ResetPitch")) {
                 deck.pitch_percent = 0.0f;
             }
 
@@ -1147,6 +1282,8 @@ namespace KuroUI {
 
             // --- 8 PERFORMANCE PADS MULTIFUNÇÃO ---
             renderPerformancePads(deck, w, theme_col, engine);
+
+            ImGui::PopID();
         }
 
         void renderMiniOverviewStrip(KuroAudio::DJDeck& deck, float w, float h, ImVec4 theme_col) {
@@ -1664,17 +1801,21 @@ namespace KuroUI {
         void renderSearchModal(KuroAudio::DJEngine& engine) {
             if (!show_search_modal) return;
 
+            if (!ImGui::IsPopupOpen("🛸 BUSCA ONLINE DE MÚSICAS & CAPAS (SPOTIFY / CLOUD)##SearchModal")) {
+                ImGui::OpenPopup("🛸 BUSCA ONLINE DE MÚSICAS & CAPAS (SPOTIFY / CLOUD)##SearchModal");
+            }
+
             ImGuiViewport* vp = ImGui::GetMainViewport();
-            ImVec2 modal_sz = ImVec2(std::min(vp->Size.x * 0.88f, 960.0f), std::min(vp->Size.y * 0.82f, 620.0f));
+            ImVec2 modal_sz = ImVec2(std::min(vp->Size.x * 0.92f, 1020.0f), std::min(vp->Size.y * 0.85f, 630.0f));
             ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + (vp->Size.x - modal_sz.x) * 0.5f, vp->Pos.y + (vp->Size.y - modal_sz.y) * 0.5f), ImGuiCond_Appearing);
             ImGui::SetNextWindowSize(modal_sz, ImGuiCond_Appearing);
 
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.04f, 0.06f, 0.09f, 0.98f));
-            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.00f, 0.80f, 0.90f, 0.90f));
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.04f, 0.06f, 0.09f, 0.99f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.00f, 0.80f, 0.90f, 0.95f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
 
-            if (ImGui::Begin("🛸 BUSCA ONLINE DE MÚSICAS & CAPAS (SPOTIFY / CLOUD)##SearchModal", &show_search_modal, ImGuiWindowFlags_NoCollapse)) {
+            if (ImGui::BeginPopupModal("🛸 BUSCA ONLINE DE MÚSICAS & CAPAS (SPOTIFY / CLOUD)##SearchModal", &show_search_modal, ImGuiWindowFlags_NoCollapse)) {
                 float avail_w = ImGui::GetContentRegionAvail().x;
 
                 // Barra de busca
@@ -1698,6 +1839,7 @@ namespace KuroUI {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.12f, 0.16f, 0.90f));
                 if (ImGui::Button(ICON_FA_XMARK " FECHAR", ImVec2(80, 0))) {
                     show_search_modal = false;
+                    ImGui::CloseCurrentPopup();
                 }
                 ImGui::PopStyleColor();
 
@@ -1717,7 +1859,7 @@ namespace KuroUI {
                         ImGui::TableSetupColumn("Vertente", ImGuiTableColumnFlags_WidthFixed, 140.0f);
                         ImGui::TableSetupColumn("BPM", ImGuiTableColumnFlags_WidthFixed, 60.0f);
                         ImGui::TableSetupColumn("Tom", ImGuiTableColumnFlags_WidthFixed, 70.0f);
-                        ImGui::TableSetupColumn("Ações", ImGuiTableColumnFlags_WidthFixed, 240.0f);
+                        ImGui::TableSetupColumn("Ações", ImGuiTableColumnFlags_WidthFixed, 290.0f);
                         ImGui::TableHeadersRow();
 
                         int left_id = ddj_hardware.getActiveLeftDeck();
@@ -1766,19 +1908,30 @@ namespace KuroUI {
 
                             ImGui::SameLine(0, 4);
 
+                            // Botão Baixar Direto
+                            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.50f, 0.30f, 0.90f));
+                            if (ImGui::SmallButton(ICON_FA_DOWNLOAD " BAIXAR")) {
+                                spotify_service.importSearchResultTrack(r);
+                                auto* ptr = KuroAudio::DJLibraryManager::getInstance().getTrackById(r.id);
+                                if (ptr) {
+                                    spotify_service.downloadLibraryTrackAsync(*ptr, -1, engine);
+                                }
+                            }
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Baixar áudio e capa diretamente para a biblioteca");
+                            ImGui::PopStyleColor();
+
+                            ImGui::SameLine(0, 4);
+
                             // Carregar direto no Deck Left
                             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.40f, 0.50f, 0.85f));
                             char btn_dl[32];
                             snprintf(btn_dl, sizeof(btn_dl), "DECK %d", left_id + 1);
                             if (ImGui::SmallButton(btn_dl)) {
                                 spotify_service.importSearchResultTrack(r);
-                                auto t_list = KuroAudio::DJLibraryManager::getInstance().getTracksForFolder("all");
-                                for (auto& tr : t_list) {
-                                    if (tr.id == r.id) {
-                                        if (tr.is_downloaded) spotify_service.loadLibraryTrack(tr, left_id, engine);
-                                        else spotify_service.downloadLibraryTrackAsync(tr, left_id, engine);
-                                        break;
-                                    }
+                                auto* ptr = KuroAudio::DJLibraryManager::getInstance().getTrackById(r.id);
+                                if (ptr) {
+                                    if (ptr->is_downloaded) spotify_service.loadLibraryTrack(*ptr, left_id, engine);
+                                    else spotify_service.downloadLibraryTrackAsync(*ptr, left_id, engine);
                                 }
                             }
                             ImGui::PopStyleColor();
@@ -1791,13 +1944,10 @@ namespace KuroUI {
                             snprintf(btn_dr, sizeof(btn_dr), "DECK %d", right_id + 1);
                             if (ImGui::SmallButton(btn_dr)) {
                                 spotify_service.importSearchResultTrack(r);
-                                auto t_list = KuroAudio::DJLibraryManager::getInstance().getTracksForFolder("all");
-                                for (auto& tr : t_list) {
-                                    if (tr.id == r.id) {
-                                        if (tr.is_downloaded) spotify_service.loadLibraryTrack(tr, right_id, engine);
-                                        else spotify_service.downloadLibraryTrackAsync(tr, right_id, engine);
-                                        break;
-                                    }
+                                auto* ptr = KuroAudio::DJLibraryManager::getInstance().getTrackById(r.id);
+                                if (ptr) {
+                                    if (ptr->is_downloaded) spotify_service.loadLibraryTrack(*ptr, right_id, engine);
+                                    else spotify_service.downloadLibraryTrackAsync(*ptr, right_id, engine);
                                 }
                             }
                             ImGui::PopStyleColor();
@@ -1807,8 +1957,10 @@ namespace KuroUI {
                         ImGui::EndTable();
                     }
                 }
+                ImGui::EndPopup();
+            } else {
+                show_search_modal = false;
             }
-            ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(2);
         }
@@ -1819,17 +1971,21 @@ namespace KuroUI {
         void renderExitConfirmModal(KuroAudio::DJEngine& engine, bool* p_open) {
             if (!show_exit_confirm_modal) return;
 
+            if (!ImGui::IsPopupOpen("⚠️ CONFIRMAÇÃO DE SAÍDA##ExitConfirmModal")) {
+                ImGui::OpenPopup("⚠️ CONFIRMAÇÃO DE SAÍDA##ExitConfirmModal");
+            }
+
             ImGuiViewport* vp = ImGui::GetMainViewport();
             ImVec2 msz = ImVec2(460.0f, 170.0f);
             ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + (vp->Size.x - msz.x) * 0.5f, vp->Pos.y + (vp->Size.y - msz.y) * 0.5f), ImGuiCond_Always);
             ImGui::SetNextWindowSize(msz, ImGuiCond_Always);
 
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.08f, 0.12f, 0.98f));
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.06f, 0.08f, 0.12f, 0.98f));
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.00f, 0.30f, 0.40f, 0.90f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
 
-            if (ImGui::Begin("⚠️ CONFIRMAÇÃO DE SAÍDA##ExitConfirmModal", &show_exit_confirm_modal, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+            if (ImGui::BeginPopupModal("⚠️ CONFIRMAÇÃO DE SAÍDA##ExitConfirmModal", &show_exit_confirm_modal, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
                 ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f), ICON_FA_TRIANGLE_EXCLAMATION " Deseja salvar as configurações e Hot Cues antes de sair?");
                 ImGui::Spacing();
                 ImGui::TextColored(ImVec4(0.7f, 0.8f, 0.9f, 1.0f), "Suas marcações de Hot Cues (A-H) dos 4 decks serão salvas.");
@@ -1842,6 +1998,7 @@ namespace KuroUI {
                 if (ImGui::Button(ICON_FA_FLOPPY_DISK " SALVAR E SAIR", ImVec2(150, 32))) {
                     engine.saveHotCues();
                     show_exit_confirm_modal = false;
+                    ImGui::CloseCurrentPopup();
                     if (p_open) *p_open = false;
                     is_open = false;
                 }
@@ -1853,6 +2010,7 @@ namespace KuroUI {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.45f, 0.12f, 0.15f, 0.90f));
                 if (ImGui::Button(ICON_FA_XMARK " SAIR SEM SALVAR", ImVec2(140, 32))) {
                     show_exit_confirm_modal = false;
+                    ImGui::CloseCurrentPopup();
                     if (p_open) *p_open = false;
                     is_open = false;
                 }
@@ -1863,9 +2021,12 @@ namespace KuroUI {
                 // Botão Cancelar
                 if (ImGui::Button("CANCELAR", ImVec2(100, 32))) {
                     show_exit_confirm_modal = false;
+                    ImGui::CloseCurrentPopup();
                 }
+                ImGui::EndPopup();
+            } else {
+                show_exit_confirm_modal = false;
             }
-            ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(2);
         }
