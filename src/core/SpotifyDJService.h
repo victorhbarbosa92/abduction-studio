@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <mutex>
 #include <atomic>
@@ -455,6 +457,62 @@ namespace KuroAudio {
             return false;
         }
 
+        void fetchTrackArtworkAsync(const std::string& track_id, const std::string& art_url) {
+            if (track_id.empty() || art_url.empty()) return;
+            auto tracks_dir = getTracksDirectory();
+            auto out_rgba = tracks_dir / ("track_" + track_id + ".rgba");
+            std::error_code ec;
+            if (std::filesystem::exists(out_rgba, ec) && std::filesystem::file_size(out_rgba, ec) >= 262144) {
+                return;
+            }
+
+            static std::unordered_set<std::string> pending_art_fetches;
+            static std::mutex pending_art_mutex;
+            {
+                std::lock_guard<std::mutex> lock(pending_art_mutex);
+                if (pending_art_fetches.count(track_id)) return;
+                pending_art_fetches.insert(track_id);
+            }
+
+            std::thread([this, track_id, art_url, out_rgba, tracks_dir]() {
+                std::error_code ec;
+                auto temp_art = tracks_dir / ("temp_art_" + track_id + ".jpg");
+
+                bool dl_ok = false;
+                if (art_url.find("http://") == 0 || art_url.find("https://") == 0) {
+                    dl_ok = NativeHttpClient::downloadFile(art_url, temp_art, 8000);
+                } else if (std::filesystem::exists(std::filesystem::u8path(art_url), ec)) {
+                    temp_art = std::filesystem::u8path(art_url);
+                    dl_ok = true;
+                }
+
+                if (dl_ok && std::filesystem::exists(temp_art, ec) && std::filesystem::file_size(temp_art, ec) > 500) {
+                    auto ffmpeg_path = getFfmpegPath();
+                    std::wstring art_cmd = L"\"" + ffmpeg_path.wstring() + L"\" -y -i \"" + temp_art.wstring() + L"\" -s 256x256 -pix_fmt rgba -f rawvideo \"" + out_rgba.wstring() + L"\"";
+                    RunHiddenProcess(art_cmd, 10000);
+                }
+
+                if (temp_art != std::filesystem::u8path(art_url)) {
+                    std::filesystem::remove(temp_art, ec);
+                }
+
+                {
+                    std::lock_guard<std::mutex> lock(pending_art_mutex);
+                    pending_art_fetches.erase(track_id);
+                }
+
+                if (std::filesystem::exists(out_rgba, ec) && std::filesystem::file_size(out_rgba, ec) >= 262144) {
+                    std::lock_guard<std::mutex> lock(search_mutex);
+                    for (auto& trk : search_results) {
+                        if (trk.id == track_id) {
+                            trk.local_rgba_path = out_rgba.string();
+                            break;
+                        }
+                    }
+                }
+            }).detach();
+        }
+
         void searchAsync(const std::string& query) {
             if (query.empty() || is_searching.load()) return;
             is_searching = true;
@@ -681,10 +739,11 @@ namespace KuroAudio {
                             }
                         }
 
-                        if (std::filesystem::exists(exp_rgba, ec)) {
+                        if (std::filesystem::exists(exp_rgba, ec) && std::filesystem::file_size(exp_rgba, ec) >= 262144) {
                             t.local_rgba_path = exp_rgba.string();
-                            // Textura será carregada na render thread com segurança
                             t.gl_tex_id = 0;
+                        } else if (!t.artwork_url.empty()) {
+                            fetchTrackArtworkAsync(t.id, t.artwork_url);
                         }
 
                         new_tracks.push_back(t);

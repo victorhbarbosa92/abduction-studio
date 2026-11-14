@@ -487,7 +487,7 @@ public:
   bool show_library_modal =
       false; // Modal expandido de alta fidelidade para busca e crates
   float library_height =
-      320.0f; // Altura equilibrada da Biblioteca (260px / 320px / 420px)
+      380.0f; // Altura equilibrada e espaçosa da Biblioteca (300px / 380px / 480px)
 
   // -------------------------------------------------------------
   // MODOS DE VISUALIZAÇÃO DA BIBLIOTECA (Atalho SPACE: 0 ➔ 1 ➔ 2 ➔ 0)
@@ -7059,7 +7059,7 @@ private:
                active_folder_name.c_str(), active_count);
       ImGui::TextColored(ImVec4(0.40f, 0.78f, 1.00f, 0.95f), "%s", badge_str);
 
-      ImGui::SameLine(avail_w - 380.0f);
+      ImGui::SameLine(avail_w - KuroUI::UIScaleManager::Scale(380.0f));
       ImGui::PushStyleColor(ImGuiCol_Button,
                             ImVec4(0.00f, 0.45f, 0.55f, 0.90f));
       if (ImGui::SmallButton(ICON_FA_COMPRESS " MODO SPLIT (ESC / ESPAÇO)")) {
@@ -7078,12 +7078,12 @@ private:
                active_folder_name.c_str(), active_count);
       ImGui::TextColored(ImVec4(0.40f, 0.78f, 1.00f, 0.95f), "%s", badge_str);
 
-      // Seletor de Altura da Biblioteca (260px, 320px, 420px) e Botão Modal
-      ImGui::SameLine(avail_w - 520.0f);
+      // Seletor de Altura da Biblioteca (300px, 380px, 480px) e Botão Modal
+      ImGui::SameLine(avail_w - KuroUI::UIScaleManager::Scale(540.0f));
       ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.78f, 0.9f), "Altura:");
-      ImGui::SameLine(0, 4.0f);
-      const float lib_h_presets[] = {260.0f, 320.0f, 420.0f};
-      const char *lib_h_labels[] = {"260px", "320px", "420px"};
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+      const float lib_h_presets[] = {300.0f, 380.0f, 480.0f};
+      const char *lib_h_labels[] = {"300px", "380px", "480px"};
       for (int lhi = 0; lhi < 3; lhi++) {
         bool is_sel = (std::abs(library_height - lib_h_presets[lhi]) < 2.0f);
         if (is_sel)
@@ -7096,10 +7096,10 @@ private:
           library_height = lib_h_presets[lhi];
         }
         ImGui::PopStyleColor();
-        ImGui::SameLine(0, 3.0f);
+        ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
       }
 
-      ImGui::SameLine(0, 8.0f);
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
       ImGui::PushStyleColor(ImGuiCol_Button,
                             ImVec4(0.00f, 0.65f, 0.55f, 0.90f));
       if (ImGui::SmallButton(ICON_FA_EXPAND " ⛶ BIG LIBRARY (ESPAÇO)")) {
@@ -7112,7 +7112,7 @@ private:
     }
 
     // Ações: Importar Arquivo e Nova Pasta
-    ImGui::SameLine(0, 8.0f);
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.35f, 0.45f, 0.85f));
     if (ImGui::SmallButton(ICON_FA_FOLDER_PLUS " + IMPORTAR")) {
       std::string local_path = KuroUI::FileDialog::OpenFile(
@@ -7127,7 +7127,7 @@ private:
       ImGui::SetTooltip("Importar arquivo local de áudio para a Biblioteca");
     ImGui::PopStyleColor();
 
-    ImGui::SameLine(0, 4.0f);
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.24f, 0.35f, 0.85f));
     if (ImGui::SmallButton(ICON_FA_PLUS " NOVA PASTA")) {
       show_new_folder_dialog = true;
@@ -7157,16 +7157,16 @@ private:
                           ? engine.decks[left_id].bpm
                           : 138.0));
 
-    bool wide_screen = (avail_w >= 1180.0f);
-    float left_w = is_big_library ? 270.0f : (wide_screen ? 250.0f : 230.0f);
+    bool wide_screen = (avail_w >= KuroUI::UIScaleManager::Scale(1100.0f));
+    float left_w = KuroUI::UIScaleManager::Scale(is_big_library ? 280.0f : (wide_screen ? 260.0f : 230.0f));
     float right_w_camelot =
-        wide_screen ? (is_big_library ? 280.0f : 260.0f) : 0.0f;
+        wide_screen ? KuroUI::UIScaleManager::Scale(is_big_library ? 380.0f : 350.0f) : 0.0f;
     float center_w =
         avail_w - left_w -
-        (right_w_camelot > 0.0f ? (right_w_camelot + 14.0f) : 0.0f) - 14.0f;
-    float pane_h = drawer_h - KuroUI::UIScaleManager::Scale(44.0f);
-    if (pane_h < 150.0f)
-      pane_h = 150.0f;
+        (right_w_camelot > 0.0f ? (right_w_camelot + KuroUI::UIScaleManager::Scale(12.0f)) : 0.0f) - KuroUI::UIScaleManager::Scale(12.0f);
+    float pane_h = drawer_h - KuroUI::UIScaleManager::Scale(48.0f);
+    if (pane_h < KuroUI::UIScaleManager::Scale(180.0f))
+      pane_h = KuroUI::UIScaleManager::Scale(180.0f);
 
     // Função Lambda para Renderização da Roda Camelot Completa e Radar
     // Lookahead
@@ -7176,7 +7176,7 @@ private:
       ImGui::TextColored(ImVec4(0.00f, 0.88f, 0.96f, 1.0f),
                          ICON_FA_COMPASS " RODA CAMELOT");
       if (!camelot_filter_key.empty()) {
-        ImGui::SameLine(0, 6.0f);
+        ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
         char fk_tag[32];
         snprintf(fk_tag, sizeof(fk_tag), "[ %s ✕ ]",
                  camelot_filter_key.c_str());
@@ -7193,15 +7193,22 @@ private:
       // Desenho do Disco Camelot Permanente & Reativo a Hover (Com Pins 1 e 2,
       // Ponte Harmônica e Laser Beam)
       {
-        float radar_canvas_h = is_dedicated_dock
-                                   ? std::clamp(host_h - 96.0f, 140.0f, 215.0f)
-                                   : (is_big_library ? 130.0f : 100.0f);
+        float header_offset = KuroUI::UIScaleManager::Scale(28.0f);
+        float card_h = is_dedicated_dock ? KuroUI::UIScaleManager::Scale(78.0f)
+                                         : (is_big_library ? KuroUI::UIScaleManager::Scale(82.0f) : KuroUI::UIScaleManager::Scale(60.0f));
+        float avail_wheel_h = host_h - header_offset - card_h - KuroUI::UIScaleManager::Scale(14.0f);
+        if (avail_wheel_h < KuroUI::UIScaleManager::Scale(120.0f))
+          avail_wheel_h = KuroUI::UIScaleManager::Scale(120.0f);
+
+        float max_r_by_w = (host_w - KuroUI::UIScaleManager::Scale(28.0f)) * 0.5f;
+        float max_r_by_h = avail_wheel_h * 0.5f - KuroUI::UIScaleManager::Scale(4.0f);
         float r_outer = is_dedicated_dock
-                            ? std::clamp(radar_canvas_h * 0.45f, 65.0f, 80.0f)
-                            : (is_big_library ? 56.0f : 44.0f);
+                            ? std::clamp(std::min(max_r_by_w, max_r_by_h), KuroUI::UIScaleManager::Scale(95.0f), KuroUI::UIScaleManager::Scale(145.0f))
+                            : (is_big_library ? KuroUI::UIScaleManager::Scale(75.0f) : KuroUI::UIScaleManager::Scale(58.0f));
         float r_mid = r_outer * 0.68f;
         float r_hub = r_outer * 0.36f;
-        ImVec2 radar_canvas_sz(host_w - 16.0f, radar_canvas_h);
+        float radar_canvas_h = r_outer * 2.0f + KuroUI::UIScaleManager::Scale(8.0f);
+        ImVec2 radar_canvas_sz(host_w - KuroUI::UIScaleManager::Scale(16.0f), radar_canvas_h);
         ImGui::Dummy(radar_canvas_sz);
         ImVec2 p0 = ImGui::GetItemRectMin();
         ImVec2 p1 = ImGui::GetItemRectMax();
@@ -7212,10 +7219,10 @@ private:
         const float angle_step = 2.0f * 3.14159265f / 12.0f;
 
         // Fundo do disco
-        draw_list->AddCircleFilled(center, r_outer + 3.0f,
+        draw_list->AddCircleFilled(center, r_outer + KuroUI::UIScaleManager::Scale(3.0f),
                                    IM_COL32(8, 12, 18, 250), 36);
-        draw_list->AddCircle(center, r_outer + 3.0f, IM_COL32(28, 38, 52, 220),
-                             36, 1.0f);
+        draw_list->AddCircle(center, r_outer + KuroUI::UIScaleManager::Scale(3.0f), IM_COL32(28, 38, 52, 220),
+                             36, KuroUI::UIScaleManager::Scale(1.0f));
 
         // Mouse e Interatividade de Clique para filtrar faixas por tom
         ImVec2 m = ImGui::GetIO().MousePos;
@@ -7323,12 +7330,12 @@ private:
             }
             draw_list->AddConvexPolyFilled(pts, pcnt, fill_col);
             draw_list->AddPolyline(pts, pcnt, IM_COL32(15, 20, 28, 200),
-                                   ImDrawFlags_Closed, 1.0f);
+                                   ImDrawFlags_Closed, KuroUI::UIScaleManager::Scale(1.0f));
 
             if (is_hov) {
-              draw_list->PathArcTo(center, r_outer + 2.5f, a0, a1, 6);
+              draw_list->PathArcTo(center, r_outer + KuroUI::UIScaleManager::Scale(2.5f), a0, a1, 6);
               draw_list->PathStroke(
-                  IM_COL32(255, 220, 30, (int)(90.0f * hov_glow)), 0, 4.0f);
+                  IM_COL32(255, 220, 30, (int)(90.0f * hov_glow)), 0, KuroUI::UIScaleManager::Scale(4.0f));
             }
 
             float r_text = (r_mid + r_outer) * 0.5f;
@@ -7337,8 +7344,8 @@ private:
             char buf_b[8];
             snprintf(buf_b, sizeof(buf_b), "%dB", h);
             ImFont *f_wheel =
-                g_font_control_small ? g_font_control_small : ImGui::GetFont();
-            float wheel_fnt_sz = is_dedicated_dock ? 10.0f : 8.5f;
+                g_font_rekordbox_bold ? g_font_rekordbox_bold : (g_font_control_small ? g_font_control_small : ImGui::GetFont());
+            float wheel_fnt_sz = is_dedicated_dock ? KuroUI::UIScaleManager::Scale(13.0f) : KuroUI::UIScaleManager::Scale(10.0f);
             ImVec2 t_sz =
                 f_wheel->CalcTextSizeA(wheel_fnt_sz, FLT_MAX, 0.0f, buf_b);
             draw_list->AddText(
@@ -7386,7 +7393,7 @@ private:
             }
             draw_list->AddConvexPolyFilled(pts, pcnt, fill_col);
             draw_list->AddPolyline(pts, pcnt, IM_COL32(15, 20, 28, 200),
-                                   ImDrawFlags_Closed, 1.0f);
+                                   ImDrawFlags_Closed, KuroUI::UIScaleManager::Scale(1.0f));
 
             float r_text = (r_hub + r_mid) * 0.5f;
             ImVec2 t_pos(center.x + cosf(mid_ang) * r_text,
@@ -7394,8 +7401,8 @@ private:
             char buf_a[8];
             snprintf(buf_a, sizeof(buf_a), "%dA", h);
             ImFont *f_wheel =
-                g_font_control_small ? g_font_control_small : ImGui::GetFont();
-            float wheel_fnt_sz = is_dedicated_dock ? 9.5f : 8.0f;
+                g_font_rekordbox_bold ? g_font_rekordbox_bold : (g_font_control_small ? g_font_control_small : ImGui::GetFont());
+            float wheel_fnt_sz = is_dedicated_dock ? KuroUI::UIScaleManager::Scale(12.0f) : KuroUI::UIScaleManager::Scale(9.5f);
             ImVec2 t_sz =
                 f_wheel->CalcTextSizeA(wheel_fnt_sz, FLT_MAX, 0.0f, buf_a);
             draw_list->AddText(
@@ -7406,17 +7413,19 @@ private:
           }
 
           // Pins 1 e 2
+          float pin_r = is_dedicated_dock ? KuroUI::UIScaleManager::Scale(8.5f) : KuroUI::UIScaleManager::Scale(6.5f);
           if (d1_loaded && d1_ck.valid && d1_ck.number == h) {
             bool is_b = (d1_ck.letter == 'B');
             float r_p1 =
                 is_b ? ((r_outer + r_mid) * 0.5f) : ((r_mid + r_hub) * 0.5f);
             ImVec2 p_pin1(center.x + cosf(mid_ang) * r_p1,
                           center.y + sinf(mid_ang) * r_p1);
-            draw_list->AddCircleFilled(p_pin1, is_dedicated_dock ? 7.0f : 6.0f,
+            draw_list->AddCircleFilled(p_pin1, pin_r,
                                        IM_COL32(0, 20, 32, 240));
-            draw_list->AddCircle(p_pin1, is_dedicated_dock ? 7.0f : 6.0f,
-                                 IM_COL32(0, 235, 255, 255), 16, 1.5f);
-            draw_list->AddText(ImVec2(p_pin1.x - 3.5f, p_pin1.y - 6.0f),
+            draw_list->AddCircle(p_pin1, pin_r,
+                                 IM_COL32(0, 235, 255, 255), 16, KuroUI::UIScaleManager::Scale(1.5f));
+            ImVec2 p1_sz = ImGui::CalcTextSize("1");
+            draw_list->AddText(ImVec2(p_pin1.x - p1_sz.x * 0.5f, p_pin1.y - p1_sz.y * 0.5f),
                                IM_COL32(0, 255, 255, 255), "1");
           }
           if (d2_loaded && d2_ck.valid && d2_ck.number == h) {
@@ -7427,13 +7436,14 @@ private:
                           center.y + sinf(mid_ang) * r_p2);
             if (d1_loaded && d1_ck.valid && d1_ck.number == h &&
                 d1_ck.letter == d2_ck.letter) {
-              p_pin2.x += 4.0f;
+              p_pin2.x += KuroUI::UIScaleManager::Scale(5.0f);
             }
-            draw_list->AddCircleFilled(p_pin2, is_dedicated_dock ? 7.0f : 6.0f,
+            draw_list->AddCircleFilled(p_pin2, pin_r,
                                        IM_COL32(32, 16, 0, 240));
-            draw_list->AddCircle(p_pin2, is_dedicated_dock ? 7.0f : 6.0f,
-                                 IM_COL32(255, 140, 20, 255), 16, 1.5f);
-            draw_list->AddText(ImVec2(p_pin2.x - 3.5f, p_pin2.y - 6.0f),
+            draw_list->AddCircle(p_pin2, pin_r,
+                                 IM_COL32(255, 140, 20, 255), 16, KuroUI::UIScaleManager::Scale(1.5f));
+            ImVec2 p2_sz = ImGui::CalcTextSize("2");
+            draw_list->AddText(ImVec2(p_pin2.x - p2_sz.x * 0.5f, p_pin2.y - p2_sz.y * 0.5f),
                                IM_COL32(255, 170, 40, 255), "2");
           }
         }
@@ -7455,23 +7465,26 @@ private:
                        center.y + sinf(a_d2) * r_d2);
 
           if (d1_ck.number != d2_ck.number || d1_ck.letter != d2_ck.letter) {
-            draw_list->AddLine(pt_d1, pt_d2, IM_COL32(0, 220, 255, 130), 2.0f);
-            draw_list->AddLine(pt_d1, pt_d2, IM_COL32(255, 140, 30, 100), 1.0f);
+            draw_list->AddLine(pt_d1, pt_d2, IM_COL32(0, 220, 255, 140), KuroUI::UIScaleManager::Scale(2.5f));
+            draw_list->AddLine(pt_d1, pt_d2, IM_COL32(255, 140, 30, 110), KuroUI::UIScaleManager::Scale(1.2f));
           }
         }
 
         // Centro / Hub tonal do Deck Master
-        draw_list->AddCircleFilled(center, r_hub - 1.0f,
-                                   IM_COL32(10, 16, 26, 255), 24);
+        draw_list->AddCircleFilled(center, r_hub - KuroUI::UIScaleManager::Scale(1.0f),
+                                   IM_COL32(10, 16, 26, 255), 28);
         int master_deck_idx = engine.getMasterDeckId();
         ImU32 hub_border = (master_deck_idx == 0) ? IM_COL32(0, 220, 255, 230)
                                                   : IM_COL32(255, 140, 30, 230);
-        draw_list->AddCircle(center, r_hub - 1.0f, hub_border, 24, 1.5f);
+        draw_list->AddCircle(center, r_hub - KuroUI::UIScaleManager::Scale(1.0f), hub_border, 28, KuroUI::UIScaleManager::Scale(1.8f));
         std::string hub_txt =
             has_hover ? hov_ck.getCamelotCode()
                       : (master_ck.valid ? master_ck.getCamelotCode() : "KEY");
-        ImVec2 h_sz = ImGui::CalcTextSize(hub_txt.c_str());
+        ImFont *f_hub = g_font_rekordbox_bold ? g_font_rekordbox_bold : ImGui::GetFont();
+        float hub_fnt_sz = is_dedicated_dock ? KuroUI::UIScaleManager::Scale(16.0f) : KuroUI::UIScaleManager::Scale(12.0f);
+        ImVec2 h_sz = f_hub->CalcTextSizeA(hub_fnt_sz, FLT_MAX, 0.0f, hub_txt.c_str());
         draw_list->AddText(
+            f_hub, hub_fnt_sz,
             ImVec2(center.x - h_sz.x * 0.5f, center.y - h_sz.y * 0.5f),
             has_hover ? IM_COL32(255, 235, 40, 255) : hub_border,
             hub_txt.c_str());
@@ -7515,16 +7528,16 @@ private:
           ImU32 core_col =
               (beam_col & 0x00FFFFFF) | ((int)(alpha * 255.0f) << 24);
 
-          draw_list->AddLine(p_src, p_tgt, glow_col, 6.0f);
-          draw_list->AddLine(p_src, p_tgt, pulse_col, 2.5f);
+          draw_list->AddLine(p_src, p_tgt, glow_col, KuroUI::UIScaleManager::Scale(6.0f));
+          draw_list->AddLine(p_src, p_tgt, pulse_col, KuroUI::UIScaleManager::Scale(2.5f));
           draw_list->AddLine(p_src, p_tgt,
                              IM_COL32(255, 255, 255, (int)(alpha * 130.0f)),
-                             1.0f);
-          draw_list->AddCircleFilled(p_tgt, 4.5f, core_col);
+                             KuroUI::UIScaleManager::Scale(1.0f));
+          draw_list->AddCircleFilled(p_tgt, KuroUI::UIScaleManager::Scale(5.0f), core_col);
           draw_list->AddCircleFilled(
-              p_tgt, 2.0f, IM_COL32(255, 255, 255, (int)(alpha * 220.0f)));
-          draw_list->AddCircle(p_tgt, 7.0f + 2.5f * sinf(radar_pulse_phase),
-                               pulse_col, 16, 1.2f);
+              p_tgt, KuroUI::UIScaleManager::Scale(2.5f), IM_COL32(255, 255, 255, (int)(alpha * 220.0f)));
+          draw_list->AddCircle(p_tgt, KuroUI::UIScaleManager::Scale(7.0f) + KuroUI::UIScaleManager::Scale(2.5f) * sinf(radar_pulse_phase),
+                               pulse_col, 16, KuroUI::UIScaleManager::Scale(1.2f));
         }
       }
 
@@ -7568,11 +7581,11 @@ private:
                               ImVec4(0.016f, 0.022f, 0.034f, 0.95f));
         ImGui::PushStyleColor(ImGuiCol_Border,
                               ImVec4(0.10f, 0.16f, 0.24f, 0.80f));
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(5.0f));
         float card_h =
-            is_dedicated_dock ? 74.0f : (is_big_library ? 82.0f : 56.0f);
+            is_dedicated_dock ? KuroUI::UIScaleManager::Scale(78.0f) : (is_big_library ? KuroUI::UIScaleManager::Scale(82.0f) : KuroUI::UIScaleManager::Scale(58.0f));
         ImGui::BeginChild("##RadarLookaheadCard",
-                          ImVec2(host_w - 14.0f, card_h), true,
+                          ImVec2(host_w - KuroUI::UIScaleManager::Scale(14.0f), card_h), true,
                           ImGuiWindowFlags_NoScrollbar);
 
         ImGui::TextColored(ImVec4(0.00f, 1.00f, 0.55f, 1.0f), "%s",
@@ -7645,8 +7658,8 @@ private:
     ImGui::BeginChild("##CratesLeftPane", ImVec2(left_w, pane_h), true);
 
     // Sub-painel com rolagem para Pastas & Crates
-    float folders_h = wide_screen ? (pane_h - 14.0f)
-                                  : std::clamp(pane_h * 0.44f, 60.0f, 130.0f);
+    float folders_h = wide_screen ? (pane_h - KuroUI::UIScaleManager::Scale(14.0f))
+                                  : std::clamp(pane_h * 0.44f, KuroUI::UIScaleManager::Scale(70.0f), KuroUI::UIScaleManager::Scale(160.0f));
     ImGui::BeginChild("##CratesFolderListScroll", ImVec2(0, folders_h), false);
     ImGui::TextColored(ImVec4(0.00f, 0.85f, 0.75f, 1.0f),
                        ICON_FA_FOLDER_TREE " PASTAS & GÊNEROS");
@@ -7756,7 +7769,7 @@ private:
             IM_COL32(0, 220, 255, 255));
       }
 
-      ImGui::SameLine(left_w - 46.0f);
+      ImGui::SameLine(left_w - KuroUI::UIScaleManager::Scale(46.0f));
       ImGui::TextColored(ImVec4(0.42f, 0.52f, 0.65f, 0.9f), "%d",
                          f.track_count);
 
@@ -7783,7 +7796,7 @@ private:
     ImGui::EndChild();
     ImGui::PopStyleColor(2);
 
-    ImGui::SameLine(0, 6.0f);
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
 
     // =========================================================================
     // 3. PAINEL CENTRAL: BARRA DE BUSCA, CHIPS DE VERTENTES & TABELA REKORDBOX
@@ -7794,8 +7807,8 @@ private:
     ImGui::AlignTextToFramePadding();
     ImGui::TextColored(ImVec4(0.50f, 0.75f, 1.0f, 1.0f),
                        ICON_FA_MAGNIFYING_GLASS);
-    ImGui::SameLine(0, 4);
-    ImGui::PushItemWidth(180);
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+    ImGui::PushItemWidth(KuroUI::UIScaleManager::Scale(200.0f));
     if (ImGui::InputTextWithHint("##SpotifyQuery",
                                  "Buscar título, artista ou tom...",
                                  search_query_buf, sizeof(search_query_buf),
@@ -7805,7 +7818,7 @@ private:
     ImGui::PopItemWidth();
 
     if (strlen(search_query_buf) > 0) {
-      ImGui::SameLine(0, 2);
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(2.0f));
       if (ImGui::SmallButton("✕")) {
         search_query_buf[0] = '\0';
       }
@@ -7813,7 +7826,7 @@ private:
         ImGui::SetTooltip("Limpar busca");
     }
 
-    ImGui::SameLine(0, 4);
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
     if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS " BUSCAR")) {
       spotify_service.searchAsync(search_query_buf);
     }
@@ -8472,8 +8485,10 @@ private:
           " Nenhuma música nesta pasta ainda. Busque na nuvem ou importe do "
           "computador para catalogar cirurgicamente.");
     } else {
-      // Configuração de Estilo Compacto Rekordbox (~22px por linha)
-      ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 2.0f));
+      // Configuração de Estilo Confortável e Espaçoso Rekordbox
+      ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,
+                          ImVec2(KuroUI::UIScaleManager::Scale(8.0f),
+                                 KuroUI::UIScaleManager::Scale(5.0f)));
       ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.098f, 0.153f, 0.188f,
                                                     1.0f)); // Petróleo #192730
       ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
@@ -8490,26 +8505,29 @@ private:
               ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                   ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable |
                   ImGuiTableFlags_Reorderable,
-              ImVec2(0, ImGui::GetContentRegionAvail().y - 2.0f))) {
+              ImVec2(0, ImGui::GetContentRegionAvail().y - KuroUI::UIScaleManager::Scale(2.0f)))) {
         ImGui::TableSetupColumn("Pré-Vi", ImGuiTableColumnFlags_WidthFixed,
-                                145.0f);
+                                KuroUI::UIScaleManager::Scale(165.0f));
         ImGui::TableSetupColumn("Capa", ImGuiTableColumnFlags_WidthFixed,
-                                24.0f);
-        ImGui::TableSetupColumn("Título", ImGuiTableColumnFlags_WidthStretch);
+                                KuroUI::UIScaleManager::Scale(32.0f));
+        ImGui::TableSetupColumn("Título", ImGuiTableColumnFlags_WidthStretch, 2.0f);
         ImGui::TableSetupColumn("Artista", ImGuiTableColumnFlags_WidthFixed,
-                                130.0f);
+                                KuroUI::UIScaleManager::Scale(140.0f));
         ImGui::TableSetupColumn("Vertente", ImGuiTableColumnFlags_WidthFixed,
-                                110.0f);
-        ImGui::TableSetupColumn("Tom", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+                                KuroUI::UIScaleManager::Scale(125.0f));
+        ImGui::TableSetupColumn("Tom", ImGuiTableColumnFlags_WidthFixed,
+                                KuroUI::UIScaleManager::Scale(64.0f));
         ImGui::TableSetupColumn(ICON_FA_LOCK "##ColKeyLock",
-                                ImGuiTableColumnFlags_WidthFixed, 22.0f);
-        ImGui::TableSetupColumn("BPM", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+                                ImGuiTableColumnFlags_WidthFixed,
+                                KuroUI::UIScaleManager::Scale(26.0f));
+        ImGui::TableSetupColumn("BPM", ImGuiTableColumnFlags_WidthFixed,
+                                KuroUI::UIScaleManager::Scale(64.0f));
         ImGui::TableSetupColumn("Duração", ImGuiTableColumnFlags_WidthFixed,
-                                48.0f);
+                                KuroUI::UIScaleManager::Scale(58.0f));
         ImGui::TableSetupColumn("Grid", ImGuiTableColumnFlags_WidthFixed,
-                                28.0f);
+                                KuroUI::UIScaleManager::Scale(32.0f));
         ImGui::TableSetupColumn("Rating", ImGuiTableColumnFlags_WidthFixed,
-                                80.0f);
+                                KuroUI::UIScaleManager::Scale(95.0f));
         ImGui::TableHeadersRow();
 
         // Linha ciano divisória marcante do Rekordbox sob os cabeçalhos
@@ -8517,11 +8535,12 @@ private:
         ImVec2 header_max = ImGui::GetItemRectMax();
         ImGui::GetWindowDrawList()->AddLine(ImVec2(header_min.x, header_max.y),
                                             ImVec2(header_max.x, header_max.y),
-                                            IM_COL32(0, 162, 153, 255), 1.8f);
+                                            IM_COL32(0, 162, 153, 255), KuroUI::UIScaleManager::Scale(1.8f));
 
+        float row_h = KuroUI::UIScaleManager::Scale(34.0f);
         for (int i = 0; i < (int)track_list.size(); i++) {
           auto &t = track_list[i];
-          ImGui::TableNextRow(ImGuiTableRowFlags_None, 24.0f);
+          ImGui::TableNextRow(ImGuiTableRowFlags_None, row_h);
 
           int loaded_deck = -1;
           for (int dd = 0; dd < 4; dd++) {
@@ -8584,20 +8603,20 @@ private:
 
           // Mini-Scrub Bar ampla que acompanha a largura da coluna com Waveform
           // 3-Band Autêntica
-          ImGui::SameLine(0, 4.0f);
+          ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
           ImVec2 scrub_p0 = ImGui::GetCursorScreenPos();
           float avail_cell_w = ImGui::GetContentRegionAvail().x;
-          float scrub_w = std::max(avail_cell_w - 4.0f, 115.0f);
-          float scrub_h = 20.0f;
+          float scrub_w = std::max(avail_cell_w - KuroUI::UIScaleManager::Scale(4.0f), KuroUI::UIScaleManager::Scale(125.0f));
+          float scrub_h = KuroUI::UIScaleManager::Scale(24.0f);
           ImVec2 scrub_p1(scrub_p0.x + scrub_w, scrub_p0.y + scrub_h);
           ImDrawList *dl = ImGui::GetWindowDrawList();
 
-          dl->AddRectFilled(scrub_p0, scrub_p1, IM_COL32(8, 10, 14, 255), 2.0f);
-          dl->AddRect(scrub_p0, scrub_p1, IM_COL32(28, 36, 48, 220), 2.0f, 0,
-                      1.0f);
+          dl->AddRectFilled(scrub_p0, scrub_p1, IM_COL32(8, 10, 14, 255), KuroUI::UIScaleManager::Scale(2.5f));
+          dl->AddRect(scrub_p0, scrub_p1, IM_COL32(28, 36, 48, 220), KuroUI::UIScaleManager::Scale(2.5f), 0,
+                      KuroUI::UIScaleManager::Scale(1.0f));
 
-          float base_y = scrub_p1.y - 1.5f;
-          float max_h_amp = scrub_h - 2.5f;
+          float base_y = scrub_p1.y - KuroUI::UIScaleManager::Scale(2.0f);
+          float max_h_amp = scrub_h - KuroUI::UIScaleManager::Scale(3.0f);
           float prog =
               is_prev_playing ? (float)touch_cue.getPreviewProgress() : 0.0f;
 
@@ -8642,7 +8661,7 @@ private:
               // Linha sutil de osciloscópio até o carregamento
               dl->AddLine(ImVec2(scrub_p0.x, base_y),
                           ImVec2(scrub_p1.x, base_y), IM_COL32(40, 50, 68, 180),
-                          1.0f);
+                          KuroUI::UIScaleManager::Scale(1.0f));
             }
           }
 
@@ -8651,10 +8670,10 @@ private:
             float needle_x = scrub_p0.x + scrub_w * prog;
             dl->AddLine(ImVec2(needle_x, scrub_p0.y),
                         ImVec2(needle_x, scrub_p1.y),
-                        IM_COL32(255, 255, 255, 255), 1.5f);
-            dl->AddTriangleFilled(ImVec2(needle_x - 2.5f, scrub_p0.y),
-                                  ImVec2(needle_x + 2.5f, scrub_p0.y),
-                                  ImVec2(needle_x, scrub_p0.y + 4.0f),
+                        IM_COL32(255, 255, 255, 255), KuroUI::UIScaleManager::Scale(1.5f));
+            dl->AddTriangleFilled(ImVec2(needle_x - KuroUI::UIScaleManager::Scale(2.5f), scrub_p0.y),
+                                  ImVec2(needle_x + KuroUI::UIScaleManager::Scale(2.5f), scrub_p0.y),
+                                  ImVec2(needle_x, scrub_p0.y + KuroUI::UIScaleManager::Scale(4.0f)),
                                   IM_COL32(255, 255, 255, 255));
           }
 
@@ -8672,8 +8691,9 @@ private:
                 "Clique na barra para saltar o áudio da pré-escuta");
           ImGui::PopID();
 
-          // Coluna 1: Capa (Miniatura 20x20)
+          // Coluna 1: Capa (Miniatura proporcional)
           ImGui::TableSetColumnIndex(1);
+          float cover_sz = KuroUI::UIScaleManager::Scale(26.0f);
           GLuint tex_id = (GLuint)t.gl_tex_id;
           if (tex_id == 0 ||
               (tex_id == 0xFFFFFFFF && !t.local_rgba_path.empty())) {
@@ -8701,7 +8721,7 @@ private:
             }
           }
           if (tex_id != 0 && tex_id != 0xFFFFFFFF) {
-            ImGui::Image((ImTextureID)(intptr_t)tex_id, ImVec2(20, 20));
+            ImGui::Image((ImTextureID)(intptr_t)tex_id, ImVec2(cover_sz, cover_sz));
           } else {
             ImGui::TextColored(ImVec4(0.40f, 0.55f, 0.70f, 0.8f),
                                ICON_FA_COMPACT_DISC);
@@ -8727,7 +8747,7 @@ private:
           if (ImGui::Selectable(sel_label.c_str(), is_sel,
                                 ImGuiSelectableFlags_SpanAllColumns |
                                     ImGuiSelectableFlags_AllowOverlap,
-                                ImVec2(0, 20.0f))) {
+                                ImVec2(0, KuroUI::UIScaleManager::Scale(26.0f)))) {
             selected_track_idx = i;
             context_track_id = t.id;
           }
@@ -8737,7 +8757,7 @@ private:
             ImVec2 row_min = ImGui::GetItemRectMin();
             ImVec2 row_max = ImGui::GetItemRectMax();
             dl->AddRect(row_min, row_max, IM_COL32(0, 162, 160, 255), 1.0f, 0,
-                        1.2f);
+                        KuroUI::UIScaleManager::Scale(1.2f));
           } else if (is_match) {
             // Traffic Light Match: Leve brilho verde petróleo
             ImVec2 row_min = ImGui::GetItemRectMin();
@@ -9136,7 +9156,7 @@ private:
           ImGui::TableSetColumnIndex(10);
           ImGui::PushID(i * 1000);
           int cur_rating = t.rating;
-          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1.0f, 1.0f));
+          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(KuroUI::UIScaleManager::Scale(2.0f), KuroUI::UIScaleManager::Scale(2.0f)));
           for (int st = 1; st <= 5; st++) {
             bool filled = (st <= cur_rating);
             ImGui::PushStyleColor(ImGuiCol_Text,
@@ -9152,7 +9172,7 @@ private:
             }
             ImGui::PopStyleColor();
             if (st < 5)
-              ImGui::SameLine(0, 1.0f);
+              ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(1.5f));
           }
           ImGui::PopStyleVar();
           ImGui::PopID();
@@ -9201,7 +9221,7 @@ private:
     // (WIDESCREEN)
     // =========================================================================
     if (wide_screen && right_w_camelot > 0.0f) {
-      ImGui::SameLine(0, 6.0f);
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
       ImGui::PushStyleColor(ImGuiCol_ChildBg,
                             ImVec4(0.022f, 0.030f, 0.05f, 0.95f));
       ImGui::PushStyleColor(ImGuiCol_Border,
@@ -20490,6 +20510,85 @@ private:
     }
   }
 
+  static void drawPlatformBrandIcon(ImDrawList* dl, int plat_type, ImVec2 center, float radius) {
+    float r = radius;
+    float cx = center.x;
+    float cy = center.y;
+
+    switch (plat_type) {
+      case 0: { // SPOTIFY® (Oficial: Círculo Verde #1ED760 com 3 Arcos Acústicos Pretos)
+        dl->AddCircleFilled(center, r, IM_COL32(30, 215, 96, 255), 32);
+        ImVec2 arc_c = ImVec2(cx, cy + 0.35f * r);
+        float thick_top = KuroUI::UIScaleManager::Scale(3.2f);
+        float thick_mid = KuroUI::UIScaleManager::Scale(2.6f);
+        float thick_bot = KuroUI::UIScaleManager::Scale(2.1f);
+        
+        dl->PathClear();
+        dl->PathArcTo(arc_c, 0.72f * r, -2.55f, -0.60f, 24);
+        dl->PathStroke(IM_COL32(0, 0, 0, 255), false, thick_top);
+        
+        dl->PathClear();
+        dl->PathArcTo(arc_c, 0.52f * r, -2.50f, -0.65f, 20);
+        dl->PathStroke(IM_COL32(0, 0, 0, 255), false, thick_mid);
+        
+        dl->PathClear();
+        dl->PathArcTo(arc_c, 0.33f * r, -2.45f, -0.70f, 16);
+        dl->PathStroke(IM_COL32(0, 0, 0, 255), false, thick_bot);
+        break;
+      }
+      case 1: { // SOUNDCLOUD® (Oficial: Círculo Laranja #FF5500 com Equalizador + Nuvem Branca)
+        dl->AddCircleFilled(center, r, IM_COL32(255, 85, 0, 255), 32);
+        float bw = KuroUI::UIScaleManager::Scale(1.8f);
+        float y_base = cy + 0.30f * r;
+        dl->AddLine(ImVec2(cx - 0.52f * r, cy - 0.04f * r), ImVec2(cx - 0.52f * r, y_base), IM_COL32(255, 255, 255, 255), bw);
+        dl->AddLine(ImVec2(cx - 0.38f * r, cy - 0.20f * r), ImVec2(cx - 0.38f * r, y_base), IM_COL32(255, 255, 255, 255), bw);
+        dl->AddLine(ImVec2(cx - 0.24f * r, cy - 0.34f * r), ImVec2(cx - 0.24f * r, y_base), IM_COL32(255, 255, 255, 255), bw);
+        dl->AddLine(ImVec2(cx - 0.10f * r, cy - 0.44f * r), ImVec2(cx - 0.10f * r, y_base), IM_COL32(255, 255, 255, 255), bw);
+        dl->AddCircleFilled(ImVec2(cx + 0.12f * r, cy - 0.10f * r), 0.34f * r, IM_COL32(255, 255, 255, 255), 24);
+        dl->AddCircleFilled(ImVec2(cx + 0.36f * r, cy + 0.08f * r), 0.22f * r, IM_COL32(255, 255, 255, 255), 20);
+        dl->AddCircleFilled(ImVec2(cx - 0.04f * r, cy - 0.22f * r), 0.22f * r, IM_COL32(255, 255, 255, 255), 20);
+        dl->AddRectFilled(ImVec2(cx - 0.10f * r, cy), ImVec2(cx + 0.52f * r, y_base + 1.0f), IM_COL32(255, 255, 255, 255));
+        break;
+      }
+      case 2: { // BEATPORT® (Oficial: Círculo Cyan Elétrico com Monograma 'b' Preto)
+        dl->AddCircleFilled(center, r, IM_COL32(0, 242, 152, 255), 32);
+        float st_w = 0.22f * r;
+        float st_x = cx - 0.42f * r;
+        dl->AddRectFilled(ImVec2(st_x, cy - 0.48f * r), ImVec2(st_x + st_w, cy + 0.44f * r), IM_COL32(10, 14, 20, 255), KuroUI::UIScaleManager::Scale(2.0f));
+        ImVec2 b_c = ImVec2(cx + 0.08f * r, cy + 0.10f * r);
+        dl->AddCircleFilled(b_c, 0.35f * r, IM_COL32(10, 14, 20, 255), 24);
+        dl->AddCircleFilled(b_c, 0.16f * r, IM_COL32(0, 242, 152, 255), 20);
+        dl->AddRectFilled(ImVec2(st_x + st_w - 1.0f, cy - 0.10f * r), ImVec2(b_c.x, cy + 0.35f * r), IM_COL32(10, 14, 20, 255));
+        break;
+      }
+      case 3: { // YOUTUBE MUSIC® (Oficial: Círculo Vermelho #FF0000 com Anel Branco e Play Triangle)
+        dl->AddCircleFilled(center, r, IM_COL32(255, 0, 0, 255), 32);
+        dl->AddCircle(center, 0.65f * r, IM_COL32(255, 255, 255, 255), 32, KuroUI::UIScaleManager::Scale(2.0f));
+        ImVec2 p1 = ImVec2(cx - 0.14f * r, cy - 0.22f * r);
+        ImVec2 p2 = ImVec2(cx - 0.14f * r, cy + 0.22f * r);
+        ImVec2 p3 = ImVec2(cx + 0.22f * r, cy);
+        dl->AddTriangleFilled(p1, p2, p3, IM_COL32(255, 255, 255, 255));
+        break;
+      }
+      case 4: { // TIDAL® (Oficial: Círculo Cyan com Monograma de 4 Losangos)
+        dl->AddCircleFilled(center, r, IM_COL32(0, 255, 255, 255), 32);
+        auto draw_diamond = [&](ImVec2 d_c, float d_sz) {
+          ImVec2 p_t = ImVec2(d_c.x, d_c.y - d_sz);
+          ImVec2 p_r = ImVec2(d_c.x + d_sz, d_c.y);
+          ImVec2 p_b = ImVec2(d_c.x, d_c.y + d_sz);
+          ImVec2 p_l = ImVec2(d_c.x - d_sz, d_c.y);
+          dl->AddQuadFilled(p_t, p_r, p_b, p_l, IM_COL32(0, 0, 0, 255));
+        };
+        float d_sz = 0.16f * r;
+        draw_diamond(ImVec2(cx - 0.32f * r, cy), d_sz);
+        draw_diamond(ImVec2(cx, cy), d_sz);
+        draw_diamond(ImVec2(cx + 0.32f * r, cy), d_sz);
+        draw_diamond(ImVec2(cx, cy - 0.32f * r), d_sz);
+        break;
+      }
+    }
+  }
+
   void renderSearchModal(KuroAudio::DJEngine &engine) {
     if (!show_search_modal) return;
     if (search_modal_view == 1) {
@@ -20800,6 +20899,15 @@ private:
                 selected_source_track_subgenre = results_all[0].subgenre;
                 selected_source_track_dur = results_all[0].duration_sec;
                 selected_source_track_art_url = results_all[0].artwork_url;
+                selected_source_track_rgba = results_all[0].local_rgba_path;
+                auto exp_rgba = KuroAudio::getTracksDirectory() / ("track_" + results_all[0].id + ".rgba");
+                std::error_code ec_sel;
+                if (std::filesystem::exists(exp_rgba, ec_sel) && std::filesystem::file_size(exp_rgba, ec_sel) >= 262144) {
+                    selected_source_track_rgba = exp_rgba.string();
+                    selected_source_track_tex = KuroAudio::SpotifyDJService::UploadRGBATexture(selected_source_track_rgba);
+                } else if (!selected_source_track_art_url.empty()) {
+                    spotify_service.fetchTrackArtworkAsync(selected_source_track_id, selected_source_track_art_url);
+                }
                 spotify_service.searchSourcesAsync(results_all[0].id, results_all[0].title, results_all[0].artist);
             }
 
@@ -21127,7 +21235,7 @@ private:
 
                 auto dig_res_cnt = spotify_service.getDigDeeperResults();
                 char dig_tab_lbl[64];
-                snprintf(dig_tab_lbl, sizeof(dig_tab_lbl), "🔮 DIG DEEPER // GÊMEAS (%d)", (int)dig_res_cnt.size());
+                snprintf(dig_tab_lbl, sizeof(dig_tab_lbl), "%s DIG DEEPER // GÊMEAS (%d)", ICON_FA_WAND_MAGIC_SPARKLES, (int)dig_res_cnt.size());
                 if (is_dig_view) {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.40f, 0.12f, 0.55f, 0.95f));
                     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.30f, 1.00f, 1.0f));
@@ -21162,6 +21270,27 @@ private:
                 rdl->AddRect(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(0, 220, 200, 120), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.5f);
 
                 // Thumbnail / Capa Oficial da Faixa em Alta Fidelidade
+                static std::string s_last_loaded_art_id = "";
+                if (selected_source_track_id != s_last_loaded_art_id) {
+                    s_last_loaded_art_id = selected_source_track_id;
+                    if (selected_source_track_tex > 0) {
+                        glDeleteTextures(1, &selected_source_track_tex);
+                        selected_source_track_tex = 0;
+                    }
+                }
+
+                if (selected_source_track_tex == 0 && !selected_source_track_id.empty()) {
+                    auto tracks_dir = KuroAudio::getTracksDirectory();
+                    auto exp_rgba = tracks_dir / ("track_" + selected_source_track_id + ".rgba");
+                    std::error_code ec_art;
+                    if (std::filesystem::exists(exp_rgba, ec_art) && std::filesystem::file_size(exp_rgba, ec_art) >= 262144) {
+                        selected_source_track_rgba = exp_rgba.string();
+                        selected_source_track_tex = KuroAudio::SpotifyDJService::UploadRGBATexture(selected_source_track_rgba);
+                    } else if (!selected_source_track_art_url.empty()) {
+                        spotify_service.fetchTrackArtworkAsync(selected_source_track_id, selected_source_track_art_url);
+                    }
+                }
+
                 float art_sz = KuroUI::UIScaleManager::Scale(126.0f);
                 ImVec2 art_p = ImVec2(hero_p.x + KuroUI::UIScaleManager::Scale(12.0f), hero_p.y + (hero_h - art_sz) * 0.5f);
                 if (selected_source_track_tex > 0) {
@@ -21256,7 +21385,7 @@ private:
                 ImGui::Spacing();
 
                 // ── 4 CARDS DE PROVEDORES DE ÁUDIO (Fiel ao Mockup) ─────────────
-                auto render_source_card = [&](const char* icon, const char* name, const char* sub1, const char* sub2,
+                auto render_source_card = [&](int plat_type, const char* name, const char* sub1, const char* sub2,
                                                int score, ImVec4 border_col, bool is_solid_btn, ImVec4 btn_col, const char* btn_lbl,
                                                const std::string& url) {
                     float cw = ImGui::GetContentRegionAvail().x;
@@ -21267,12 +21396,10 @@ private:
                     rdl->AddRectFilled(cp, ImVec2(cp.x + cw, cp.y + ch), IM_COL32(10, 16, 26, 250), KuroUI::UIScaleManager::Scale(6.0f));
                     rdl->AddRect(cp, ImVec2(cp.x + cw, cp.y + ch), ImGui::GetColorU32(border_col), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.4f);
 
-                    // Círculo colorido com ícone oficial da plataforma
+                    // Ícone oficial autêntico da plataforma (Vetor de Alta Fidelidade)
                     float ic_r = KuroUI::UIScaleManager::Scale(20.0f);
                     float icx = cp.x + KuroUI::UIScaleManager::Scale(30.0f), icy = cp.y + ch * 0.5f;
-                    rdl->AddCircleFilled(ImVec2(icx, icy), ic_r, ImGui::GetColorU32(border_col), 24);
-                    ImVec2 isz = ImGui::CalcTextSize(icon);
-                    rdl->AddText(ImVec2(icx - isz.x * 0.5f, icy - isz.y * 0.5f), IM_COL32(0, 0, 0, 255), icon);
+                    drawPlatformBrandIcon(rdl, plat_type, ImVec2(icx, icy), ic_r);
 
                     // Botão de Download no Extremo Direito (Alinhado verticalmente no centro)
                     float btn_w = KuroUI::UIScaleManager::Scale(240.0f);
@@ -21346,29 +21473,29 @@ private:
                     else if (s.url.find("youtube") != std::string::npos || s.url.find("youtu.be") != std::string::npos || s.badge.find("YOUTUBE") != std::string::npos) yt_url = s.url;
                 }
 
-                // 1. SPOTIFY® MASTER SYNC (PROVEDOR OFICIAL) - Solid Green Button
-                render_source_card(ICON_FA_COMPACT_DISC, "SPOTIFY® MASTER SYNC (PROVEDOR OFICIAL)",
+                // 1. SPOTIFY® MASTER SYNC (PROVEDOR OFICIAL) - Ícone Oficial Spotify
+                render_source_card(0, "SPOTIFY® MASTER SYNC (PROVEDOR OFICIAL)",
                     "Áudio Master Sincronizado • 320 kbps Vorbis / DSP FLAC • 24-bit / 48kHz",
                     "Metadados oficiais verificados • Capa 600x600 HD • ISRC Sangoma Records",
                     99, ImVec4(0.11f, 0.80f, 0.40f, 1.0f), true, ImVec4(0.11f, 0.80f, 0.40f, 1.0f),
                     ICON_FA_BOLT " ABDUZIR SPOTIFY®", sp_url);
 
-                // 2. SOUNDCLOUD® HQ LOSSLESS STREAM - Outline Orange
-                render_source_card(ICON_FA_CLOUD, "SOUNDCLOUD® HQ LOSSLESS STREAM",
+                // 2. SOUNDCLOUD® HQ LOSSLESS STREAM - Ícone Oficial SoundCloud
+                render_source_card(1, "SOUNDCLOUD® HQ LOSSLESS STREAM",
                     "Upload Oficial pelo Artista • Web Audio HQ 48.0 kHz",
                     "Versão estendida de palco com transição limpa para mixagem",
                     95, ImVec4(1.00f, 0.45f, 0.05f, 1.0f), false, ImVec4(1.00f, 0.45f, 0.05f, 1.0f),
                     "ABDUZIR SOUNDCLOUD®", sc_url);
 
-                // 3. BEATPORT® PRO STUDIO MASTER (EXTENDED MIX) - Outline Blue
-                render_source_card(ICON_FA_HEADPHONES, "BEATPORT® PRO STUDIO MASTER (EXTENDED MIX)",
+                // 3. BEATPORT® PRO STUDIO MASTER (EXTENDED MIX) - Ícone Oficial Beatport
+                render_source_card(2, "BEATPORT® PRO STUDIO MASTER (EXTENDED MIX)",
                     "WAV Master 24-bit / 48kHz • Beatport Catálogo • Dynamic Range 12",
                     "Intro / Outro com compassos alinhados para corte de DJ",
                     100, ImVec4(0.00f, 0.70f, 1.00f, 1.0f), false, ImVec4(0.00f, 0.70f, 1.00f, 1.0f),
                     "ABDUZIR BEATPORT®", bp_url);
 
-                // 4. YOUTUBE MUSIC® TOPIC // SANGOMA AUDIO - Outline Red
-                render_source_card(ICON_FA_PLAY, "YOUTUBE MUSIC® TOPIC // SANGOMA AUDIO",
+                // 4. YOUTUBE MUSIC® TOPIC // SANGOMA AUDIO - Ícone Oficial YouTube Music
+                render_source_card(3, "YOUTUBE MUSIC® TOPIC // SANGOMA AUDIO",
                     "Canal Oficial de Distribuição • Opus HQ 160kbps / 48kHz",
                     "Áudio master direto da gravadora sem cortes ou comerciais",
                     92, ImVec4(1.00f, 0.25f, 0.28f, 1.0f), false, ImVec4(1.00f, 0.25f, 0.28f, 1.0f),
@@ -21437,7 +21564,7 @@ private:
                     rdl->AddRect(ddh_pos, ImVec2(ddh_pos.x + ddh_w, ddh_pos.y + ddh_h), IM_COL32(190, 60, 255, 180), 5.0f, 0, 1.2f);
 
                     ImGui::SetCursorScreenPos(ImVec2(ddh_pos.x + 12.0f, ddh_pos.y + 8.0f));
-                    ImGui::TextColored(ImVec4(0.92f, 0.40f, 1.0f, 1.0f), "🔮 DIG DEEPER INTELLIGENCE // MOTOR DE GARIMPO ACÚSTICO");
+                    ImGui::TextColored(ImVec4(0.92f, 0.40f, 1.0f, 1.0f), ICON_FA_WAND_MAGIC_SPARKLES " DIG DEEPER INTELLIGENCE // MOTOR DE GARIMPO ACÚSTICO");
 
                     ImGui::SameLine(ddh_w - 350.0f);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.35f, 0.20f, 0.90f));

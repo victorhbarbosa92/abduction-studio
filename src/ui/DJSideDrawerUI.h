@@ -336,7 +336,7 @@ namespace KuroUI {
         // 2. Radar Camelot Permanente & Motor Lookahead com Suporte a Dual Deck (D1 + D2) e Hover Preditivo
         void renderCamelotRadarWidget(KuroAudio::DJEngine& engine, int master_deck_idx, const std::string& master_key_str, double master_bpm) {
             float widget_w = ImGui::GetContentRegionAvail().x;
-            float widget_h = 168.0f;
+            float widget_h = KuroUI::UIScaleManager::Scale(205.0f);
 
             ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.022f, 0.032f, 0.052f, 0.96f));
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.10f, 0.18f, 0.30f, 0.75f));
@@ -393,12 +393,12 @@ namespace KuroUI {
             // Desenho do Disco Camelot (Esquerda)
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
-            float radar_radius = 64.0f;
-            ImVec2 radar_center(screen_pos.x + radar_radius + 12.0f, screen_pos.y + widget_h * 0.5f);
+            float radar_radius = KuroUI::UIScaleManager::Scale(82.0f);
+            ImVec2 radar_center(screen_pos.x + radar_radius + KuroUI::UIScaleManager::Scale(12.0f), screen_pos.y + widget_h * 0.5f);
 
             // Fundo escuro do radar com anel protetor
-            dl->AddCircleFilled(radar_center, radar_radius + 5.0f, IM_COL32(8, 12, 20, 245));
-            dl->AddCircle(radar_center, radar_radius + 5.0f, IM_COL32(35, 52, 75, 180), 36, 1.0f);
+            dl->AddCircleFilled(radar_center, radar_radius + KuroUI::UIScaleManager::Scale(5.0f), IM_COL32(8, 12, 20, 245));
+            dl->AddCircle(radar_center, radar_radius + KuroUI::UIScaleManager::Scale(5.0f), IM_COL32(35, 52, 75, 180), 36, KuroUI::UIScaleManager::Scale(1.0f));
 
             // Raios dos anéis
             float r_outer = radar_radius;
@@ -437,8 +437,8 @@ namespace KuroUI {
                     int hov_alpha = (int)(200.0f + 55.0f * hov_glow);
                     col_b = IM_COL32(255, 240, 50, hov_alpha);
                     // Halo externo de energia
-                    dl->PathArcTo(radar_center, r_outer + 3.0f, angle_start - 0.02f, angle_end + 0.02f, 8);
-                    dl->PathStroke(IM_COL32(255, 220, 30, (int)(80.0f * hov_glow)), 0, 6.0f);
+                    dl->PathArcTo(radar_center, r_outer + KuroUI::UIScaleManager::Scale(3.0f), angle_start - 0.02f, angle_end + 0.02f, 8);
+                    dl->PathStroke(IM_COL32(255, 220, 30, (int)(80.0f * hov_glow)), 0, KuroUI::UIScaleManager::Scale(6.0f));
                 }
 
                 dl->PathArcTo(radar_center, (r_outer + r_mid) * 0.5f, angle_start + 0.04f, angle_end - 0.04f, 6);
@@ -457,40 +457,44 @@ namespace KuroUI {
                     int hov_alpha = (int)(200.0f + 55.0f * hov_glow);
                     col_a = IM_COL32(255, 240, 50, hov_alpha);
                     // Halo interno de energia
-                    dl->PathArcTo(radar_center, r_mid - 2.0f, angle_start - 0.02f, angle_end + 0.02f, 8);
-                    dl->PathStroke(IM_COL32(255, 220, 30, (int)(60.0f * hov_glow)), 0, 5.0f);
+                    dl->PathArcTo(radar_center, r_mid - KuroUI::UIScaleManager::Scale(2.0f), angle_start - 0.02f, angle_end + 0.02f, 8);
+                    dl->PathStroke(IM_COL32(255, 220, 30, (int)(60.0f * hov_glow)), 0, KuroUI::UIScaleManager::Scale(5.0f));
                 }
 
                 dl->PathArcTo(radar_center, (r_mid + r_inner) * 0.5f, angle_start + 0.04f, angle_end - 0.04f, 6);
                 dl->PathStroke(col_a, 0, (r_mid - r_inner));
 
                 // Pins Indicadores de Decks Carregados nos Setores
+                float pin_r = KuroUI::UIScaleManager::Scale(7.5f);
                 if (d1_is_b || d1_is_a) {
                     float r_p1 = d1_is_b ? ((r_outer + r_mid) * 0.5f) : ((r_mid + r_inner) * 0.5f);
                     ImVec2 p_pin1(radar_center.x + std::cos(angle_mid) * r_p1, radar_center.y + std::sin(angle_mid) * r_p1);
-                    dl->AddCircleFilled(p_pin1, 7.0f, IM_COL32(0, 20, 32, 230));
-                    dl->AddCircle(p_pin1, 7.0f, IM_COL32(0, 235, 255, 255), 12, 1.5f);
-                    dl->AddText(ImVec2(p_pin1.x - 4.0f, p_pin1.y - 6.0f), IM_COL32(0, 255, 255, 255), "1");
+                    dl->AddCircleFilled(p_pin1, pin_r, IM_COL32(0, 20, 32, 230));
+                    dl->AddCircle(p_pin1, pin_r, IM_COL32(0, 235, 255, 255), 12, KuroUI::UIScaleManager::Scale(1.5f));
+                    ImVec2 p1_sz = ImGui::CalcTextSize("1");
+                    dl->AddText(ImVec2(p_pin1.x - p1_sz.x * 0.5f, p_pin1.y - p1_sz.y * 0.5f), IM_COL32(0, 255, 255, 255), "1");
                 }
                 if (d2_is_b || d2_is_a) {
                     float r_p2 = d2_is_b ? ((r_outer + r_mid) * 0.5f) : ((r_mid + r_inner) * 0.5f);
                     ImVec2 p_pin2(radar_center.x + std::cos(angle_mid) * r_p2, radar_center.y + std::sin(angle_mid) * r_p2);
                     if ((d1_is_b && d2_is_b) || (d1_is_a && d2_is_a)) {
-                        p_pin2.x += 4.0f;
+                        p_pin2.x += KuroUI::UIScaleManager::Scale(4.0f);
                     }
-                    dl->AddCircleFilled(p_pin2, 7.0f, IM_COL32(32, 16, 0, 230));
-                    dl->AddCircle(p_pin2, 7.0f, IM_COL32(255, 140, 20, 255), 12, 1.5f);
-                    dl->AddText(ImVec2(p_pin2.x - 4.0f, p_pin2.y - 6.0f), IM_COL32(255, 170, 40, 255), "2");
+                    dl->AddCircleFilled(p_pin2, pin_r, IM_COL32(32, 16, 0, 230));
+                    dl->AddCircle(p_pin2, pin_r, IM_COL32(255, 140, 20, 255), 12, KuroUI::UIScaleManager::Scale(1.5f));
+                    ImVec2 p2_sz = ImGui::CalcTextSize("2");
+                    dl->AddText(ImVec2(p_pin2.x - p2_sz.x * 0.5f, p_pin2.y - p2_sz.y * 0.5f), IM_COL32(255, 170, 40, 255), "2");
                 }
 
                 // Rótulo numérico no anel externo
-                float lx = radar_center.x + std::cos(angle_mid) * (r_outer - 7.0f);
-                float ly = radar_center.y + std::sin(angle_mid) * (r_outer - 7.0f);
+                float lx = radar_center.x + std::cos(angle_mid) * (r_outer - KuroUI::UIScaleManager::Scale(9.0f));
+                float ly = radar_center.y + std::sin(angle_mid) * (r_outer - KuroUI::UIScaleManager::Scale(9.0f));
                 char num_txt[8]; snprintf(num_txt, sizeof(num_txt), "%d", i);
                 bool is_lit = (d1_is_b || d2_is_b || hov_is_b);
                 ImU32 num_col = is_lit ? IM_COL32(255, 255, 255, 255) : IM_COL32(160, 180, 200, 170);
                 if (hov_is_b || hov_is_a) num_col = IM_COL32(255, 245, 80, 255); // Amarelo neon no hover
-                dl->AddText(ImVec2(lx - 4.0f, ly - 5.0f), num_col, num_txt);
+                ImVec2 n_sz = ImGui::CalcTextSize(num_txt);
+                dl->AddText(ImVec2(lx - n_sz.x * 0.5f, ly - n_sz.y * 0.5f), num_col, num_txt);
             }
 
             // PONTE HARMÔNICA ENTRE DECK 1 E DECK 2 NO DISCO
@@ -504,16 +508,17 @@ namespace KuroUI {
                 ImVec2 pt_d2(radar_center.x + std::cos(a_d2) * r_d2, radar_center.y + std::sin(a_d2) * r_d2);
 
                 if (d1_ck.number != d2_ck.number || d1_ck.letter != d2_ck.letter) {
-                    dl->AddLine(pt_d1, pt_d2, IM_COL32(0, 220, 255, 120), 2.0f);
-                    dl->AddLine(pt_d1, pt_d2, IM_COL32(255, 140, 30, 90), 1.0f);
+                    dl->AddLine(pt_d1, pt_d2, IM_COL32(0, 220, 255, 140), KuroUI::UIScaleManager::Scale(2.5f));
+                    dl->AddLine(pt_d1, pt_d2, IM_COL32(255, 140, 30, 100), KuroUI::UIScaleManager::Scale(1.2f));
                 }
             }
 
             // CENTRO DO RADAR (HUB TONAL DO DECK MASTER)
             dl->AddCircleFilled(radar_center, r_inner, IM_COL32(10, 16, 26, 255));
-            dl->AddCircle(radar_center, r_inner, (master_deck_idx == 0) ? IM_COL32(0, 220, 255, 220) : IM_COL32(255, 140, 30, 220), 24, 1.5f);
+            dl->AddCircle(radar_center, r_inner, (master_deck_idx == 0) ? IM_COL32(0, 220, 255, 220) : IM_COL32(255, 140, 30, 220), 24, KuroUI::UIScaleManager::Scale(1.5f));
             std::string code = master_ck.valid ? master_ck.getCamelotCode() : "9B";
-            dl->AddText(ImVec2(radar_center.x - 9.0f, radar_center.y - 7.0f), (master_deck_idx == 0) ? IM_COL32(0, 240, 255, 255) : IM_COL32(255, 160, 40, 255), code.c_str());
+            ImVec2 c_sz = ImGui::CalcTextSize(code.c_str());
+            dl->AddText(ImVec2(radar_center.x - c_sz.x * 0.5f, radar_center.y - c_sz.y * 0.5f), (master_deck_idx == 0) ? IM_COL32(0, 240, 255, 255) : IM_COL32(255, 160, 40, 255), code.c_str());
 
             // FEIXE HARMÔNICO DINÂMICO (LASER BEAM) AO PASSAR O MOUSE
             if (has_hover && master_ck.valid) {
@@ -539,40 +544,40 @@ namespace KuroUI {
                 ImU32 core_col  = (beam_col & 0x00FFFFFF) | ((int)(alpha * 255.0f) << 24);
 
                 // Camada de glow difuso (mais larga e semitransparente)
-                dl->AddLine(p_src, p_tgt, glow_col, 7.0f);
+                dl->AddLine(p_src, p_tgt, glow_col, KuroUI::UIScaleManager::Scale(7.0f));
                 // Feixe principal nítido
-                dl->AddLine(p_src, p_tgt, pulse_col, 2.5f);
+                dl->AddLine(p_src, p_tgt, pulse_col, KuroUI::UIScaleManager::Scale(2.5f));
                 // Linha central branca brilhante (core do laser)
-                dl->AddLine(p_src, p_tgt, IM_COL32(255, 255, 255, (int)(alpha * 120.0f)), 1.0f);
+                dl->AddLine(p_src, p_tgt, IM_COL32(255, 255, 255, (int)(alpha * 120.0f)), KuroUI::UIScaleManager::Scale(1.0f));
                 // Marcador de destino com anel pulsante duplo
-                dl->AddCircleFilled(p_tgt, 5.5f, core_col);
-                dl->AddCircleFilled(p_tgt, 2.5f, IM_COL32(255, 255, 255, (int)(alpha * 200.0f)));
-                dl->AddCircle(p_tgt, 8.0f + 3.5f * std::sin(radar_pulse_phase), pulse_col, 20, 1.5f);
-                dl->AddCircle(p_tgt, 12.0f + 2.0f * std::sin(radar_pulse_phase + 1.0f), glow_col, 16, 1.0f);
+                dl->AddCircleFilled(p_tgt, KuroUI::UIScaleManager::Scale(5.5f), core_col);
+                dl->AddCircleFilled(p_tgt, KuroUI::UIScaleManager::Scale(2.5f), IM_COL32(255, 255, 255, (int)(alpha * 200.0f)));
+                dl->AddCircle(p_tgt, KuroUI::UIScaleManager::Scale(8.0f) + KuroUI::UIScaleManager::Scale(3.5f) * std::sin(radar_pulse_phase), pulse_col, 20, KuroUI::UIScaleManager::Scale(1.5f));
+                dl->AddCircle(p_tgt, KuroUI::UIScaleManager::Scale(12.0f) + KuroUI::UIScaleManager::Scale(2.0f) * std::sin(radar_pulse_phase + 1.0f), glow_col, 16, KuroUI::UIScaleManager::Scale(1.0f));
             }
 
             // PAINEL TEXTUAL DE DUAL DECK & PREVISÃO DE ENCAIXE (DIREITA)
-            float text_x = screen_pos.x + radar_radius * 2.0f + 26.0f;
-            float text_y = screen_pos.y + 7.0f;
+            float text_x = screen_pos.x + radar_radius * 2.0f + KuroUI::UIScaleManager::Scale(26.0f);
+            float text_y = screen_pos.y + KuroUI::UIScaleManager::Scale(7.0f);
 
             dl->AddText(ImVec2(text_x, text_y), IM_COL32(0, 220, 255, 255), ICON_FA_COMPASS " RADAR PREDITIVO · DUAL DECK & LOOKAHEAD");
 
             // Status Compacto dos Dois Decks Carregados
             std::string d1_desc = "[D1] " + (d1_loaded ? (d1_title.substr(0, 15) + " (" + (d1_ck.valid ? d1_ck.getCamelotCode() : d1_key_str) + ")") : "Vazio");
-            dl->AddText(ImVec2(text_x, text_y + 17.0f), (master_deck_idx == 0) ? IM_COL32(0, 240, 255, 255) : IM_COL32(140, 190, 210, 200), d1_desc.c_str());
+            dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(17.0f)), (master_deck_idx == 0) ? IM_COL32(0, 240, 255, 255) : IM_COL32(140, 190, 210, 200), d1_desc.c_str());
 
             float d1_w = ImGui::CalcTextSize(d1_desc.c_str()).x;
-            float d2_x = text_x + std::max(d1_w + 12.0f, 130.0f);
+            float d2_x = text_x + std::max(d1_w + KuroUI::UIScaleManager::Scale(12.0f), KuroUI::UIScaleManager::Scale(140.0f));
             std::string d2_desc = "[D2] " + (d2_loaded ? (d2_title.substr(0, 15) + " (" + (d2_ck.valid ? d2_ck.getCamelotCode() : d2_key_str) + ")") : "Vazio");
-            dl->AddText(ImVec2(d2_x, text_y + 17.0f), (master_deck_idx == 1) ? IM_COL32(255, 160, 40, 255) : IM_COL32(210, 150, 90, 200), d2_desc.c_str());
+            dl->AddText(ImVec2(d2_x, text_y + KuroUI::UIScaleManager::Scale(17.0f)), (master_deck_idx == 1) ? IM_COL32(255, 160, 40, 255) : IM_COL32(210, 150, 90, 200), d2_desc.c_str());
 
             // Fase e Fraseamento do Master
-            dl->AddText(ImVec2(text_x, text_y + 35.0f), IM_COL32(255, 185, 30, 255), "Fase Atual:");
-            dl->AddText(ImVec2(text_x + 68.0f, text_y + 35.0f), IM_COL32(240, 245, 255, 255), current_phase_str);
+            dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(35.0f)), IM_COL32(255, 185, 30, 255), "Fase Atual:");
+            dl->AddText(ImVec2(text_x + KuroUI::UIScaleManager::Scale(68.0f), text_y + KuroUI::UIScaleManager::Scale(35.0f)), IM_COL32(240, 245, 255, 255), current_phase_str);
 
             char next_str[96];
             snprintf(next_str, sizeof(next_str), "Próx: %s em %d bars (%02d:%02d)", next_phase_str, bars_to_next_phase, (int)sec_to_next_phase / 60, (int)sec_to_next_phase % 60);
-            dl->AddText(ImVec2(text_x, text_y + 51.0f), IM_COL32(0, 255, 140, 255), next_str);
+            dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(51.0f)), IM_COL32(0, 255, 140, 255), next_str);
 
             // ÁREA DE PREVISÃO EM TEMPO REAL AO PASSAR O MOUSE
             if (has_hover && hovered_ck.valid) {
@@ -580,35 +585,35 @@ namespace KuroUI {
                 ImU32 badge_c = KuroAudio::DJHarmonicEngine::getCompatibilityBadgeColor(master_key_str, hovered_track_key);
 
                 // Box translúcida de destaque para a previsão
-                ImVec2 box_p0(text_x - 4.0f, text_y + 68.0f);
-                ImVec2 box_p1(screen_pos.x + widget_w - 6.0f, text_y + 158.0f);
-                dl->AddRectFilled(box_p0, box_p1, IM_COL32(14, 22, 34, 225), 4.0f);
-                dl->AddRect(box_p0, box_p1, (badge_c & 0x00FFFFFF) | 0x90000000, 4.0f, 0, 1.0f);
+                ImVec2 box_p0(text_x - KuroUI::UIScaleManager::Scale(4.0f), text_y + KuroUI::UIScaleManager::Scale(68.0f));
+                ImVec2 box_p1(screen_pos.x + widget_w - KuroUI::UIScaleManager::Scale(6.0f), text_y + KuroUI::UIScaleManager::Scale(185.0f));
+                dl->AddRectFilled(box_p0, box_p1, IM_COL32(14, 22, 34, 225), KuroUI::UIScaleManager::Scale(4.0f));
+                dl->AddRect(box_p0, box_p1, (badge_c & 0x00FFFFFF) | 0x90000000, KuroUI::UIScaleManager::Scale(4.0f), 0, KuroUI::UIScaleManager::Scale(1.0f));
 
                 // Faixa candidata sob o mouse
                 std::string cand_title = hovered_track_title.empty() ? "Faixa sob o mouse" : hovered_track_title.substr(0, 20);
                 char cand_str[96];
                 snprintf(cand_str, sizeof(cand_str), "🎯 %s · %s", cand_title.c_str(), hovered_ck.getCamelotCode().c_str());
-                dl->AddText(ImVec2(text_x, text_y + 72.0f), IM_COL32(255, 235, 60, 255), cand_str);
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(72.0f)), IM_COL32(255, 235, 60, 255), cand_str);
 
                 char comp_str[96];
                 snprintf(comp_str, sizeof(comp_str), "Harmonia: %s", match_badge.c_str());
-                dl->AddText(ImVec2(text_x, text_y + 90.0f), badge_c, comp_str);
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(90.0f)), badge_c, comp_str);
 
                 double bpm_diff = hovered_track_bpm - master_bpm;
                 double pitch_pct = (master_bpm > 0.0) ? ((bpm_diff / master_bpm) * 100.0) : 0.0;
                 const char* diag = (std::abs(bpm_diff) <= 2.5) ? "Encaixe Imediato" : ((std::abs(bpm_diff) <= 6.0) ? "Pitch Fluido" : "Sync de BPM");
                 char bpm_sim[96];
                 snprintf(bpm_sim, sizeof(bpm_sim), "BPM: %.1f (Δ %+.1f | %+.1f%%) · %s", hovered_track_bpm, bpm_diff, pitch_pct, diag);
-                dl->AddText(ImVec2(text_x, text_y + 108.0f), IM_COL32(0, 220, 255, 230), bpm_sim);
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(108.0f)), IM_COL32(0, 220, 255, 230), bpm_sim);
 
-                dl->AddText(ImVec2(text_x, text_y + 126.0f), IM_COL32(170, 195, 220, 200), "Dica: Mova o cursor por outras faixas para ver outros tons!");
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(126.0f)), IM_COL32(170, 195, 220, 200), "Dica: Mova o cursor por outras faixas para ver outros tons!");
             } else {
                 char target_rec[64];
                 snprintf(target_rec, sizeof(target_rec), "Alvo Sugerido: %d%c / %d%c", target_rec_num, target_rec_letter, master_ck.number, (master_ck.letter == 'A' ? 'B' : 'A'));
-                dl->AddText(ImVec2(text_x, text_y + 74.0f), IM_COL32(255, 205, 40, 255), target_rec);
-                dl->AddText(ImVec2(text_x, text_y + 94.0f), IM_COL32(0, 230, 255, 220), "💡 Passe o mouse nas faixas abaixo");
-                dl->AddText(ImVec2(text_x, text_y + 112.0f), IM_COL32(180, 200, 220, 200), "para prever o encaixe tonal & BPM na hora!");
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(74.0f)), IM_COL32(255, 205, 40, 255), target_rec);
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(94.0f)), IM_COL32(0, 230, 255, 220), "💡 Passe o mouse nas faixas abaixo");
+                dl->AddText(ImVec2(text_x, text_y + KuroUI::UIScaleManager::Scale(112.0f)), IM_COL32(180, 200, 220, 200), "para prever o encaixe tonal & BPM na hora!");
             }
 
             ImGui::EndChild();
