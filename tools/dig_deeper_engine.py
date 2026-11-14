@@ -23,6 +23,8 @@ if sys.platform == 'win32':
         pass
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+if TOOLS_DIR not in sys.path:
+    sys.path.insert(0, TOOLS_DIR)
 SCRATCH_DIR = os.path.abspath(os.path.join(TOOLS_DIR, "..", "scratch"))
 DB_PATH = os.path.join(SCRATCH_DIR, "dig_deeper_knowledge_graph.sqlite")
 
@@ -274,7 +276,7 @@ def fetch_digdeeper_online(query, limit=25):
             'Accept': 'application/json',
             'Referer': 'https://digdeeper.fm/'
         })
-        with urllib.request.urlopen(req, timeout=4.0) as resp:
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             items = data.get('data', [])
             if not items:
@@ -338,20 +340,12 @@ def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None, ref_artist=
     init_db()
     seed_database()
     
-    # 0. Tenta enriquecer a base SQLite conectando diretamente na API do DigDeeper
+    # 0. Tenta enriquecer a base SQLite conectando à API do DigDeeper (rápido e resiliente)
     try:
         clean_q = re.sub(r'[\(\[\{][^\)\]\}]*[\)\]\}]', '', query).strip()
         items = fetch_digdeeper_online(clean_q, limit=25)
         if not items and ref_artist:
             items = fetch_digdeeper_online(ref_artist, limit=25)
-        if not items:
-            for part in [clean_q, ref_artist]:
-                if not part: continue
-                for word in part.split():
-                    if len(word) >= 4 and word.lower() not in ['feat', 'with', 'from', 'live', 'edit']:
-                        items = fetch_digdeeper_online(word, limit=25)
-                        if items: break
-                if items: break
     except Exception as e:
         print(f"[DIG_DEEPER] fetch error: {e}")
     

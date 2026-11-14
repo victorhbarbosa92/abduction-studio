@@ -16,6 +16,8 @@ if sys.platform == 'win32':
         pass
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+if TOOLS_DIR not in sys.path:
+    sys.path.insert(0, TOOLS_DIR)
 FFMPEG_EXE = os.path.join(TOOLS_DIR, "ffmpeg.exe")
 if os.path.exists(FFMPEG_EXE):
     if TOOLS_DIR not in os.environ.get("PATH", ""):

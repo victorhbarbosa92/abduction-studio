@@ -400,7 +400,7 @@ namespace KuroAudio {
         return "tools/spotify_dj_worker.py";
     }
 
-    inline bool RunHiddenProcess(const std::wstring& cmd, int timeout_ms = 90000) {
+    inline bool RunHiddenProcess(const std::wstring& cmd, int timeout_ms = 90000, const std::wstring& work_dir = L"") {
 #ifdef _WIN32
         if (cmd.empty()) return false;
 
@@ -416,6 +416,8 @@ namespace KuroAudio {
         std::vector<wchar_t> cmd_buf(cmd.begin(), cmd.end());
         cmd_buf.push_back(L'\0');
 
+        LPCWSTR lpDir = work_dir.empty() ? NULL : work_dir.c_str();
+
         BOOL success = CreateProcessW(
             NULL,
             cmd_buf.data(),
@@ -424,7 +426,7 @@ namespace KuroAudio {
             FALSE,
             CREATE_NO_WINDOW,
             NULL,
-            NULL,
+            lpDir,
             &si,
             &pi
         );

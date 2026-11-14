@@ -2518,7 +2518,7 @@ int main(int argc, char* argv[]) {
     glfwSetDropCallback(window, drop_callback);
 
     // Inicialização do AutoUpdater (Verificação silenciosa em segundo plano)
-    KuroAudio::AutoUpdater::GetInstance().Initialize("", "2.0.0");
+    KuroAudio::AutoUpdater::GetInstance().Initialize("", "2.0.1");
     KuroAudio::AutoUpdater::GetInstance().CheckForUpdatesAsync(false);
 
     // 3. Main Loop Gráfico com Frame Pacing Inteligente (60 FPS / Modo Baixo Consumo de CPU)

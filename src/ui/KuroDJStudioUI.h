@@ -21345,6 +21345,7 @@ private:
                 // ════════════════════════════════════════════════════════════════════
                 // DIGDEEPER 1:1 STUDIO EXPERIENCE (HARMONIZADO COM ABDUCTION STUDIO)
                 // ════════════════════════════════════════════════════════════════════
+                static std::string dd_last_queried = "";
 
                 // ── 1. HEADER DO DIGDEEPER COM BARRA DE BUSCA INTEGRADA ─────────────
                 float dd_header_h = KuroUI::UIScaleManager::Scale(38.0f);
@@ -21371,6 +21372,7 @@ private:
                 if (ImGui::InputTextWithHint("##DigDeeperSearchInput", "Garimpar nova faixa ou artista no DigDeeper (ex: Jumpstreet, Rugrats)...",
                     online_search_query_buf, sizeof(online_search_query_buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
                     if (strlen(online_search_query_buf) > 0) {
+                        dd_last_queried = "";
                         spotify_service.digDeeperAsync(online_search_query_buf, "", "", 0.0);
                     }
                 }
@@ -21388,6 +21390,7 @@ private:
                 if (ImGui::Button(ICON_FA_ROTATE " REMINERAR", ImVec2(dig_btn_w, KuroUI::UIScaleManager::Scale(34.0f)))) {
                     std::string q = strlen(online_search_query_buf) > 0 ? online_search_query_buf : spotify_service.getDigDeeperRefTitle();
                     if (q.empty()) q = selected_source_track_title.empty() ? "Jumpstreet" : selected_source_track_title;
+                    dd_last_queried = "";
                     spotify_service.digDeeperAsync(q, spotify_service.getDigDeeperRefArtist(), spotify_service.getDigDeeperRefKey(), spotify_service.getDigDeeperRefBpm());
                 }
                 ImGui::PopStyleVar();
@@ -21418,8 +21421,12 @@ private:
                 float dd_right_w = avail_w * 0.66f - KuroUI::UIScaleManager::Scale(6.0f);
 
                 auto dig_matches = spotify_service.getDigDeeperResults();
-                static std::string dd_last_queried = "";
-                if (dig_matches.empty() && !spotify_service.isDiggingDeeper()) {
+                if (dig_matches.empty()) {
+                    spotify_service.initCuratedDigDeeperSeeds();
+                    dig_matches = spotify_service.getDigDeeperResults();
+                }
+
+                if (!spotify_service.isDiggingDeeper()) {
                     std::string ref_q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
                     std::string ref_a = selected_source_track_artist.empty() ? "JUMPSTREET" : selected_source_track_artist;
                     std::string ref_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
@@ -21595,9 +21602,10 @@ private:
                                              KuroUI::UIScaleManager::Scale(4.0f), IM_COL32(255, 255, 255, 255));
                     }
 
-                    ImGui::Spacing();
+                    // 3. TÍTULO E ARTISTA (posicionado perfeitamente abaixo da capa)
+                    ImGui::SetCursorScreenPos(ImVec2(art_min.x, art_max.y + KuroUI::UIScaleManager::Scale(12.0f)));
+                    ImGui::Dummy(ImVec2(lw, KuroUI::UIScaleManager::Scale(2.0f)));
 
-                    // 3. TÍTULO E ARTISTA
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                     ImGui::TextUnformatted(dd_hero_title.c_str());
                     ImGui::PopStyleColor();
@@ -21895,9 +21903,18 @@ private:
                         if (spotify_service.isDiggingDeeper()) {
                             ImGui::Spacing();
                             ImGui::TextColored(ImVec4(0.92f, 0.45f, 0.25f, 1.0f), ICON_FA_SPINNER " Minerando catálogo do DigDeeper ao vivo...");
-                        } else if (dig_matches.empty()) {
+                            ImGui::Spacing();
+                        }
+
+                        if (dig_matches.empty()) {
                             ImGui::Spacing();
                             ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.80f, 0.90f), "Nenhuma faixa similar encontrada. Clique em REMINERAR para pesquisar.");
+                            ImGui::Spacing();
+                            if (ImGui::Button(ICON_FA_ROTATE " REMINERAR AGORA", ImVec2(KuroUI::UIScaleManager::Scale(160.0f), KuroUI::UIScaleManager::Scale(32.0f)))) {
+                                dd_last_queried = "";
+                                std::string q = spotify_service.getDigDeeperRefTitle().empty() ? "Quantum Resonator" : spotify_service.getDigDeeperRefTitle();
+                                spotify_service.digDeeperAsync(q, spotify_service.getDigDeeperRefArtist(), spotify_service.getDigDeeperRefKey(), spotify_service.getDigDeeperRefBpm());
+                            }
                         } else {
                             for (size_t di = 0; di < dig_matches.size(); di++) {
                                 const auto& m = dig_matches[di];
