@@ -9835,7 +9835,7 @@ private:
       ImGui::SameLine(0, 5.0f);
     }
 
-    // ── 3. ALA DIREITA: SISTEMA, BUSCA E UTILITARIOS (ANTI-COLISÃO DINÂMICA) ─────
+    // ── 3. ALA DIREITA: SISTEMA, BUSCA E UTILITARIOS (ANCORAGEM DA DIREITA PARA A ESQUERDA - ZERO CORTE) ─────
     auto &safety = KuroAudio::DJLiveSafety::getInstance();
     bool lck_on = safety.isLoadLockEnabled();
     const char *lck_txt = lck_on ? ICON_FA_LOCK " LOCK" : ICON_FA_LOCK_OPEN " UNLOCK";
@@ -9878,15 +9878,25 @@ private:
       btn_label = std::string(ICON_FA_SHUTTLE_SPACE) + " ABDUCTION HUB";
     }
     ImVec2 t_sz = ImGui::CalcTextSize(btn_label.c_str());
-    float s_w = std::max(KuroUI::UIScaleManager::Scale(145.0f), t_sz.x + KuroUI::UIScaleManager::Scale(26.0f));
+    float s_w = std::clamp(t_sz.x + KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(120.0f), KuroUI::UIScaleManager::Scale(180.0f));
     float x_w = p_open ? KuroUI::UIScaleManager::Scale(20.0f) : 0.0f;
     float gap_r = KuroUI::UIScaleManager::Scale(6.0f);
 
-    float total_right_w = lck_w + gap_r + midi_w + gap_r + clk_w + gap_r + s_w + (p_open ? (gap_r + x_w) : 0.0f);
-    float r_x_dyn = pos.x + w - total_right_w - KuroUI::UIScaleManager::Scale(8.0f);
-    ImGui::SetCursorScreenPos(ImVec2(r_x_dyn, topbar_item_y));
+    // Ancoragem da direita para a esquerda: garante que o botão ABDUCTION HUB nunca seja cortado
+    float cur_rx = pos.x + w - KuroUI::UIScaleManager::Scale(8.0f);
+    if (p_open) {
+      cur_rx -= (x_w + gap_r);
+    }
+    float s_x = cur_rx - s_w;
+    cur_rx = s_x - gap_r;
+    float clk_x = cur_rx - clk_w;
+    cur_rx = clk_x - gap_r;
+    float midi_x = cur_rx - midi_w;
+    cur_rx = midi_x - gap_r;
+    float lck_x = cur_rx - lck_w;
 
-    // [LOAD LOCK]
+    // Render [LOAD LOCK]
+    ImGui::SetCursorScreenPos(ImVec2(lck_x, topbar_item_y));
     capsuleBtn("##TopLoadLock",
                lck_txt,
                lck_on, IM_COL32(0, 200, 120, 255), IM_COL32(220, 255, 235, 255),
@@ -9896,6 +9906,7 @@ private:
                [&]() { safety.toggleLoadLock(); });
 
     // Status MIDI da controladora fisica
+    ImGui::SetCursorScreenPos(ImVec2(midi_x, topbar_item_y));
     capsuleBtn("##TopMidiHw", midi_lbl.c_str(), hw_ok,
                IM_COL32(0, 230, 130, 255), IM_COL32(210, 255, 230, 255),
                "Central MIDI Learn: Clique para abrir o mapeamento de "
@@ -9907,16 +9918,14 @@ private:
 
     // Relogio Digital HH:MM
     {
-      ImVec2 clk_pos = ImGui::GetCursorScreenPos();
+      ImVec2 clk_pos = ImVec2(clk_x, topbar_item_y);
       dl->AddText(ImVec2(clk_pos.x + KuroUI::UIScaleManager::Scale(2.0f), clk_pos.y + (topbar_btn_h - sz_clk.y) * 0.5f),
                   IM_COL32(180, 195, 215, 240), time_buf);
-      ImGui::Dummy(ImVec2(clk_w, topbar_btn_h));
-      ImGui::SameLine(0, gap_r);
     }
 
-    // Botão Cyberpunk / Rekordbox: ABDUCTION STUDIO // MASTER SOURCE MATRIX
+    // Botão Cyberpunk / Rekordbox: ABDUCTION HUB (Posicionado com exatidão e sem corte à direita)
     {
-      ImVec2 s_pos = ImGui::GetCursorScreenPos();
+      ImVec2 s_pos = ImVec2(s_x, topbar_item_y);
       float s_h = topbar_btn_h;
 
       ImU32 bg_col = show_search_modal ? IM_COL32(0, 55, 75, 255)
@@ -12998,9 +13007,9 @@ private:
     auto &live_inst = KuroAudio::DJLiveInstrumentEngine::getInstance();
     auto &gain_staging = KuroAudio::DJGainStagingAnalyzer::getInstance();
 
-    // Altura ampliada e proporcional de 375.0f escalada dinamicamente via UIScaleManager
+    // Altura ampliada e proporcional de 395.0f escalada dinamicamente via UIScaleManager
     // Garante visibilidade perfeita de todos os controles, pedais de efeito e sequenciador touch
-    float h = KuroUI::UIScaleManager::Scale(375.0f);
+    float h = KuroUI::UIScaleManager::Scale(395.0f);
     ImDrawList *dl = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
@@ -13158,7 +13167,7 @@ private:
 
         // --- ZONA 1: SUPERFÍCIE DE CONTROLE ANALÓGICA (4 BAÍAS AMPLIADAS E PROPORCIONAIS) ---
         float bay_spacing = KuroUI::UIScaleManager::Scale(8.0f);
-        float bay_h = KuroUI::UIScaleManager::Scale(218.0f);
+        float bay_h = KuroUI::UIScaleManager::Scale(230.0f);
 
         float total_spacing = 3.0f * bay_spacing;
         float usable_w = std::max(640.0f, avail_w - total_spacing);
@@ -13406,8 +13415,8 @@ private:
           // Grid 2x2 de Módulos Stompbox Analógicos:
           // Coluna 1: Overdrive DS-1 | Coluna 2: Delay 3/16 Sync
           // Coluna 1: Reverb Space   | Coluna 2: Dimension D Chorus
-          float cell_w = (b4_w - 24.0f) * 0.5f;
-          float cell_h = KuroUI::UIScaleManager::Scale(82.0f);
+          float cell_w = (b4_w - KuroUI::UIScaleManager::Scale(18.0f)) * 0.5f;
+          float cell_h = (bay_h - KuroUI::UIScaleManager::Scale(48.0f)) * 0.5f;
 
           auto drawFxPedalCard = [&](const char *name, const char *subname, float *p_val, float v_max,
                                      ImVec4 col_act, const char *tooltip, const char *knob_id, float quick_v) {
@@ -15108,8 +15117,8 @@ private:
     ImFont *f_ctrl = g_font_control_small ? g_font_control_small : f_bld;
 
     // Linha 1 do Header: TEMPO e Botão MT (Key Lock)
-    float mt_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(34.0f), KuroUI::UIScaleManager::Scale(44.0f));
-    float mt_h = KuroUI::UIScaleManager::Scale(19.0f);
+    float mt_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(34.0f), KuroUI::UIScaleManager::Scale(46.0f));
+    float mt_h = KuroUI::UIScaleManager::Scale(18.0f);
     ImVec2 mt_pos = ImVec2(pos.x + size.x - mt_w - KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(3.0f));
     char mt_id[32];
     snprintf(mt_id, sizeof(mt_id), "##PF_MT_%d", deck.deck_id);
@@ -15123,10 +15132,10 @@ private:
     ImU32 mt_bd = deck.key_sync_active ? IM_COL32(140, 205, 255, 255) : IM_COL32(45, 58, 76, 200);
     dl->AddRectFilled(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bg, KuroUI::UIScaleManager::Scale(3.0f));
     dl->AddRect(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bd, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
-    ImVec2 sz_mt_txt = f_ctrl->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.0f), FLT_MAX, -1.0f, "MT");
-    dl->AddText(f_ctrl, KuroUI::UIScaleManager::Scale(11.0f),
-                ImVec2(mt_pos.x + (mt_w - sz_mt_txt.x) * 0.5f, mt_pos.y + (mt_h - sz_mt_txt.y) * 0.5f),
-                deck.key_sync_active ? IM_COL32(255, 255, 255, 255) : IM_COL32(180, 200, 225, 230), "MT");
+    
+    // Centralização perfeita sem corte via DrawFittedText
+    ImU32 mt_txt_col = deck.key_sync_active ? IM_COL32(255, 255, 255, 255) : IM_COL32(190, 210, 235, 240);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, 11.0f, mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_txt_col, "MT", 2.0f, 1.0f);
 
     // Texto TEMPO com clipping para nunca encavalar no botão MT
     dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(2.0f)),
@@ -15135,7 +15144,7 @@ private:
                 IM_COL32(170, 185, 205, 230), "TEMPO");
     dl->PopClipRect();
 
-    // Linha 2 do Header: Valor Numérico do Pitch e Botão de Range
+    // Linha 2 do Header: Valor Numérico do Pitch e Botão de Range (Espaçamento calculado)
     char val_str[32];
     if (std::abs(deck.pitch_percent) < 0.005f) {
       snprintf(val_str, sizeof(val_str), "±0.00%%");
@@ -15156,11 +15165,11 @@ private:
         (deck.pitch_range >= 90.0f)
             ? "WIDE"
             : (deck.pitch_range >= 15.0f
-                   ? "16%"
-                   : (deck.pitch_range >= 9.0f ? "10%" : "6%"));
+                   ? "±16%"
+                   : (deck.pitch_range >= 9.0f ? "±10%" : "±6%"));
     float rg_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(46.0f));
-    float rg_h = KuroUI::UIScaleManager::Scale(19.0f);
-    ImVec2 rg_pos = ImVec2(pos.x + size.x - rg_w - KuroUI::UIScaleManager::Scale(4.0f), pos.y + mt_h + KuroUI::UIScaleManager::Scale(5.0f));
+    float rg_h = KuroUI::UIScaleManager::Scale(18.0f);
+    ImVec2 rg_pos = ImVec2(pos.x + size.x - rg_w - KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h + KuroUI::UIScaleManager::Scale(3.0f));
     char rg_id[32];
     snprintf(rg_id, sizeof(rg_id), "##PFRG_%d", deck.deck_id);
     ImGui::SetCursorScreenPos(rg_pos);
@@ -15182,16 +15191,16 @@ private:
     ImU32 rg_bd = (deck.pitch_range >= 90.0f) ? IM_COL32(255, 75, 90, 255) : IM_COL32(50, 64, 82, 200);
     dl->AddRectFilled(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bg, KuroUI::UIScaleManager::Scale(3.0f));
     dl->AddRect(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bd, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
-    ImVec2 sz_rg_txt = f_ctrl->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.0f), FLT_MAX, -1.0f, rg_str);
-    dl->AddText(f_ctrl, KuroUI::UIScaleManager::Scale(11.0f),
-                ImVec2(rg_pos.x + (rg_w - sz_rg_txt.x) * 0.5f, rg_pos.y + (rg_h - sz_rg_txt.y) * 0.5f),
-                (deck.pitch_range >= 90.0f) ? IM_COL32(255, 180, 190, 255) : IM_COL32(200, 220, 245, 230), rg_str);
+    
+    // Centralização perfeita do texto de Range com DrawFittedText
+    ImU32 rg_txt_col = (deck.pitch_range >= 90.0f) ? IM_COL32(255, 180, 190, 255) : IM_COL32(200, 220, 245, 230);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, 11.0f, rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_txt_col, rg_str, 2.0f, 1.0f);
 
     // Texto de valor do pitch com clipping para não encavalar no botão de Range
-    dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(20.0f)),
+    dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h),
                      ImVec2(rg_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + hdr_h - KuroUI::UIScaleManager::Scale(2.0f)), true);
     float v_font_sz = (size.x < KuroUI::UIScaleManager::Scale(80.0f)) ? KuroUI::UIScaleManager::Scale(11.5f) : KuroUI::UIScaleManager::Scale(13.0f);
-    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), pos.y + KuroUI::UIScaleManager::Scale(24.0f)), col_val,
+    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), rg_pos.y + KuroUI::UIScaleManager::Scale(2.0f)), col_val,
                 val_str);
     dl->PopClipRect();
 
@@ -20706,34 +20715,37 @@ private:
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
 
-        // 4 Deck status badges — Cápsulas de Hardware Independentes sem sobreposição
-        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(72.0f);
+        // 4 Deck status badges — Cápsulas de Hardware Independentes com proteção contra sobreposição
+        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(64.0f);
         float dbadge_slot_h = KuroUI::UIScaleManager::Scale(20.0f);
-        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(15.0f);
-        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(12.0f);
+        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(12.0f);
+        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(10.0f);
         float dbadge_y = h_start.y + KuroUI::UIScaleManager::Scale(8.0f);
 
-        struct DeckBadge { const char* label; bool playing; ImVec4 col; };
-        DeckBadge dbadges[4] = {
-            { engine.decks[0].is_playing.load() ? "D1: ON AIR" : "D1: LIVRE", engine.decks[0].is_playing.load(), col_deck_1 },
-            { engine.decks[1].is_playing.load() ? "D2: ON AIR" : "D2: CUE",   engine.decks[1].is_playing.load(), col_deck_2 },
-            { engine.decks[2].is_playing.load() ? "D3: ON AIR" : "D3: LIVRE", engine.decks[2].is_playing.load(), col_deck_3 },
-            { engine.decks[3].is_playing.load() ? "D4: ON AIR" : "D4: LIVRE", engine.decks[3].is_playing.load(), col_deck_4 },
-        };
-        ImDrawList* h_dl = ImGui::GetWindowDrawList();
-        for (int di = 0; di < 4; di++) {
-            ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(5.0f)), dbadge_y);
-            ImVec2 b_max = ImVec2(b_min.x + dbadge_slot_w, b_min.y + dbadge_slot_h);
-            ImVec4 bc = dbadges[di].col;
-            ImU32 bd_bg = dbadges[di].playing ? IM_COL32((int)(bc.x * 40.0f), (int)(bc.y * 40.0f), (int)(bc.z * 40.0f), 240) : IM_COL32(12, 16, 24, 200);
-            ImU32 bd_border = dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 120.0f), (int)(bc.y * 120.0f), (int)(bc.z * 120.0f), 180);
-            h_dl->AddRectFilled(b_min, b_max, bd_bg, KuroUI::UIScaleManager::Scale(3.0f));
-            h_dl->AddRect(b_min, b_max, bd_border, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
-            
-            ImVec2 t_sz_b = ImGui::CalcTextSize(dbadges[di].label);
-            h_dl->AddText(ImVec2(b_min.x + (dbadge_slot_w - t_sz_b.x) * 0.5f, b_min.y + (dbadge_slot_h - t_sz_b.y) * 0.5f),
-                          dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 180.0f), (int)(bc.y * 180.0f), (int)(bc.z * 180.0f), 220),
-                          dbadges[di].label);
+        // Só renderiza os badges se houver espaço livre sem colidir com as abas de navegação
+        if (dbadge_x > ImGui::GetCursorPosX() + KuroUI::UIScaleManager::Scale(16.0f)) {
+            struct DeckBadge { const char* label; bool playing; ImVec4 col; };
+            DeckBadge dbadges[4] = {
+                { engine.decks[0].is_playing.load() ? "D1: ON AIR" : "D1: LIVRE", engine.decks[0].is_playing.load(), col_deck_1 },
+                { engine.decks[1].is_playing.load() ? "D2: ON AIR" : "D2: CUE",   engine.decks[1].is_playing.load(), col_deck_2 },
+                { engine.decks[2].is_playing.load() ? "D3: ON AIR" : "D3: LIVRE", engine.decks[2].is_playing.load(), col_deck_3 },
+                { engine.decks[3].is_playing.load() ? "D4: ON AIR" : "D4: LIVRE", engine.decks[3].is_playing.load(), col_deck_4 },
+            };
+            ImDrawList* h_dl = ImGui::GetWindowDrawList();
+            for (int di = 0; di < 4; di++) {
+                ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(4.0f)), dbadge_y);
+                ImVec2 b_max = ImVec2(b_min.x + dbadge_slot_w, b_min.y + dbadge_slot_h);
+                ImVec4 bc = dbadges[di].col;
+                ImU32 bd_bg = dbadges[di].playing ? IM_COL32((int)(bc.x * 40.0f), (int)(bc.y * 40.0f), (int)(bc.z * 40.0f), 240) : IM_COL32(12, 16, 24, 200);
+                ImU32 bd_border = dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 120.0f), (int)(bc.y * 120.0f), (int)(bc.z * 120.0f), 180);
+                h_dl->AddRectFilled(b_min, b_max, bd_bg, KuroUI::UIScaleManager::Scale(3.0f));
+                h_dl->AddRect(b_min, b_max, bd_border, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
+                
+                ImVec2 t_sz_b = ImGui::CalcTextSize(dbadges[di].label);
+                h_dl->AddText(ImVec2(b_min.x + (dbadge_slot_w - t_sz_b.x) * 0.5f, b_min.y + (dbadge_slot_h - t_sz_b.y) * 0.5f),
+                              dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 180.0f), (int)(bc.y * 180.0f), (int)(bc.z * 180.0f), 220),
+                              dbadges[di].label);
+            }
         }
 
         ImGui::SetCursorScreenPos(ImVec2(h_start.x, h_start.y + h_h + 10.0f));
@@ -20862,9 +20874,15 @@ private:
             }
 
             // Botão Roxo no Canto Direito: ⚡ BAIXAR DISCOGRAFIA (Totalmente escalado e sem corte)
-            float disc_btn_w = KuroUI::UIScaleManager::Scale(290.0f);
-            float disc_btn_h = KuroUI::UIScaleManager::Scale(32.0f);
-            ImGui::SameLine(avail_w - disc_btn_w);
+            float disc_btn_w = KuroUI::UIScaleManager::Scale(260.0f);
+            float disc_btn_h = KuroUI::UIScaleManager::Scale(30.0f);
+            float target_disc_x = avail_w - disc_btn_w;
+            if (target_disc_x > ImGui::GetCursorPosX() + KuroUI::UIScaleManager::Scale(12.0f)) {
+                ImGui::SameLine(target_disc_x);
+            } else {
+                ImGui::NewLine();
+                ImGui::SetCursorPosX(target_disc_x > 0 ? target_disc_x : 0);
+            }
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.43f, 0.16f, 0.71f, 0.95f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.22f, 0.88f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -21401,24 +21419,42 @@ private:
                     float icx = cp.x + KuroUI::UIScaleManager::Scale(30.0f), icy = cp.y + ch * 0.5f;
                     drawPlatformBrandIcon(rdl, plat_type, ImVec2(icx, icy), ic_r);
 
-                    // Botão de Download no Extremo Direito (Alinhado verticalmente no centro)
-                    float btn_w = KuroUI::UIScaleManager::Scale(240.0f);
-                    float btn_h = KuroUI::UIScaleManager::Scale(38.0f);
-                    float btn_x = cp.x + cw - btn_w - KuroUI::UIScaleManager::Scale(14.0f);
+                    // Botão de Download no Extremo Direito (Responsivo e dinamicamente proporcional)
+                    float btn_w = std::clamp(cw * 0.28f, KuroUI::UIScaleManager::Scale(130.0f), KuroUI::UIScaleManager::Scale(200.0f));
+                    float btn_h = KuroUI::UIScaleManager::Scale(36.0f);
+                    float btn_x = cp.x + cw - btn_w - KuroUI::UIScaleManager::Scale(12.0f);
                     float btn_y = cp.y + (ch - btn_h) * 0.5f;
 
-                    // Bloco de Estrelas & Pureza Espectral (À esquerda do botão)
-                    float stars_w = KuroUI::UIScaleManager::Scale(150.0f);
-                    float stars_x = btn_x - stars_w - KuroUI::UIScaleManager::Scale(16.0f);
-                    float stars_y = cp.y + (ch - KuroUI::UIScaleManager::Scale(38.0f)) * 0.5f;
-                    char score_str[32]; snprintf(score_str, sizeof(score_str), "%s %s %s %s %s %d%%",
-                        ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, score);
-                    rdl->AddText(ImVec2(stars_x, stars_y), IM_COL32(255, 215, 50, 255), score_str);
-                    rdl->AddText(ImVec2(stars_x, stars_y + KuroUI::UIScaleManager::Scale(20.0f)), IM_COL32(130, 165, 205, 190), "Pureza Espectral");
+                    // Bloco de Estrelas & Pureza Espectral: Responsivo para nunca engolir os textos
+                    float stars_x = btn_x;
+                    if (cw > KuroUI::UIScaleManager::Scale(680.0f)) {
+                        float stars_w = KuroUI::UIScaleManager::Scale(130.0f);
+                        stars_x = btn_x - stars_w - KuroUI::UIScaleManager::Scale(14.0f);
+                        float stars_y = cp.y + (ch - KuroUI::UIScaleManager::Scale(36.0f)) * 0.5f;
+                        char score_str[32]; snprintf(score_str, sizeof(score_str), "%s %s %s %s %s %d%%",
+                            ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, score);
+                        rdl->AddText(ImVec2(stars_x, stars_y), IM_COL32(255, 215, 50, 255), score_str);
+                        rdl->AddText(ImVec2(stars_x, stars_y + KuroUI::UIScaleManager::Scale(18.0f)), IM_COL32(130, 165, 205, 190), "Pureza Espectral");
+                    } else {
+                        float badge_w = KuroUI::UIScaleManager::Scale(76.0f);
+                        stars_x = btn_x - badge_w - KuroUI::UIScaleManager::Scale(10.0f);
+                        float badge_h = KuroUI::UIScaleManager::Scale(22.0f);
+                        float badge_y = cp.y + (ch - badge_h) * 0.5f;
+                        rdl->AddRectFilled(ImVec2(stars_x, badge_y), ImVec2(stars_x + badge_w, badge_y + badge_h), IM_COL32(20, 28, 42, 220), KuroUI::UIScaleManager::Scale(3.0f));
+                        rdl->AddRect(ImVec2(stars_x, badge_y), ImVec2(stars_x + badge_w, badge_y + badge_h), IM_COL32(255, 215, 50, 160), KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
+                        char b_txt[24]; snprintf(b_txt, sizeof(b_txt), "%s %d%%", ICON_FA_STAR, score);
+                        ImVec2 sz_bt = ImGui::CalcTextSize(b_txt);
+                        rdl->AddText(ImVec2(stars_x + (badge_w - sz_bt.x) * 0.5f, badge_y + (badge_h - sz_bt.y) * 0.5f), IM_COL32(255, 215, 50, 255), b_txt);
+                    }
 
-                    // Textos do Provedor (Título, Sub1, Sub2) com margens seguras anti-fatiamento
+                    // Textos do Provedor (Título, Sub1, Sub2) com margens seguras anti-fatiamento e área ampla
                     float tx = cp.x + KuroUI::UIScaleManager::Scale(62.0f);
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(12.0f)));
+                    float text_right_limit = stars_x - KuroUI::UIScaleManager::Scale(10.0f);
+                    if (text_right_limit > tx + 20.0f) {
+                        rdl->PushClipRect(ImVec2(tx, cp.y), ImVec2(text_right_limit, cp.y + ch), true);
+                    }
+
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(13.0f)));
                     ImGui::PushStyleColor(ImGuiCol_Text, border_col);
                     ImGui::TextUnformatted(name);
                     ImGui::PopStyleColor();
@@ -21428,10 +21464,14 @@ private:
                     ImGui::TextUnformatted(sub1);
                     ImGui::PopStyleColor();
 
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(64.0f)));
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(63.0f)));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.62f, 0.75f, 0.85f));
                     ImGui::TextUnformatted(sub2);
                     ImGui::PopStyleColor();
+
+                    if (text_right_limit > tx + 20.0f) {
+                        rdl->PopClipRect();
+                    }
 
                     // Render do Botão
                     ImGui::SetCursorScreenPos(ImVec2(btn_x, btn_y));
