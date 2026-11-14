@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Script de Publicação em 1 Clique para o Abduction Studio V2.
     Empacota o patch de atualização e cria uma Release Privada no GitHub.
@@ -73,6 +73,11 @@ Copy-Item $destExe -Destination (Join-Path $stagingDir "AbductionStudioV2.exe") 
 Copy-Item $updaterExe -Destination (Join-Path $stagingDir "AbductionUpdater.exe") -Force
 
 if (Test-Path $updaterConfig) {
+    try {
+        $jsonObj = Get-Content $updaterConfig -Raw | ConvertFrom-Json
+        $jsonObj.version = $cleanVersion
+        $jsonObj | ConvertTo-Json -Depth 4 | Set-Content $updaterConfig -Encoding UTF8
+    } catch {}
     Copy-Item $updaterConfig -Destination (Join-Path $stagingDir "updater.json") -Force
 }
 

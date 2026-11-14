@@ -7,6 +7,7 @@
 #include <mutex>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <algorithm>
 
@@ -22,6 +23,7 @@
 
 // Forward declaration do ImGui se disponivel
 #include "imgui.h"
+#include "ui/UIScaleManager.h"
 
 namespace KuroAudio {
 
@@ -53,13 +55,18 @@ namespace KuroAudio {
         }
 
         // Configuração inicial do updater
-        void Initialize(const std::string& defaultWorkerUrl = "", const std::string& currentVersion = "2.0.0", const std::string& secretKey = "") {
+        void Initialize(const std::string& defaultWorkerUrl = "", const std::string& fallbackVersion = "2.0.0", const std::string& secretKey = "") {
             m_workerUrl = defaultWorkerUrl;
-            m_currentVersion = currentVersion;
+            m_currentVersion = fallbackVersion;
             m_secretKey = secretKey;
 
-            // Tenta carregar override do updater.json se existir
+            // Tenta carregar override do updater.json (incluindo a versão atual gravada)
             LoadConfig();
+
+            // Fallback padrao caso nao haja configuracao
+            if (m_workerUrl.empty() || m_workerUrl.find("YOUR_SUBDOMAIN") != std::string::npos) {
+                m_workerUrl = "https://api.github.com/repos/victorhbarbosa92/abduction-studio";
+            }
         }
 
         void LoadConfig(const std::filesystem::path& configPath = "updater.json") {
@@ -74,12 +81,29 @@ namespace KuroAudio {
                         if (!url.empty()) m_workerUrl = url;
                         std::string key = ExtractJsonString(content, "secret_key");
                         if (!key.empty()) m_secretKey = key;
+                        std::string ver = ExtractJsonString(content, "version");
+                        if (!ver.empty()) m_currentVersion = ver;
                     }
                 }
             } catch (...) {}
         }
 
+        void SaveConfig(const std::filesystem::path& configPath = "updater.json") {
+            try {
+                std::ofstream file(configPath);
+                if (file.is_open()) {
+                    file << "{\n";
+                    file << "  \"version\": \"" << m_currentVersion << "\",\n";
+                    file << "  \"worker_url\": \"" << m_workerUrl << "\",\n";
+                    file << "  \"secret_key\": \"" << m_secretKey << "\"\n";
+                    file << "}\n";
+                }
+            } catch (...) {}
+        }
+
         const std::string& GetCurrentVersion() const { return m_currentVersion; }
+        void SetCurrentVersion(const std::string& ver) { m_currentVersion = ver; SaveConfig(); }
+
         const UpdateManifest& GetManifest() const { return m_manifest; }
         UpdateStatus GetStatus() const { return m_status.load(); }
         float GetProgress() const { return m_progress.load(); }
@@ -139,6 +163,12 @@ namespace KuroAudio {
                 return false;
             }
 
+            // Grava a nova versão antes de aplicar o restart
+            if (!m_manifest.latest_version.empty()) {
+                m_currentVersion = m_manifest.latest_version;
+                SaveConfig();
+            }
+
             DWORD currentPid = GetCurrentProcessId();
 
             std::wstring wUpdater = updaterPath.wstring();
@@ -174,33 +204,67 @@ namespace KuroAudio {
             }
         }
 
-        // Renderiza o Modal/Diálogo de atualização com tema ImGui
+        // Renderiza o Modal/Diálogo de atualização com tema ImGui e escala adaptativa perfeita
         void RenderUI() {
+            // Atalho de teclado: Ctrl+U para verificar atualizacoes manualmente
+            if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_U, false)) {
+                CheckForUpdatesAsync(true);
+            }
+
             if (!m_showModal) return;
 
             ImGui::OpenPopup("Atualização do Abduction Studio##UpdaterModal");
 
-            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-            ImGui::SetNextWindowSize(ImVec2(480, 0), ImGuiCond_Appearing);
+            float scale = KuroUI::UIScaleManager::getScale();
+            auto S = [scale](float v) { return v * scale; };
 
-            if (ImGui::BeginPopupModal("Atualização do Abduction Studio##UpdaterModal", &m_showModal, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2 center = viewport->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+            float maxW = viewport->Size.x * 0.90f;
+            float maxH = viewport->Size.y * 0.90f;
+            float minW = S(480.0f);
+            ImGui::SetNextWindowSizeConstraints(ImVec2(minW, 0.0f), ImVec2(maxW, maxH));
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(20.0f), S(18.0f)));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(S(12.0f), S(10.0f)));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(6.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, S(8.0f));
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.08f, 0.08f, 0.11f, 0.97f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.75f, 0.45f, 0.45f));
+
+            if (ImGui::BeginPopupModal("Atualização do Abduction Studio##UpdaterModal", &m_showModal, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar)) {
                 UpdateStatus current = m_status.load();
 
                 if (current == UpdateStatus::CHECKING) {
-                    ImGui::TextUnformatted("Verificando se há atualizações...");
+                    ImGui::TextUnformatted("Verificando se há atualizações disponíveis no GitHub...");
                     ImGui::Spacing();
                 }
                 else if (current == UpdateStatus::AVAILABLE) {
-                    ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.4f, 1.0f), "Nova versao encontrada: v%s", m_manifest.latest_version.c_str());
-                    ImGui::TextDisabled("Versao atual instalada: v%s", m_currentVersion.c_str());
+                    ImGui::TextColored(ImVec4(0.2f, 0.95f, 0.45f, 1.0f), "Nova versao encontrada: v%s", m_manifest.latest_version.c_str());
+                    ImGui::TextDisabled("Versao atualmente instalada: v%s", m_currentVersion.c_str());
                     ImGui::Separator();
 
                     if (!m_manifest.changelog.empty()) {
-                        ImGui::TextUnformatted("Novidades e alteracoes:");
-                        ImGui::BeginChild("ChangelogBox", ImVec2(450, 110), true);
-                        ImGui::TextWrapped("%s", m_manifest.changelog.c_str());
-                        ImGui::EndChild();
+                        ImGui::TextColored(ImVec4(0.85f, 0.85f, 0.92f, 1.0f), "Novidades e alteracoes:");
+                        
+                        // Bloco destacado sem nenhuma barra de rolagem (altura automatica)
+                        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.17f, 0.90f));
+                        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(14.0f), S(12.0f)));
+
+                        float wrapWidth = S(450.0f);
+                        ImVec2 textSize = ImGui::CalcTextSize(m_manifest.changelog.c_str(), nullptr, false, wrapWidth);
+                        float boxH = textSize.y + S(28.0f);
+
+                        if (ImGui::BeginChild("ChangelogBox", ImVec2(wrapWidth, boxH), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+                            ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth - S(14.0f));
+                            ImGui::TextUnformatted(m_manifest.changelog.c_str());
+                            ImGui::PopTextWrapPos();
+                            ImGui::EndChild();
+                        }
+                        ImGui::PopStyleVar();
+                        ImGui::PopStyleColor();
                     }
 
                     if (m_manifest.size_bytes > 0) {
@@ -211,14 +275,32 @@ namespace KuroAudio {
                     ImGui::Spacing();
                     ImGui::Separator();
 
-                    if (ImGui::Button("Baixar e Atualizar Agora", ImVec2(200, 32))) {
+                    // Botoes dimensionados automaticamente com folga generosa para nunca cortar texto
+                    float btnH = S(38.0f);
+                    const char* txt1 = "Baixar e Atualizar Agora";
+                    const char* txt2 = "Lembrar Mais Tarde";
+                    float padX = S(22.0f);
+                    float w1 = ImGui::CalcTextSize(txt1).x + padX * 2;
+                    float w2 = ImGui::CalcTextSize(txt2).x + padX * 2;
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.62f, 0.35f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.78f, 0.45f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.08f, 0.50f, 0.28f, 1.0f));
+                    if (ImGui::Button(txt1, ImVec2(w1, btnH))) {
                         StartDownloadAsync();
                     }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Lembrar Mais Tarde", ImVec2(150, 32))) {
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::SameLine(0, S(12.0f));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.32f, 0.32f, 0.40f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.18f, 0.18f, 0.24f, 1.0f));
+                    if (ImGui::Button(txt2, ImVec2(w2, btnH))) {
                         m_showModal = false;
                         ImGui::CloseCurrentPopup();
                     }
+                    ImGui::PopStyleColor(3);
                 }
                 else if (current == UpdateStatus::DOWNLOADING) {
                     ImGui::TextUnformatted("Baixando atualizacao...");
@@ -236,39 +318,56 @@ namespace KuroAudio {
                         snprintf(overlay, sizeof(overlay), "%.1f MB baixados...", downMb);
                     }
 
-                    ImGui::ProgressBar(prog, ImVec2(450, 24), overlay);
+                    ImGui::ProgressBar(prog, ImVec2(S(460.0f), S(26.0f)), overlay);
                     ImGui::Spacing();
                     ImGui::TextDisabled("Aguarde a conclusao do download para reiniciar.");
                 }
                 else if (current == UpdateStatus::READY_TO_INSTALL) {
-                    ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.4f, 1.0f), "Download concluido com sucesso!");
+                    ImGui::TextColored(ImVec4(0.2f, 0.95f, 0.45f, 1.0f), "Download concluido com sucesso!");
                     ImGui::Spacing();
                     ImGui::TextWrapped("O Abduction Studio precisa reiniciar para aplicar os novos arquivos.");
                     ImGui::Separator();
 
-                    if (ImGui::Button("Reiniciar e Aplicar Agora", ImVec2(220, 34))) {
+                    float btnH = S(38.0f);
+                    const char* txtRestart = "Reiniciar e Aplicar Agora";
+                    const char* txtLater = "Instalar ao Fechar";
+                    float padX = S(22.0f);
+                    float wRestart = ImGui::CalcTextSize(txtRestart).x + padX * 2;
+                    float wLater = ImGui::CalcTextSize(txtLater).x + padX * 2;
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.62f, 0.35f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.78f, 0.45f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.08f, 0.50f, 0.28f, 1.0f));
+                    if (ImGui::Button(txtRestart, ImVec2(wRestart, btnH))) {
                         ApplyUpdateAndRestart();
                     }
-                    ImGui::SameLine();
-                    if (ImGui::Button("Instalar ao Fechar", ImVec2(160, 34))) {
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::SameLine(0, S(12.0f));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.32f, 0.32f, 0.40f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.18f, 0.18f, 0.24f, 1.0f));
+                    if (ImGui::Button(txtLater, ImVec2(wLater, btnH))) {
                         m_showModal = false;
                         ImGui::CloseCurrentPopup();
                     }
+                    ImGui::PopStyleColor(3);
                 }
                 else if (current == UpdateStatus::UP_TO_DATE) {
-                    ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "Seu Abduction Studio ja esta atualizado!");
-                    ImGui::TextDisabled("Versao: v%s", m_currentVersion.c_str());
+                    ImGui::TextColored(ImVec4(0.2f, 0.85f, 1.0f, 1.0f), "Seu Abduction Studio ja esta atualizado!");
+                    ImGui::TextDisabled("Versao instalada: v%s", m_currentVersion.c_str());
                     ImGui::Spacing();
-                    if (ImGui::Button("OK", ImVec2(100, 28))) {
+                    if (ImGui::Button("OK", ImVec2(S(120.0f), S(34.0f)))) {
                         m_showModal = false;
                         ImGui::CloseCurrentPopup();
                     }
                 }
                 else if (current == UpdateStatus::FAILED) {
-                    ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Erro durante a atualizacao:");
+                    ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "Verificacao de atualizacao:");
                     ImGui::TextWrapped("%s", m_errorMessage.c_str());
                     ImGui::Spacing();
-                    if (ImGui::Button("Fechar", ImVec2(100, 28))) {
+                    if (ImGui::Button("Fechar", ImVec2(S(120.0f), S(34.0f)))) {
                         m_showModal = false;
                         ImGui::CloseCurrentPopup();
                     }
@@ -276,6 +375,8 @@ namespace KuroAudio {
 
                 ImGui::EndPopup();
             }
+            ImGui::PopStyleColor(2);
+            ImGui::PopStyleVar(4);
         }
 
         void ShowModal(bool show = true) { m_showModal = show; }
@@ -298,6 +399,30 @@ namespace KuroAudio {
         std::string m_errorMessage;
         bool m_showModal = false;
         bool m_userInitiated = false;
+
+        static int CompareVersions(const std::string& v1, const std::string& v2) {
+            auto parse = [](const std::string& s) {
+                std::vector<int> parts;
+                std::stringstream ss(s);
+                std::string item;
+                while (std::getline(ss, item, '.')) {
+                    try { parts.push_back(std::stoi(item)); } catch (...) { parts.push_back(0); }
+                }
+                return parts;
+            };
+            std::string s1 = v1; if (!s1.empty() && (s1[0] == 'v' || s1[0] == 'V')) s1 = s1.substr(1);
+            std::string s2 = v2; if (!s2.empty() && (s2[0] == 'v' || s2[0] == 'V')) s2 = s2.substr(1);
+            auto p1 = parse(s1);
+            auto p2 = parse(s2);
+            size_t len = std::max(p1.size(), p2.size());
+            p1.resize(len, 0);
+            p2.resize(len, 0);
+            for (size_t i = 0; i < len; ++i) {
+                if (p1[i] > p2[i]) return 1;
+                if (p1[i] < p2[i]) return -1;
+            }
+            return 0;
+        }
 
         // Extrai valor de chave JSON simples
         static std::string ExtractJsonString(const std::string& json, const std::string& key) {
@@ -333,12 +458,18 @@ namespace KuroAudio {
                 return;
             }
 
-            std::string queryUrl = m_workerUrl;
-            if (queryUrl.back() != '/') queryUrl += '/';
-            queryUrl += "api/check-update?version=" + m_currentVersion;
+            bool isDirectGitHub = (m_workerUrl.find("api.github.com") != std::string::npos);
 
-            if (!m_secretKey.empty()) {
-                queryUrl += "&key=" + m_secretKey;
+            std::string queryUrl = m_workerUrl;
+            if (isDirectGitHub) {
+                if (queryUrl.back() == '/') queryUrl.pop_back();
+                queryUrl += "/releases/latest";
+            } else {
+                if (queryUrl.back() != '/') queryUrl += '/';
+                queryUrl += "api/check-update?version=" + m_currentVersion;
+                if (!m_secretKey.empty()) {
+                    queryUrl += "&key=" + m_secretKey;
+                }
             }
 
             std::wstring wurl(queryUrl.begin(), queryUrl.end());
@@ -395,15 +526,14 @@ namespace KuroAudio {
             DWORD redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
             WinHttpSetOption(hRequest, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, sizeof(redirectPolicy));
 
-            std::wstring headers;
+            std::wstring headers = L"User-Agent: AbductionStudio-Updater/2.0\r\n";
             if (!m_secretKey.empty()) {
                 std::wstring wKey(m_secretKey.begin(), m_secretKey.end());
-                headers = L"X-Abduction-Key: " + wKey + L"\r\n";
+                headers += L"X-Abduction-Key: " + wKey + L"\r\n";
             }
 
             std::string responseBody;
-            if (WinHttpSendRequest(hRequest, headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : headers.c_str(),
-                                  (DWORD)headers.length(), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) &&
+            if (WinHttpSendRequest(hRequest, headers.c_str(), (DWORD)headers.length(), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) &&
                 WinHttpReceiveResponse(hRequest, NULL)) {
 
                 DWORD dwSize = 0;
@@ -424,32 +554,65 @@ namespace KuroAudio {
             WinHttpCloseHandle(hSession);
 
             if (responseBody.empty()) {
-                m_errorMessage = "Resposta vazia do servidor de atualizações.";
-                m_status.store(UpdateStatus::FAILED);
+                m_errorMessage = "Nenhuma atualização encontrada ou servidor indisponível.";
+                m_status.store(UpdateStatus::UP_TO_DATE);
                 if (m_userInitiated) m_showModal = true;
                 return;
             }
 
-            // Interpreta campos do JSON
-            std::string updateAvailStr = ExtractJsonString(responseBody, "update_available");
-            m_manifest.update_available = (updateAvailStr == "true");
-            m_manifest.latest_version = ExtractJsonString(responseBody, "latest_version");
-            m_manifest.title = ExtractJsonString(responseBody, "title");
-            m_manifest.changelog = ExtractJsonString(responseBody, "changelog");
-            m_manifest.download_url = ExtractJsonString(responseBody, "download_url");
+            if (isDirectGitHub) {
+                // Parse direto da API do GitHub Releases
+                std::string tag = ExtractJsonString(responseBody, "tag_name");
+                std::string cleanTag = tag;
+                if (!cleanTag.empty() && (cleanTag[0] == 'v' || cleanTag[0] == 'V')) {
+                    cleanTag = cleanTag.substr(1);
+                }
 
-            std::string sizeStr = ExtractJsonString(responseBody, "size_bytes");
-            if (!sizeStr.empty()) {
-                try { m_manifest.size_bytes = std::stoull(sizeStr); } catch (...) { m_manifest.size_bytes = 0; }
-            }
+                if (cleanTag.empty()) {
+                    m_status.store(UpdateStatus::UP_TO_DATE);
+                    if (m_userInitiated) m_showModal = true;
+                    return;
+                }
 
-            if (m_manifest.update_available) {
-                m_status.store(UpdateStatus::AVAILABLE);
-                m_showModal = true; // Abre o diálogo visual avisando o usuário
-            } else {
-                m_status.store(UpdateStatus::UP_TO_DATE);
-                if (m_userInitiated) {
+                bool isNewer = (CompareVersions(cleanTag, m_currentVersion) > 0);
+                m_manifest.update_available = isNewer;
+                m_manifest.latest_version = cleanTag;
+                m_manifest.title = ExtractJsonString(responseBody, "name");
+                m_manifest.changelog = ExtractJsonString(responseBody, "body");
+                m_manifest.download_url = ExtractJsonString(responseBody, "browser_download_url");
+
+                std::string sizeStr = ExtractJsonString(responseBody, "size");
+                if (!sizeStr.empty()) {
+                    try { m_manifest.size_bytes = std::stoull(sizeStr); } catch (...) { m_manifest.size_bytes = 0; }
+                }
+
+                if (isNewer && !m_manifest.download_url.empty()) {
+                    m_status.store(UpdateStatus::AVAILABLE);
                     m_showModal = true;
+                } else {
+                    m_status.store(UpdateStatus::UP_TO_DATE);
+                    if (m_userInitiated) m_showModal = true;
+                }
+            } else {
+                // Parse do Cloudflare Worker Gateway
+                std::string updateAvailStr = ExtractJsonString(responseBody, "update_available");
+                m_manifest.update_available = (updateAvailStr == "true");
+                m_manifest.latest_version = ExtractJsonString(responseBody, "latest_version");
+                m_manifest.title = ExtractJsonString(responseBody, "title");
+                m_manifest.changelog = ExtractJsonString(responseBody, "changelog");
+                m_manifest.download_url = ExtractJsonString(responseBody, "download_url");
+
+                std::string sizeStr = ExtractJsonString(responseBody, "size_bytes");
+                if (!sizeStr.empty()) {
+                    try { m_manifest.size_bytes = std::stoull(sizeStr); } catch (...) { m_manifest.size_bytes = 0; }
+                }
+
+                if (m_manifest.update_available) {
+                    m_status.store(UpdateStatus::AVAILABLE);
+                    m_showModal = true;
+                } else {
+                    m_status.store(UpdateStatus::UP_TO_DATE);
+                    if (m_userInitiated) m_showModal = true;
                 }
             }
         }
@@ -517,14 +680,13 @@ namespace KuroAudio {
             DWORD redirectPolicy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
             WinHttpSetOption(hRequest, WINHTTP_OPTION_REDIRECT_POLICY, &redirectPolicy, sizeof(redirectPolicy));
 
-            std::wstring headers;
+            std::wstring headers = L"User-Agent: AbductionStudio-Updater/2.0\r\n";
             if (!m_secretKey.empty()) {
                 std::wstring wKey(m_secretKey.begin(), m_secretKey.end());
-                headers = L"X-Abduction-Key: " + wKey + L"\r\n";
+                headers += L"X-Abduction-Key: " + wKey + L"\r\n";
             }
 
-            if (!WinHttpSendRequest(hRequest, headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : headers.c_str(),
-                                   (DWORD)headers.length(), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
+            if (!WinHttpSendRequest(hRequest, headers.c_str(), (DWORD)headers.length(), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
                 !WinHttpReceiveResponse(hRequest, NULL)) {
                 WinHttpCloseHandle(hRequest);
                 WinHttpCloseHandle(hConnect);
