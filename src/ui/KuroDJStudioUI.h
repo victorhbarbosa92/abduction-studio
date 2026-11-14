@@ -802,6 +802,7 @@ public:
                              // SELECIONADA, 2=LINK DIRETO UNIVERSAL
   int sources_tab_filter =
       0; // 0=TODAS, 1=TOPIC/OFICIAL, 2=SOUNDCLOUD, 3=TIDAL, 4=SPOTIFY
+  int hub_target_deck = 0; // 0=Deck 1, 1=Deck 2, 2=Deck 3, 3=Deck 4 (Destino de Abdução 4-Decks)
   std::string selected_source_track_id = "";
   std::string selected_source_track_title = "";
   std::string selected_source_track_artist = "";
@@ -6308,7 +6309,8 @@ private:
   void renderMixxxMiniDecksStrip(KuroAudio::DJEngine &engine, float total_w,
                                  float strip_h) {
     float gap_px = KuroUI::UIScaleManager::Scale(4.0f);
-    float single_deck_w = (total_w - gap_px) * 0.5f;
+    bool is_4d = (rekordbox_deck_count == 4);
+    float single_deck_w = is_4d ? ((total_w - gap_px * 3.0f) * 0.25f) : ((total_w - gap_px) * 0.5f);
 
     int left_deck_idx = ddj_hardware.getActiveLeftDeck();
     int right_deck_idx = ddj_hardware.getActiveRightDeck();
@@ -7136,11 +7138,21 @@ private:
       ImGui::PopStyleColor(2);
     };
 
-    renderSingleMiniDeck(left_deck_idx, single_deck_w, strip_h, col_deck_1,
-                         "##MiniDeck1Strip");
-    ImGui::SameLine(0, gap_px);
-    renderSingleMiniDeck(right_deck_idx, single_deck_w, strip_h, col_deck_2,
-                         "##MiniDeck2Strip");
+    if (rekordbox_deck_count == 4) {
+      renderSingleMiniDeck(0, single_deck_w, strip_h, col_deck_1, "##MiniDeck1Strip");
+      ImGui::SameLine(0, gap_px);
+      renderSingleMiniDeck(2, single_deck_w, strip_h, col_deck_3, "##MiniDeck3Strip");
+      ImGui::SameLine(0, gap_px);
+      renderSingleMiniDeck(1, single_deck_w, strip_h, col_deck_2, "##MiniDeck2Strip");
+      ImGui::SameLine(0, gap_px);
+      renderSingleMiniDeck(3, single_deck_w, strip_h, col_deck_4, "##MiniDeck4Strip");
+    } else {
+      renderSingleMiniDeck(left_deck_idx, single_deck_w, strip_h,
+                           left_deck_idx == 0 ? col_deck_1 : col_deck_3, "##MiniDeckLeftStrip");
+      ImGui::SameLine(0, gap_px);
+      renderSingleMiniDeck(right_deck_idx, single_deck_w, strip_h,
+                           right_deck_idx == 1 ? col_deck_2 : col_deck_4, "##MiniDeckRightStrip");
+    }
   }
 
   // =========================================================================
@@ -7276,17 +7288,51 @@ private:
     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.35f, 0.45f, 0.85f));
     if (ImGui::SmallButton(ICON_FA_FOLDER_PLUS " + IMPORTAR")) {
-      std::string local_path = KuroUI::FileDialog::OpenFile(
-          "Audio Files "
-          "(*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files "
-          "(*.*)\0*.*\0");
-      if (!local_path.empty()) {
-        spotify_service.importLocalTrack(local_path);
-      }
+      ImGui::OpenPopup("DrawerImportPopup");
     }
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("Importar arquivo local de áudio para a Biblioteca");
+      ImGui::SetTooltip("Importar músicas e carregar nos Decks 1, 2, 3 ou 4");
     ImGui::PopStyleColor();
+
+    if (ImGui::BeginPopup("DrawerImportPopup")) {
+      ImGui::TextColored(ImVec4(0.0f, 0.90f, 1.0f, 1.0f), ICON_FA_FOLDER_PLUS " IMPORTAR PARA BIBLIOTECA");
+      ImGui::Separator();
+      if (ImGui::MenuItem(ICON_FA_MUSIC " Importar Arquivo...")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) spotify_service.importLocalTrack(p);
+      }
+      ImGui::Separator();
+      ImGui::TextDisabled("Importar e carregar direto no Deck:");
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 1")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[0].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 2")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[1].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 3")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[2].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 4")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[3].loadTrack(p);
+        }
+      }
+      ImGui::EndPopup();
+    }
 
     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.24f, 0.35f, 0.85f));
@@ -7836,12 +7882,45 @@ private:
     ImGui::PopStyleColor();
 
     if (ImGui::BeginPopup("QuickImportPopup")) {
-      if (ImGui::MenuItem(ICON_FA_MUSIC " Arquivo de Áudio...")) {
+      ImGui::TextColored(ImVec4(0.0f, 0.90f, 1.0f, 1.0f), ICON_FA_FOLDER_PLUS " IMPORTAR MÚSICAS");
+      ImGui::Separator();
+      if (ImGui::MenuItem(ICON_FA_MUSIC " Importar para a Biblioteca...")) {
         std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
         if (!p.empty()) {
           spotify_service.importLocalTrack(p);
         }
       }
+      ImGui::Separator();
+      ImGui::TextDisabled("Importar e carregar direto no Deck:");
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 1")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[0].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 2")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[1].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 3")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[2].loadTrack(p);
+        }
+      }
+      if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 4")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+          engine.decks[3].loadTrack(p);
+        }
+      }
+      ImGui::Separator();
       if (ImGui::MenuItem(ICON_FA_FOLDER " Pasta Inteira do PC...")) {
         std::string fp = KuroUI::FileDialog::SelectFolder("Selecionar Pasta de Músicas");
         if (!fp.empty()) {
@@ -9127,23 +9206,27 @@ private:
                                t.key.c_str(), t.bpm);
             ImGui::Separator();
 
-            // 1. Carregar nos Decks
-            char m_l[48], m_r[48];
-            snprintf(m_l, sizeof(m_l),
-                     ICON_FA_ARROW_DOWN " Carregar no Deck %d", left_id + 1);
-            snprintf(m_r, sizeof(m_r),
-                     ICON_FA_ARROW_DOWN " Carregar no Deck %d", right_id + 1);
-            if (ImGui::MenuItem(m_l)) {
-              if (t.is_downloaded)
-                spotify_service.loadLibraryTrack(t, left_id, engine);
-              else
-                spotify_service.downloadLibraryTrackAsync(t, left_id, engine);
+            // 1. Carregar nos 4 Decks
+            char m1[48], m2[48], m3[48], m4[48];
+            snprintf(m1, sizeof(m1), ICON_FA_ARROW_DOWN " Carregar no DECK 1 %s", left_id == 0 ? "(Ativo L)" : "");
+            snprintf(m2, sizeof(m2), ICON_FA_ARROW_DOWN " Carregar no DECK 2 %s", right_id == 1 ? "(Ativo R)" : "");
+            snprintf(m3, sizeof(m3), ICON_FA_ARROW_DOWN " Carregar no DECK 3 %s", left_id == 2 ? "(Ativo L)" : "");
+            snprintf(m4, sizeof(m4), ICON_FA_ARROW_DOWN " Carregar no DECK 4 %s", right_id == 3 ? "(Ativo R)" : "");
+            if (ImGui::MenuItem(m1)) {
+              if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 0, engine);
+              else spotify_service.downloadLibraryTrackAsync(t, 0, engine);
             }
-            if (ImGui::MenuItem(m_r)) {
-              if (t.is_downloaded)
-                spotify_service.loadLibraryTrack(t, right_id, engine);
-              else
-                spotify_service.downloadLibraryTrackAsync(t, right_id, engine);
+            if (ImGui::MenuItem(m2)) {
+              if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 1, engine);
+              else spotify_service.downloadLibraryTrackAsync(t, 1, engine);
+            }
+            if (ImGui::MenuItem(m3)) {
+              if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 2, engine);
+              else spotify_service.downloadLibraryTrackAsync(t, 2, engine);
+            }
+            if (ImGui::MenuItem(m4)) {
+              if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 3, engine);
+              else spotify_service.downloadLibraryTrackAsync(t, 3, engine);
             }
 
             // 2. Preview no Fone de Ouvido
@@ -9571,6 +9654,21 @@ private:
             spotify_service.downloadLibraryTrackAsync(sel_t, right_id, engine);
         }
       }
+      // Shift + 1, 2, 3, 4: Carregar diretamente nos Decks 1, 2, 3 ou 4
+      if (ImGui::GetIO().KeyShift) {
+        int key_target = -1;
+        if (ImGui::IsKeyPressed(ImGuiKey_1)) key_target = 0;
+        else if (ImGui::IsKeyPressed(ImGuiKey_2)) key_target = 1;
+        else if (ImGui::IsKeyPressed(ImGuiKey_3)) key_target = 2;
+        else if (ImGui::IsKeyPressed(ImGuiKey_4)) key_target = 3;
+        if (key_target >= 0 && selected_track_idx >= 0 && selected_track_idx < (int)track_list.size()) {
+          auto &sel_t = track_list[selected_track_idx];
+          if (sel_t.is_downloaded)
+            spotify_service.loadLibraryTrack(sel_t, key_target, engine);
+          else
+            spotify_service.downloadLibraryTrackAsync(sel_t, key_target, engine);
+        }
+      }
       // Tecla P: Alternar Pré-escuta da Faixa Selecionada
       if (ImGui::IsKeyPressed(ImGuiKey_P)) {
         if (selected_track_idx >= 0 &&
@@ -9686,8 +9784,8 @@ private:
                           auto on_click) {
       ImVec2 b_pos = ImGui::GetCursorScreenPos();
       ImVec2 t_sz = ImGui::CalcTextSize(label);
-      float pad_x = KuroUI::UIScaleManager::Scale(8.0f);
-      float bw = std::max(KuroUI::UIScaleManager::Scale(34.0f), t_sz.x + pad_x * 2.0f);
+      float pad_x = KuroUI::UIScaleManager::Scale(10.0f);
+      float bw = std::max(KuroUI::UIScaleManager::Scale(42.0f), t_sz.x + pad_x * 2.0f);
       float bh = topbar_btn_h;
 
       ImU32 bg_col =
@@ -9976,7 +10074,7 @@ private:
 
     float r_w = KuroUI::UIScaleManager::Scale(480.0f);
     float r_x = pos.x + w - r_w;
-    float center_w = KuroUI::UIScaleManager::Scale(360.0f);
+    float center_w = KuroUI::UIScaleManager::Scale(510.0f);
     float center_x = pos.x + (w - center_w) * 0.5f;
     if (center_x + center_w > r_x - KuroUI::UIScaleManager::Scale(8.0f)) {
       center_x = r_x - KuroUI::UIScaleManager::Scale(8.0f) - center_w;
@@ -10057,11 +10155,129 @@ private:
 
       ImGui::InvisibleButton("##TopQuantEngine", ImVec2(q_w, q_h));
       if (ImGui::IsItemClicked(0)) {
-        engine.decks[0].quantize_active = !engine.decks[0].quantize_active;
-        engine.decks[1].quantize_active = engine.decks[0].quantize_active;
+        bool q_next = !engine.decks[0].quantize_active;
+        engine.decks[0].quantize_active = q_next;
+        engine.decks[1].quantize_active = q_next;
+        engine.decks[2].quantize_active = q_next;
+        engine.decks[3].quantize_active = q_next;
       }
       if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("QUANTIZE: Alinhamento magnético automático de Cues, Loops e saltos na Beatgrid");
+        ImGui::SetTooltip("QUANTIZE: Alinhamento magnético automático de Cues, Loops e saltos na Beatgrid em todos os 4 Decks");
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // SELETOR E MONITOR TÁTIL DE 4 DECKS (PADRÃO REKORDBOX 7 / CDJ-3000)
+    // Localizado rigorosamente entre QUANTIZE e REC no Top Bar Central
+    // ═════════════════════════════════════════════════════════════════════════
+    {
+      int left_idx = ddj_hardware.getActiveLeftDeck();   // 0 (D1) ou 2 (D3)
+      int right_idx = ddj_hardware.getActiveRightDeck(); // 1 (D2) ou 3 (D4)
+      bool is_4d_mode = (rekordbox_deck_count == 4);
+
+      float p_pill_w = KuroUI::UIScaleManager::Scale(22.0f);
+      float mode_btn_w = KuroUI::UIScaleManager::Scale(32.0f);
+      float sep_w = KuroUI::UIScaleManager::Scale(2.0f);
+      float deck_cap_h = topbar_btn_h;
+      float deck_cap_w = mode_btn_w + sep_w + p_pill_w * 4.0f + KuroUI::UIScaleManager::Scale(18.0f);
+
+      ImVec2 dc_pos = ImGui::GetCursorScreenPos();
+      ImVec2 dc_max = ImVec2(dc_pos.x + deck_cap_w, dc_pos.y + deck_cap_h);
+
+      // Fundo e borda da cápsula unificada
+      dl->AddRectFilled(dc_pos, dc_max, IM_COL32(14, 18, 25, 255), deck_cap_h * 0.5f);
+      dl->AddRect(dc_pos, dc_max, is_4d_mode ? IM_COL32(0, 220, 255, 200) : IM_COL32(40, 52, 68, 180),
+                  deck_cap_h * 0.5f, 0, is_4d_mode ? 1.5f : 1.0f);
+
+      // 1. Botão do Modo [2D | 4D]
+      ImVec2 m_min = ImVec2(dc_pos.x + KuroUI::UIScaleManager::Scale(4.0f), dc_pos.y + KuroUI::UIScaleManager::Scale(3.0f));
+      ImVec2 m_max = ImVec2(m_min.x + mode_btn_w, dc_pos.y + deck_cap_h - KuroUI::UIScaleManager::Scale(3.0f));
+      dl->AddRectFilled(m_min, m_max, is_4d_mode ? IM_COL32(0, 110, 160, 220) : IM_COL32(22, 28, 38, 220), KuroUI::UIScaleManager::Scale(3.0f));
+      dl->AddRect(m_min, m_max, is_4d_mode ? IM_COL32(0, 240, 255, 255) : IM_COL32(50, 65, 85, 200), KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
+
+      const char* m_lbl = is_4d_mode ? "4D" : "2D";
+      ImVec2 m_sz = ImGui::CalcTextSize(m_lbl);
+      dl->AddText(ImVec2(m_min.x + (mode_btn_w - m_sz.x) * 0.5f, m_min.y + (m_max.y - m_min.y - m_sz.y) * 0.5f),
+                  is_4d_mode ? IM_COL32(230, 255, 255, 255) : IM_COL32(180, 200, 225, 220), m_lbl);
+
+      ImGui::SetCursorScreenPos(m_min);
+      if (ImGui::InvisibleButton("##TopDeckCountToggle", ImVec2(mode_btn_w, m_max.y - m_min.y))) {
+        rekordbox_deck_count = (rekordbox_deck_count == 2 ? 4 : 2);
+      }
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Modo de Decks: %s\nClique para alternar entre 2 e 4 Decks simultâneos",
+                          is_4d_mode ? "4 DECKS ATIVOS (DJM-900NXS2 / V10)" : "2 DECKS NATIVOS (DUAL LAYER 1/3 e 2/4)");
+      }
+
+      // Linha divisória vertical metálica
+      float sep_x = m_max.x + KuroUI::UIScaleManager::Scale(3.0f);
+      dl->AddLine(ImVec2(sep_x, dc_pos.y + KuroUI::UIScaleManager::Scale(5.0f)),
+                  ImVec2(sep_x, dc_pos.y + deck_cap_h - KuroUI::UIScaleManager::Scale(5.0f)),
+                  IM_COL32(45, 58, 76, 200), 1.0f);
+
+      // 2. 4 Pílulas Táteis dos Decks [1] [2] [3] [4]
+      struct TopDeckDef { int id; const char* num; ImVec4 col; bool is_left; };
+      TopDeckDef top_decks[4] = {
+        { 0, "1", col_deck_1, true },
+        { 1, "2", col_deck_2, false },
+        { 2, "3", col_deck_3, true },
+        { 3, "4", col_deck_4, false }
+      };
+
+      float p_start_x = sep_x + KuroUI::UIScaleManager::Scale(3.0f);
+      for (int di = 0; di < 4; di++) {
+        const auto& td = top_decks[di];
+        bool is_active_layer = (td.is_left && left_idx == td.id) || (!td.is_left && right_idx == td.id);
+        bool is_playing = engine.decks[td.id].is_playing.load();
+        bool has_track = !engine.decks[td.id].buffer_l.empty();
+
+        float px0 = p_start_x + di * (p_pill_w + KuroUI::UIScaleManager::Scale(2.5f));
+        ImVec2 p_min = ImVec2(px0, dc_pos.y + KuroUI::UIScaleManager::Scale(3.0f));
+        ImVec2 p_max = ImVec2(px0 + p_pill_w, dc_pos.y + deck_cap_h - KuroUI::UIScaleManager::Scale(3.0f));
+
+        ImU32 d_bg = is_active_layer
+                         ? IM_COL32((int)(td.col.x * 60.0f), (int)(td.col.y * 60.0f), (int)(td.col.z * 60.0f), 240)
+                         : (has_track ? IM_COL32(18, 24, 34, 220) : IM_COL32(12, 16, 22, 180));
+        ImU32 d_border = is_active_layer
+                             ? ImGui::GetColorU32(td.col)
+                             : (has_track ? IM_COL32((int)(td.col.x * 140.0f), (int)(td.col.y * 140.0f), (int)(td.col.z * 140.0f), 180)
+                                          : IM_COL32(40, 50, 65, 140));
+
+        dl->AddRectFilled(p_min, p_max, d_bg, KuroUI::UIScaleManager::Scale(3.0f));
+        dl->AddRect(p_min, p_max, d_border, KuroUI::UIScaleManager::Scale(3.0f), 0, is_active_layer ? 1.5f : 1.0f);
+
+        // LED de Status de Reprodução
+        if (is_playing) {
+          dl->AddCircleFilled(ImVec2(p_min.x + p_pill_w * 0.5f, p_max.y - KuroUI::UIScaleManager::Scale(2.5f)),
+                              KuroUI::UIScaleManager::Scale(1.8f), IM_COL32(0, 255, 120, 255));
+        }
+
+        ImVec2 p_sz = ImGui::CalcTextSize(td.num);
+        dl->AddText(ImVec2(p_min.x + (p_pill_w - p_sz.x) * 0.5f, p_min.y + (p_max.y - p_min.y - p_sz.y) * 0.5f - (is_playing ? KuroUI::UIScaleManager::Scale(1.0f) : 0.0f)),
+                    is_active_layer ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(td.col), td.num);
+
+        ImGui::SetCursorScreenPos(p_min);
+        char pill_id[32];
+        snprintf(pill_id, sizeof(pill_id), "##TopPillDeck_%d", td.id);
+        if (ImGui::InvisibleButton(pill_id, ImVec2(p_pill_w, p_max.y - p_min.y))) {
+          if (td.is_left) {
+            ddj_hardware.setActiveLeftDeck(td.id);
+          } else {
+            ddj_hardware.setActiveRightDeck(td.id);
+          }
+        }
+        if (ImGui::IsItemHovered()) {
+          auto& d = engine.decks[td.id];
+          ImGui::SetTooltip("DECK %d (%s) - %s\n• Faixa: %s\n• BPM: %.2f | Tom: %s\n• Clique para ativar no canal %s",
+                            td.id + 1, td.is_left ? "Esquerdo" : "Direito",
+                            is_playing ? "TOCANDO (ON AIR)" : (has_track ? "PAUSADO / CUE" : "LIVRE"),
+                            d.track_title.empty() ? "(Sem faixa)" : d.track_title.c_str(),
+                            d.bpm, d.key_signature.empty() ? "--" : d.key_signature.c_str(),
+                            td.is_left ? "ESQUERDO (D1/D3)" : "DIREITO (D2/D4)");
+        }
+      }
+
+      ImGui::SetCursorScreenPos(ImVec2(dc_pos.x + deck_cap_w, dc_pos.y));
       ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
     }
 
@@ -10153,12 +10369,12 @@ private:
     bool lck_on = safety.isLoadLockEnabled();
     const char *lck_txt = lck_on ? ICON_FA_LOCK " LOCK" : ICON_FA_LOCK_OPEN " UNLOCK";
     ImVec2 sz_lck = ImGui::CalcTextSize(lck_txt);
-    float lck_w = std::max(KuroUI::UIScaleManager::Scale(34.0f), sz_lck.x + KuroUI::UIScaleManager::Scale(16.0f));
+    float lck_w = std::max(KuroUI::UIScaleManager::Scale(46.0f), sz_lck.x + KuroUI::UIScaleManager::Scale(20.0f));
 
     bool hw_ok = ddj_hardware.isConnected();
     std::string midi_lbl = hw_ok ? ddj_hardware.getControllerModelName() : "MIDI";
     ImVec2 sz_midi = ImGui::CalcTextSize(midi_lbl.c_str());
-    float midi_w = std::max(KuroUI::UIScaleManager::Scale(34.0f), sz_midi.x + KuroUI::UIScaleManager::Scale(16.0f));
+    float midi_w = std::max(KuroUI::UIScaleManager::Scale(56.0f), sz_midi.x + KuroUI::UIScaleManager::Scale(24.0f));
 
     time_t rawtime;
     time(&rawtime);
@@ -10167,7 +10383,7 @@ private:
     if (timeinfo)
       strftime(time_buf, sizeof(time_buf), "%H:%M", timeinfo);
     ImVec2 sz_clk = ImGui::CalcTextSize(time_buf);
-    float clk_w = sz_clk.x + KuroUI::UIScaleManager::Scale(8.0f);
+    float clk_w = sz_clk.x + KuroUI::UIScaleManager::Scale(12.0f);
 
     bool is_dl = spotify_service.isDownloading();
     float pulse = (std::sin((float)ImGui::GetTime() * 8.0f) + 1.0f) * 0.5f;
@@ -10188,14 +10404,18 @@ private:
         btn_label = std::string(ICON_FA_BOLT) + " ABDUZINDO...";
       }
     } else {
-      btn_label = std::string(ICON_FA_SHUTTLE_SPACE) + " ABDUCTION HUB";
+      if (w < KuroUI::UIScaleManager::Scale(1280.0f)) {
+        btn_label = std::string(ICON_FA_SHUTTLE_SPACE) + " ABDUÇÃO";
+      } else {
+        btn_label = std::string(ICON_FA_SHUTTLE_SPACE) + " ABDUCTION HUB";
+      }
     }
     ImVec2 t_sz = ImGui::CalcTextSize(btn_label.c_str());
-    float s_w = std::clamp(t_sz.x + KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(120.0f), KuroUI::UIScaleManager::Scale(180.0f));
+    float s_w = t_sz.x + KuroUI::UIScaleManager::Scale(28.0f);
     float x_w = p_open ? KuroUI::UIScaleManager::Scale(20.0f) : 0.0f;
-    float gap_r = KuroUI::UIScaleManager::Scale(6.0f);
+    float gap_r = KuroUI::UIScaleManager::Scale(8.0f);
 
-    // Ancoragem da direita para a esquerda: garante que o botão ABDUCTION HUB nunca seja cortado
+    // Ancoragem precisa da direita para a esquerda: garante que o botão ABDUCTION HUB nunca seja cortado
     float cur_rx = pos.x + w - KuroUI::UIScaleManager::Scale(8.0f);
     if (p_open) {
       cur_rx -= (x_w + gap_r);
@@ -10278,6 +10498,7 @@ private:
       dl->AddText(ImVec2(s_pos.x + KuroUI::UIScaleManager::Scale(16.0f), s_pos.y + (s_h - t_sz.y) * 0.5f),
                   text_col, btn_label.c_str());
 
+      ImGui::SetCursorScreenPos(s_pos);
       ImGui::InvisibleButton("##TopCloudSourcesBtn", ImVec2(s_w, s_h));
       if (ImGui::IsItemClicked(0)) {
         show_search_modal = !show_search_modal;
@@ -10983,8 +11204,8 @@ private:
                 ImVec2(pos.x + w, pos.y + h - 1.0f), IM_COL32(22, 27, 36, 255),
                 1.0f);
 
-    // Seção Central CFX (Largura expandida com espaçamento ergonômico)
-    float center_w = std::clamp(w * 0.25f, 280.0f, 340.0f);
+    // Seção Central CFX (Largura expandida com espaçamento ergonômico para 4 canais)
+    float center_w = std::clamp(w * 0.32f, 360.0f, 480.0f);
     float wing_w = (w - center_w) * 0.5f;
 
     // Linhas verticais divisorias sutis entre as 3 ilhas funcionais
@@ -11094,75 +11315,74 @@ private:
         snprintf(bid, sizeof(bid), "##CfxBtn_%d", def.mode_idx);
         if (ImGui::InvisibleButton(bid, ImVec2(btn_w, btn_h))) {
           rekordbox_cfx_type = def.mode_idx;
-          engine.decks[0].sound_color_fx_mode = def.mode_idx;
-          engine.decks[1].sound_color_fx_mode = def.mode_idx;
+          for (int d = 0; d < 4; d++) {
+            engine.decks[d].sound_color_fx_mode = def.mode_idx;
+            engine.decks[d].updateSoundColorFX();
+          }
         }
         if (ImGui::IsItemHovered())
-          ImGui::SetTooltip("Sound Color FX: Ativar %s no mixer", def.name);
+          ImGui::SetTooltip("Sound Color FX: Ativar %s em todos os 4 canais", def.name);
       }
 
-      // 3 Knobs Centrais: CH 1 COLOR | CFX PARAM | CH 2 COLOR
-      // Layout rigorosamente sequencial com espacamento e protecao AABB
-      // anti-colisao
+      // 5 Knobs Centrais: CH 1 | CH 3 | PARAM | CH 2 | CH 4
       float knob_r =
           (metrics.knob_radius_cfx > 5.0f)
               ? std::clamp(metrics.S(metrics.knob_radius_cfx), 8.0f, 32.0f)
-              : std::clamp(h * 0.16f, 10.0f, 16.0f);
-      float item_col_w = (center_w - 16.0f) / 3.0f;
-      float cfx_items_start_x = cfx_center_cx - (item_col_w * 3.0f) * 0.5f;
+              : std::clamp(h * 0.16f, 10.0f, 15.0f);
+      float item_col_w = (center_w - 16.0f) / 5.0f;
+      float cfx_items_start_x = cfx_center_cx - (item_col_w * 5.0f) * 0.5f;
       float label_y = btn_y + btn_h + 3.0f;
       float label_h = 12.0f;
       float knob_y = label_y + label_h + 3.0f + knob_r;
 
-      // Knob 1: CH 1 COLOR (Ciano Bipolar)
-      float it1_x = cfx_items_start_x;
-      float it1_cx = it1_x + item_col_w * 0.5f;
-      DJLayoutEditorUI::DrawFittedText(
-          dl, f_cfx, 10.0f * metrics.ui_font_scale, ImVec2(it1_x, label_y),
-          ImVec2(it1_x + item_col_w, label_y + label_h),
-          IM_COL32(0, 215, 245, 240), "CH 1");
-      ImGui::SetCursorScreenPos(
-          ImVec2(it1_cx - knob_r - 4.0f, knob_y - knob_r - 4.0f));
-      if (KuroUI::KuroDJStudioSkinManager::DrawSkinRotaryKnob(
-              "##Ch1ColorKnob", &engine.decks[0].filter_bipolar, 0.0f, 1.0f,
-              knob_r, ImVec4(0.0f, 0.85f, 1.0f, 1.0f), "%.2f", 0.5f, true,
-              false, false, false, false)) {
-        engine.decks[0].updateSoundColorFX();
-      }
+      struct CfxKnobDef {
+        int deck_id;
+        const char* label;
+        ImU32 text_col;
+        ImVec4 knob_col;
+        const char* kid;
+      };
 
-      // Knob 2: CFX PARAM (Branco Frio - Ressonância / Profundidade Pioneer)
-      float it2_x = it1_x + item_col_w;
-      float it2_cx = it2_x + item_col_w * 0.5f;
-      DJLayoutEditorUI::DrawFittedText(
-          dl, f_cfx, 10.0f * metrics.ui_font_scale, ImVec2(it2_x, label_y),
-          ImVec2(it2_x + item_col_w, label_y + label_h),
-          IM_COL32(230, 240, 255, 240), "PARAM");
-      ImGui::SetCursorScreenPos(
-          ImVec2(it2_cx - knob_r - 4.0f, knob_y - knob_r - 4.0f));
-      if (KuroUI::KuroDJStudioSkinManager::DrawSkinRotaryKnob(
-              "##CfxParamKnob", &rekordbox_cfx_param, 0.0f, 1.0f, knob_r,
-              ImVec4(0.95f, 0.95f, 1.0f, 1.0f), "%.2f", 0.5f, false, false,
-              false, false, false)) {
-        engine.decks[0].sound_color_param = rekordbox_cfx_param;
-        engine.decks[1].sound_color_param = rekordbox_cfx_param;
-        engine.decks[0].updateSoundColorFX();
-        engine.decks[1].updateSoundColorFX();
-      }
+      CfxKnobDef cfx_knobs[5] = {
+        { 0, "CH 1", IM_COL32(0, 215, 245, 240), col_deck_1, "##Ch1ColorKnob" },
+        { 2, "CH 3", IM_COL32(195, 80, 255, 240), col_deck_3, "##Ch3ColorKnob" },
+        { -1, "PARAM", IM_COL32(230, 240, 255, 240), ImVec4(0.95f, 0.95f, 1.0f, 1.0f), "##CfxParamKnob" },
+        { 1, "CH 2", IM_COL32(255, 160, 20, 240), col_deck_2, "##Ch2ColorKnob" },
+        { 3, "CH 4", IM_COL32(35, 225, 120, 240), col_deck_4, "##Ch4ColorKnob" }
+      };
 
-      // Knob 3: CH 2 COLOR (Ambar Bipolar)
-      float it3_x = it2_x + item_col_w;
-      float it3_cx = it3_x + item_col_w * 0.5f;
-      DJLayoutEditorUI::DrawFittedText(
-          dl, f_cfx, 10.0f * metrics.ui_font_scale, ImVec2(it3_x, label_y),
-          ImVec2(it3_x + item_col_w, label_y + label_h),
-          IM_COL32(255, 160, 20, 240), "CH 2");
-      ImGui::SetCursorScreenPos(
-          ImVec2(it3_cx - knob_r - 4.0f, knob_y - knob_r - 4.0f));
-      if (KuroUI::KuroDJStudioSkinManager::DrawSkinRotaryKnob(
-              "##Ch2ColorKnob", &engine.decks[1].filter_bipolar, 0.0f, 1.0f,
-              knob_r, ImVec4(1.0f, 0.65f, 0.0f, 1.0f), "%.2f", 0.5f, true,
-              false, false, false, false)) {
-        engine.decks[1].updateSoundColorFX();
+      for (int ki = 0; ki < 5; ki++) {
+        const auto& ckd = cfx_knobs[ki];
+        float it_x = cfx_items_start_x + ki * item_col_w;
+        float it_cx = it_x + item_col_w * 0.5f;
+
+        DJLayoutEditorUI::DrawFittedText(
+            dl, f_cfx, 10.0f * metrics.ui_font_scale, ImVec2(it_x, label_y),
+            ImVec2(it_x + item_col_w, label_y + label_h),
+            ckd.text_col, ckd.label);
+
+        ImGui::SetCursorScreenPos(
+            ImVec2(it_cx - knob_r - 4.0f, knob_y - knob_r - 4.0f));
+
+        if (ckd.deck_id >= 0) {
+          if (KuroUI::KuroDJStudioSkinManager::DrawSkinRotaryKnob(
+                  ckd.kid, &engine.decks[ckd.deck_id].filter_bipolar, 0.0f, 1.0f,
+                  knob_r, ckd.knob_col, "%.2f", 0.5f, true,
+                  false, false, false, false)) {
+            engine.decks[ckd.deck_id].updateSoundColorFX();
+          }
+        } else {
+          // PARAM knob (Ressonância / Profundidade de Efeito Global CFX)
+          if (KuroUI::KuroDJStudioSkinManager::DrawSkinRotaryKnob(
+                  ckd.kid, &rekordbox_cfx_param, 0.0f, 1.0f, knob_r,
+                  ckd.knob_col, "%.2f", 0.5f, false, false,
+                  false, false, false)) {
+            for (int d = 0; d < 4; d++) {
+              engine.decks[d].sound_color_param = rekordbox_cfx_param;
+              engine.decks[d].updateSoundColorFX();
+            }
+          }
+        }
       }
     }
 
@@ -15419,7 +15639,7 @@ private:
                 IM_COL32(30, 38, 50, 220), 4.0f, 0, 1.0f);
 
     // 2. Header: Label "TEMPO" + Valor "%" em destaque + Botões de Range e MT
-    float hdr_h = KuroUI::UIScaleManager::Scale(48.0f);
+    float hdr_h = KuroUI::UIScaleManager::Scale(54.0f);
     dl->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + hdr_h),
                       IM_COL32(16, 20, 28, 255), 4.0f,
                       ImDrawFlags_RoundCornersTop);
@@ -15430,9 +15650,9 @@ private:
     ImFont *f_ctrl = g_font_control_small ? g_font_control_small : f_bld;
 
     // Linha 1 do Header: TEMPO e Botão MT (Key Lock)
-    float mt_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(34.0f), KuroUI::UIScaleManager::Scale(46.0f));
-    float mt_h = KuroUI::UIScaleManager::Scale(18.0f);
-    ImVec2 mt_pos = ImVec2(pos.x + size.x - mt_w - KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(3.0f));
+    float mt_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(48.0f));
+    float mt_h = KuroUI::UIScaleManager::Scale(22.0f);
+    ImVec2 mt_pos = ImVec2(pos.x + size.x - mt_w - KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(4.0f));
     char mt_id[32];
     snprintf(mt_id, sizeof(mt_id), "##PF_MT_%d", deck.deck_id);
     ImGui::SetCursorScreenPos(mt_pos);
@@ -15443,17 +15663,17 @@ private:
     bool mt_hov = ImGui::IsItemHovered();
     ImU32 mt_bg = deck.key_sync_active ? IM_COL32(0, 140, 255, 255) : (mt_hov ? IM_COL32(36, 48, 66, 240) : IM_COL32(22, 28, 38, 220));
     ImU32 mt_bd = deck.key_sync_active ? IM_COL32(140, 205, 255, 255) : IM_COL32(45, 58, 76, 200);
-    dl->AddRectFilled(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bg, KuroUI::UIScaleManager::Scale(3.0f));
-    dl->AddRect(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bd, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
+    dl->AddRectFilled(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bg, KuroUI::UIScaleManager::Scale(3.5f));
+    dl->AddRect(mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_bd, KuroUI::UIScaleManager::Scale(3.5f), 0, 1.0f);
     
     // Centralização perfeita sem corte via DrawFittedText
     ImU32 mt_txt_col = deck.key_sync_active ? IM_COL32(255, 255, 255, 255) : IM_COL32(190, 210, 235, 240);
-    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, 11.0f, mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_txt_col, "MT", 2.0f, 1.0f);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(12.0f), mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_txt_col, "MT", 2.0f, 1.0f);
 
     // Texto TEMPO com clipping para nunca encavalar no botão MT
     dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(2.0f)),
-                     ImVec2(mt_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + KuroUI::UIScaleManager::Scale(22.0f)), true);
-    dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(11.0f), ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), pos.y + KuroUI::UIScaleManager::Scale(4.0f)),
+                     ImVec2(mt_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + KuroUI::UIScaleManager::Scale(26.0f)), true);
+    dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(12.0f), ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), mt_pos.y + KuroUI::UIScaleManager::Scale(3.5f)),
                 IM_COL32(170, 185, 205, 230), "TEMPO");
     dl->PopClipRect();
 
@@ -15480,8 +15700,8 @@ private:
             : (deck.pitch_range >= 15.0f
                    ? "±16%"
                    : (deck.pitch_range >= 9.0f ? "±10%" : "±6%"));
-    float rg_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(46.0f));
-    float rg_h = KuroUI::UIScaleManager::Scale(18.0f);
+    float rg_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(48.0f));
+    float rg_h = KuroUI::UIScaleManager::Scale(22.0f);
     ImVec2 rg_pos = ImVec2(pos.x + size.x - rg_w - KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h + KuroUI::UIScaleManager::Scale(3.0f));
     char rg_id[32];
     snprintf(rg_id, sizeof(rg_id), "##PFRG_%d", deck.deck_id);
@@ -15502,18 +15722,18 @@ private:
                       ? IM_COL32(150, 25, 38, 230)
                       : (rg_hov ? IM_COL32(38, 48, 64, 240) : IM_COL32(24, 30, 42, 220));
     ImU32 rg_bd = (deck.pitch_range >= 90.0f) ? IM_COL32(255, 75, 90, 255) : IM_COL32(50, 64, 82, 200);
-    dl->AddRectFilled(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bg, KuroUI::UIScaleManager::Scale(3.0f));
-    dl->AddRect(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bd, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
+    dl->AddRectFilled(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bg, KuroUI::UIScaleManager::Scale(3.5f));
+    dl->AddRect(rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_bd, KuroUI::UIScaleManager::Scale(3.5f), 0, 1.0f);
     
     // Centralização perfeita do texto de Range com DrawFittedText
     ImU32 rg_txt_col = (deck.pitch_range >= 90.0f) ? IM_COL32(255, 180, 190, 255) : IM_COL32(200, 220, 245, 230);
-    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, 11.0f, rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_txt_col, rg_str, 2.0f, 1.0f);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(11.5f), rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_txt_col, rg_str, 2.0f, 1.0f);
 
     // Texto de valor do pitch com clipping para não encavalar no botão de Range
     dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h),
                      ImVec2(rg_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + hdr_h - KuroUI::UIScaleManager::Scale(2.0f)), true);
-    float v_font_sz = (size.x < KuroUI::UIScaleManager::Scale(80.0f)) ? KuroUI::UIScaleManager::Scale(11.5f) : KuroUI::UIScaleManager::Scale(13.0f);
-    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), rg_pos.y + KuroUI::UIScaleManager::Scale(2.0f)), col_val,
+    float v_font_sz = (size.x < KuroUI::UIScaleManager::Scale(80.0f)) ? KuroUI::UIScaleManager::Scale(12.0f) : KuroUI::UIScaleManager::Scale(13.5f);
+    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), rg_pos.y + KuroUI::UIScaleManager::Scale(3.5f)), col_val,
                 val_str);
     dl->PopClipRect();
 
@@ -17436,33 +17656,33 @@ private:
                                                   : ImGui::GetFont());
     float btn_h = 16.0f;
 
-    // [ 1 ] Deck 1 Assign (Lado Esquerdo do Crossfader)
-    float ass_1_w = 26.0f;
-    float ass_1_x = pos.x + 14.0f;
-    bool ass_1_act = (left_id == 0);
+    // [ 1 | 3 ] Deck Assign (Lado Esquerdo do Crossfader - Suporte a 4 Decks)
+    float ass_1_w = KuroUI::UIScaleManager::Scale(30.0f);
+    float ass_1_x = pos.x + KuroUI::UIScaleManager::Scale(14.0f);
+    int cur_l_deck = ddj_hardware.getActiveLeftDeck(); // 0 ou 2
+    ImVec4 l_deck_col = (cur_l_deck == 0) ? col_deck_1 : col_deck_3;
+    const char* l_deck_lbl = (cur_l_deck == 0) ? "1" : "3";
     dl->AddRectFilled(ImVec2(ass_1_x, row_ctrl_y),
                       ImVec2(ass_1_x + ass_1_w, row_ctrl_y + btn_h),
-                      ass_1_act ? IM_COL32(0, 120, 235, 255)
-                                : IM_COL32(20, 26, 36, 255),
-                      2.5f);
+                      IM_COL32((int)(l_deck_col.x * 60.0f), (int)(l_deck_col.y * 60.0f), (int)(l_deck_col.z * 60.0f), 240),
+                      KuroUI::UIScaleManager::Scale(2.5f));
     dl->AddRect(ImVec2(ass_1_x, row_ctrl_y),
                 ImVec2(ass_1_x + ass_1_w, row_ctrl_y + btn_h),
-                ass_1_act ? IM_COL32(0, 215, 255, 240)
-                          : IM_COL32(45, 55, 72, 200),
-                2.5f, 0, 1.0f);
-    ImVec2 sz_1 = f_ctrl->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, "1");
-    dl->AddText(f_ctrl, 11.0f,
+                ImGui::GetColorU32(l_deck_col),
+                KuroUI::UIScaleManager::Scale(2.5f), 0, 1.2f);
+    ImVec2 sz_1 = f_ctrl->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.0f), FLT_MAX, 0.0f, l_deck_lbl);
+    dl->AddText(f_ctrl, KuroUI::UIScaleManager::Scale(11.0f),
                 ImVec2(ass_1_x + (ass_1_w - sz_1.x) * 0.5f,
                        row_ctrl_y + (btn_h - sz_1.y) * 0.5f),
-                ass_1_act ? IM_COL32(255, 255, 255, 255)
-                          : IM_COL32(165, 180, 200, 240),
-                "1");
+                IM_COL32(255, 255, 255, 255),
+                l_deck_lbl);
     ImGui::SetCursorScreenPos(ImVec2(ass_1_x, row_ctrl_y));
     if (ImGui::InvisibleButton("##ChAss_1", ImVec2(ass_1_w, btn_h))) {
-      ddj_hardware.setActiveLeftDeck(0);
+      ddj_hardware.setActiveLeftDeck(cur_l_deck == 0 ? 2 : 0);
     }
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("Crossfader Assign: Atribuir Deck 1 ao lado esquerdo");
+      ImGui::SetTooltip("Crossfader Assign Esquerdo: Atribuir Deck 1 ou 3 ao canal esquerdo\n• Ativo: Deck %d (%s)\n• Clique para alternar entre Deck 1 e Deck 3",
+                        cur_l_deck + 1, cur_l_deck == 0 ? "Canal 1 (Ciano)" : "Canal 3 (Roxo)");
 
     // Curva do Crossfader (Centro: Smooth ~ / Sharp ^ / Cut |_)
     float crv_w = 32.0f;
@@ -17540,9 +17760,9 @@ private:
                         crv_names[cur_crv % 3]);
     }
 
-    // [ 2 ] Deck 2 Assign (Lado Direito do Crossfader)
-    float ass_2_w = 26.0f;
-    float ass_2_x = pos.x + w - ass_2_w - 14.0f;
+    // [ 2 | 4 ] Deck 2/4 Assign (Lado Direito do Crossfader)
+    float ass_2_w = KuroUI::UIScaleManager::Scale(30.0f);
+    float ass_2_x = pos.x + w - ass_2_w - KuroUI::UIScaleManager::Scale(14.0f);
 
     // Botão Rápido ACID 303 (no vão direito entre Curva e Deck 2 Assign)
     float synth_slot_l = crv_x + crv_w + 3.0f;
@@ -17584,30 +17804,31 @@ private:
             "Desligar\nBotão Direito: Abrir/Fechar Rack Central [F3]");
       }
     }
-    bool ass_2_act = (right_id == 1);
+    // [ 2 | 4 ] Deck Assign (Lado Direito do Crossfader - Suporte a 4 Decks)
+    int cur_r_deck = ddj_hardware.getActiveRightDeck(); // 1 ou 3
+    ImVec4 r_deck_col = (cur_r_deck == 1) ? col_deck_2 : col_deck_4;
+    const char* r_deck_lbl = (cur_r_deck == 1) ? "2" : "4";
     dl->AddRectFilled(ImVec2(ass_2_x, row_ctrl_y),
                       ImVec2(ass_2_x + ass_2_w, row_ctrl_y + btn_h),
-                      ass_2_act ? IM_COL32(220, 120, 0, 255)
-                                : IM_COL32(20, 26, 36, 255),
-                      2.5f);
+                      IM_COL32((int)(r_deck_col.x * 60.0f), (int)(r_deck_col.y * 60.0f), (int)(r_deck_col.z * 60.0f), 240),
+                      KuroUI::UIScaleManager::Scale(2.5f));
     dl->AddRect(ImVec2(ass_2_x, row_ctrl_y),
                 ImVec2(ass_2_x + ass_2_w, row_ctrl_y + btn_h),
-                ass_2_act ? IM_COL32(255, 185, 30, 240)
-                          : IM_COL32(45, 55, 72, 200),
-                2.5f, 0, 1.0f);
-    ImVec2 sz_2 = f_ctrl->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, "2");
-    dl->AddText(f_ctrl, 11.0f,
+                ImGui::GetColorU32(r_deck_col),
+                KuroUI::UIScaleManager::Scale(2.5f), 0, 1.2f);
+    ImVec2 sz_2 = f_ctrl->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.0f), FLT_MAX, 0.0f, r_deck_lbl);
+    dl->AddText(f_ctrl, KuroUI::UIScaleManager::Scale(11.0f),
                 ImVec2(ass_2_x + (ass_2_w - sz_2.x) * 0.5f,
                        row_ctrl_y + (btn_h - sz_2.y) * 0.5f),
-                ass_2_act ? IM_COL32(255, 255, 255, 255)
-                          : IM_COL32(165, 180, 200, 240),
-                "2");
+                IM_COL32(255, 255, 255, 255),
+                r_deck_lbl);
     ImGui::SetCursorScreenPos(ImVec2(ass_2_x, row_ctrl_y));
     if (ImGui::InvisibleButton("##ChAss_2", ImVec2(ass_2_w, btn_h))) {
-      ddj_hardware.setActiveRightDeck(1);
+      ddj_hardware.setActiveRightDeck(cur_r_deck == 1 ? 3 : 1);
     }
     if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("Crossfader Assign: Atribuir Deck 2 ao lado direito");
+      ImGui::SetTooltip("Crossfader Assign Direito: Atribuir Deck 2 ou 4 ao canal direito\n• Ativo: Deck %d (%s)\n• Clique para alternar entre Deck 2 e Deck 4",
+                        cur_r_deck + 1, cur_r_deck == 1 ? "Canal 2 (Laranja)" : "Canal 4 (Verde)");
 
     // =========================================================================
     // RENDERIZAÇÃO DO CROSSFADER (MODO HORIZONTAL ↔ OU VERTICAL ↕)
@@ -18771,14 +18992,14 @@ private:
 
     // --- 1. SUITE DE EFEITOS PIONEER BEAT FX ---
     const char *fx_names[] = {"ECHO", "REVERB", "FLANGER", "ROLL", "SPIRAL"};
-    const char *ch_assigns[] = {"LEFT DECK", "RIGHT DECK", "MASTER"};
+    const char *ch_assigns[] = {"DECK 1 (CH 1)", "DECK 2 (CH 2)", "SAMPLER", "DECK 3 (CH 3)", "DECK 4 (CH 4)", "MASTER"};
 
     float half_combo = (w - 24.0f) * 0.5f;
     ImGui::SetNextItemWidth(half_combo);
     ImGui::Combo("##FXType", &engine.beat_fx.type, fx_names, 5);
     ImGui::SameLine(0, 6);
     ImGui::SetNextItemWidth(half_combo);
-    ImGui::Combo("##FXAssign", &engine.beat_fx.channel_assign, ch_assigns, 3);
+    ImGui::Combo("##FXAssign", &engine.beat_fx.channel_assign, ch_assigns, 6);
 
     // Fracoes de batida do Beat FX
     ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "BEAT:");
@@ -18848,8 +19069,10 @@ private:
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.85f, 0.95f, 1.0f));
       }
       if (ImGui::Button(sc_modes[m], ImVec2(cfx_btn_w, 16))) {
-        deck_l.sound_color_fx_mode = m;
-        deck_r.sound_color_fx_mode = m;
+        for (int d = 0; d < 4; d++) {
+          engine.decks[d].sound_color_fx_mode = m;
+          engine.decks[d].updateSoundColorFX();
+        }
       }
       ImGui::PopStyleColor(2);
       if ((m + 1) % 4 != 0)
@@ -20909,6 +21132,15 @@ private:
         break;
       }
     }
+
+    // Selo de Marca Registrada (®) de Alta Precisão no Ombro Superior Direito
+    ImVec2 reg_c = ImVec2(cx + 0.68f * r, cy - 0.68f * r);
+    float reg_r = KuroUI::UIScaleManager::Scale(5.0f);
+    dl->AddCircleFilled(reg_c, reg_r, IM_COL32(10, 15, 24, 250), 16);
+    dl->AddCircle(reg_c, reg_r, IM_COL32(190, 215, 245, 220), 16, 1.0f);
+    ImVec2 sz_reg = ImGui::CalcTextSize("®");
+    dl->AddText(ImVec2(reg_c.x - sz_reg.x * 0.5f, reg_c.y - sz_reg.y * 0.5f),
+                IM_COL32(230, 245, 255, 255), "®");
   }
 
   void renderSearchModal(KuroAudio::DJEngine &engine) {
@@ -21028,36 +21260,68 @@ private:
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
 
-        // 4 Deck status badges — Cápsulas de Hardware Independentes com proteção contra sobreposição
-        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(64.0f);
-        float dbadge_slot_h = KuroUI::UIScaleManager::Scale(20.0f);
-        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(12.0f);
-        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(10.0f);
-        float dbadge_y = h_start.y + KuroUI::UIScaleManager::Scale(8.0f);
+        // 4 Deck status badges — Cápsulas de Hardware Interativas com Seleção de Destino de Abdução
+        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(70.0f);
+        float dbadge_slot_h = KuroUI::UIScaleManager::Scale(22.0f);
+        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(14.0f);
+        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(12.0f);
+        float dbadge_y = h_start.y + KuroUI::UIScaleManager::Scale(7.0f);
 
-        // Só renderiza os badges se houver espaço livre sem colidir com as abas de navegação
-        if (dbadge_x > ImGui::GetCursorPosX() + KuroUI::UIScaleManager::Scale(16.0f)) {
+        // Renderiza os badges táteis se houver espaço na barra superior
+        float nav_pills_end_x = h_start.x + KuroUI::UIScaleManager::Scale(620.0f);
+        if (dbadge_x > nav_pills_end_x) {
             struct DeckBadge { const char* label; bool playing; ImVec4 col; };
             DeckBadge dbadges[4] = {
-                { engine.decks[0].is_playing.load() ? "D1: ON AIR" : "D1: LIVRE", engine.decks[0].is_playing.load(), col_deck_1 },
-                { engine.decks[1].is_playing.load() ? "D2: ON AIR" : "D2: CUE",   engine.decks[1].is_playing.load(), col_deck_2 },
-                { engine.decks[2].is_playing.load() ? "D3: ON AIR" : "D3: LIVRE", engine.decks[2].is_playing.load(), col_deck_3 },
-                { engine.decks[3].is_playing.load() ? "D4: ON AIR" : "D4: LIVRE", engine.decks[3].is_playing.load(), col_deck_4 },
+                { engine.decks[0].is_playing.load() ? "D1: ON AIR" : (engine.decks[0].buffer_l.empty() ? "D1: LIVRE" : "D1: CUE"), engine.decks[0].is_playing.load(), col_deck_1 },
+                { engine.decks[1].is_playing.load() ? "D2: ON AIR" : (engine.decks[1].buffer_l.empty() ? "D2: LIVRE" : "D2: CUE"), engine.decks[1].is_playing.load(), col_deck_2 },
+                { engine.decks[2].is_playing.load() ? "D3: ON AIR" : (engine.decks[2].buffer_l.empty() ? "D3: LIVRE" : "D3: CUE"), engine.decks[2].is_playing.load(), col_deck_3 },
+                { engine.decks[3].is_playing.load() ? "D4: ON AIR" : (engine.decks[3].buffer_l.empty() ? "D4: LIVRE" : "D4: CUE"), engine.decks[3].is_playing.load(), col_deck_4 },
             };
             ImDrawList* h_dl = ImGui::GetWindowDrawList();
             for (int di = 0; di < 4; di++) {
-                ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(4.0f)), dbadge_y);
+                ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(4.5f)), dbadge_y);
                 ImVec2 b_max = ImVec2(b_min.x + dbadge_slot_w, b_min.y + dbadge_slot_h);
                 ImVec4 bc = dbadges[di].col;
-                ImU32 bd_bg = dbadges[di].playing ? IM_COL32((int)(bc.x * 40.0f), (int)(bc.y * 40.0f), (int)(bc.z * 40.0f), 240) : IM_COL32(12, 16, 24, 200);
-                ImU32 bd_border = dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 120.0f), (int)(bc.y * 120.0f), (int)(bc.z * 120.0f), 180);
-                h_dl->AddRectFilled(b_min, b_max, bd_bg, KuroUI::UIScaleManager::Scale(3.0f));
-                h_dl->AddRect(b_min, b_max, bd_border, KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
-                
-                ImVec2 t_sz_b = ImGui::CalcTextSize(dbadges[di].label);
+                bool is_target = (hub_target_deck == di);
+
+                ImU32 bd_bg = is_target
+                    ? IM_COL32((int)(bc.x * 70.0f), (int)(bc.y * 70.0f), (int)(bc.z * 70.0f), 245)
+                    : (dbadges[di].playing ? IM_COL32((int)(bc.x * 40.0f), (int)(bc.y * 40.0f), (int)(bc.z * 40.0f), 230) : IM_COL32(12, 16, 24, 200));
+                ImU32 bd_border = is_target
+                    ? ImGui::GetColorU32(bc)
+                    : (dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 120.0f), (int)(bc.y * 120.0f), (int)(bc.z * 120.0f), 180));
+
+                h_dl->AddRectFilled(b_min, b_max, bd_bg, KuroUI::UIScaleManager::Scale(3.5f));
+                h_dl->AddRect(b_min, b_max, bd_border, KuroUI::UIScaleManager::Scale(3.5f), 0, is_target ? 1.8f : 1.0f);
+                if (is_target) {
+                    h_dl->AddRect(ImVec2(b_min.x - 1, b_min.y - 1), ImVec2(b_max.x + 1, b_max.y + 1),
+                                  (bd_border & 0x00FFFFFF) | 0x30000000, KuroUI::UIScaleManager::Scale(4.5f), 0, 1.0f);
+                }
+
+                char blbl[32];
+                if (is_target) {
+                    snprintf(blbl, sizeof(blbl), "⚡ D%d (ALVO)", di + 1);
+                } else {
+                    snprintf(blbl, sizeof(blbl), "%s", dbadges[di].label);
+                }
+                ImVec2 t_sz_b = ImGui::CalcTextSize(blbl);
                 h_dl->AddText(ImVec2(b_min.x + (dbadge_slot_w - t_sz_b.x) * 0.5f, b_min.y + (dbadge_slot_h - t_sz_b.y) * 0.5f),
-                              dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 180.0f), (int)(bc.y * 180.0f), (int)(bc.z * 180.0f), 220),
-                              dbadges[di].label);
+                              is_target ? IM_COL32(255, 255, 255, 255) : (dbadges[di].playing ? ImGui::GetColorU32(bc) : IM_COL32((int)(bc.x * 190.0f), (int)(bc.y * 190.0f), (int)(bc.z * 190.0f), 240)),
+                              blbl);
+
+                ImGui::SetCursorScreenPos(b_min);
+                char bid_b[32];
+                snprintf(bid_b, sizeof(bid_b), "##HubDeckPill_%d", di);
+                if (ImGui::InvisibleButton(bid_b, ImVec2(dbadge_slot_w, dbadge_slot_h))) {
+                    hub_target_deck = di;
+                    if (di == 0 || di == 2) ddj_hardware.setActiveLeftDeck(di);
+                    else ddj_hardware.setActiveRightDeck(di);
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("DECK %d (%s) - %s%s\n• Clique para definir como Deck Alvo de Abdução",
+                                      di + 1, (di == 0 || di == 2) ? "Lado Esquerdo" : "Lado Direito",
+                                      dbadges[di].label, is_target ? " [ALVO SELECIONADO]" : "");
+                }
             }
         }
 
@@ -21078,14 +21342,14 @@ private:
             };
 
             // ── 1. OMNIBAR ROW (Fiel ao Mockup + Dig Deeper Pixel-Perfect) ──────
-            float omni_btn_w = 150.0f;
-            float omni_paste_w = 160.0f;
-            float omni_dig_w = 165.0f;
-            float omni_input_w = avail_w - omni_btn_w - omni_paste_w - omni_dig_w - 32.0f;
+            float omni_btn_w = KuroUI::UIScaleManager::Scale(140.0f);
+            float omni_paste_w = KuroUI::UIScaleManager::Scale(165.0f);
+            float omni_dig_w = KuroUI::UIScaleManager::Scale(160.0f);
+            float omni_input_w = avail_w - omni_btn_w - omni_paste_w - omni_dig_w - KuroUI::UIScaleManager::Scale(36.0f);
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 8.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(KuroUI::UIScaleManager::Scale(12.0f), KuroUI::UIScaleManager::Scale(8.0f)));
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.028f, 0.045f, 0.075f, 0.98f));
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.00f, 0.85f, 0.80f, 0.70f));
             ImGui::PushItemWidth(omni_input_w);
@@ -21098,29 +21362,29 @@ private:
             ImGui::PopStyleColor(2);
             ImGui::PopStyleVar(3);
 
-            ImGui::SameLine(0, 8.0f);
+            ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
 
             // Botão 1: ⚡ ABDUZIR (BUSCAR) - Solid Neon Cyan (Fiel ao Mockup)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.88f, 0.78f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 1.00f, 0.88f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.01f, 0.05f, 0.08f, 1.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
-            if (ImGui::Button(ICON_FA_BOLT " ABDUZIR", ImVec2(omni_btn_w, 36.0f))) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
+            if (ImGui::Button(ICON_FA_BOLT " ABDUZIR", ImVec2(omni_btn_w, KuroUI::UIScaleManager::Scale(36.0f)))) {
                 trigger_search();
             }
             ImGui::PopStyleVar();
             ImGui::PopStyleColor(3);
 
-            ImGui::SameLine(0, 8.0f);
+            ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
 
             // Botão 2: 📋 COLAR LINK SPOTIFY/SC - Cyan Outline (Fiel ao Mockup)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.028f, 0.065f, 0.095f, 0.95f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.05f, 0.12f, 0.18f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.00f, 0.85f, 0.80f, 0.80f));
             ImGui::PushStyleColor(ImGuiCol_Text, col_deck_1);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
-            if (ImGui::Button(ICON_FA_PASTE " COLAR LINK", ImVec2(omni_paste_w, 36.0f))) {
+            if (ImGui::Button(ICON_FA_PASTE " COLAR LINK", ImVec2(omni_paste_w, KuroUI::UIScaleManager::Scale(36.0f)))) {
                 const char* clip = ImGui::GetClipboardText();
                 if (clip && strlen(clip) > 4) {
                     strncpy(online_search_query_buf, clip, sizeof(online_search_query_buf) - 1);
@@ -21130,14 +21394,14 @@ private:
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(4);
 
-            ImGui::SameLine(0, 8.0f);
+            ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
 
-            // Botão 3: 🔮 DIG DEEPER - Magenta/Purple Sólido (Busca Acústica Reversa)
+            // Botão 3: 🔮 DIG DEEPER - Magenta/Purple Sólido (Busca Acústica Reversa - Ícone Confiável)
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.48f, 0.14f, 0.65f, 0.95f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.60f, 0.20f, 0.80f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
-            if (ImGui::Button(ICON_FA_WAND_MAGIC_SPARKLES " DIG DEEPER", ImVec2(omni_dig_w, KuroUI::UIScaleManager::Scale(36.0f)))) {
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
+            if (ImGui::Button(ICON_FA_COMPACT_DISC " DIG DEEPER", ImVec2(omni_dig_w, KuroUI::UIScaleManager::Scale(36.0f)))) {
                 std::string q = online_search_query_buf;
                 if (q.empty()) q = selected_source_track_title.empty() ? "Spirit Overflow" : selected_source_track_title;
                 spotify_service.digDeeperAsync(q, selected_source_track_artist, selected_source_track_key, selected_source_track_bpm);
@@ -21152,7 +21416,7 @@ private:
             // ── 2. PLATAFORMAS ATIVAS (FILTROS CHIP) ───────────────────────────
             ImGui::AlignTextToFramePadding();
             ImGui::TextColored(ImVec4(0.42f, 0.55f, 0.68f, 0.90f), "PLATAFORMAS ATIVAS:");
-            ImGui::SameLine(0, 10.0f);
+            ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(10.0f));
 
             struct PlatFilter { int id; const char* name; ImVec4 col; };
             PlatFilter filters[] = {
@@ -21176,19 +21440,19 @@ private:
                     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(c.x * 0.35f, c.y * 0.35f, c.z * 0.35f, 0.40f));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(c.x * 0.75f, c.y * 0.75f, c.z * 0.75f, 0.80f));
                 }
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(12.0f));
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
                 if (ImGui::SmallButton(filters[fi].name)) {
                     download_platform_source = filters[fi].id;
                 }
                 ImGui::PopStyleVar(2);
                 ImGui::PopStyleColor(3);
-                ImGui::SameLine(0, 6.0f);
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
             }
 
             // Botão Roxo no Canto Direito: ⚡ BAIXAR DISCOGRAFIA (Totalmente escalado e sem corte)
-            float disc_btn_w = KuroUI::UIScaleManager::Scale(260.0f);
-            float disc_btn_h = KuroUI::UIScaleManager::Scale(30.0f);
+            float disc_btn_w = KuroUI::UIScaleManager::Scale(270.0f);
+            float disc_btn_h = KuroUI::UIScaleManager::Scale(34.0f);
             float target_disc_x = avail_w - disc_btn_w;
             if (target_disc_x > ImGui::GetCursorPosX() + KuroUI::UIScaleManager::Scale(12.0f)) {
                 ImGui::SameLine(target_disc_x);
@@ -21200,7 +21464,7 @@ private:
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.22f, 0.88f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(5.0f));
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(KuroUI::UIScaleManager::Scale(8.0f), KuroUI::UIScaleManager::Scale(4.0f)));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(KuroUI::UIScaleManager::Scale(10.0f), KuroUI::UIScaleManager::Scale(6.0f)));
             auto results_all = spotify_service.getSearchResults();
             char disc_btn_lbl[64];
             snprintf(disc_btn_lbl, sizeof(disc_btn_lbl), ICON_FA_BOLT " BAIXAR DISCOGRAFIA (%d FAIXAS)", (int)results_all.size() > 0 ? (int)results_all.size() : 109);
@@ -21242,6 +21506,692 @@ private:
                 spotify_service.searchSourcesAsync(results_all[0].id, results_all[0].title, results_all[0].artist);
             }
 
+            // ── 3. PAINÉIS LADO A LADO (SPLIT DASHBOARD OU EXPERIÊNCIA 1:1 DIGDEEPER) ────────────────────────
+            if (spotify_service.show_dig_deeper_view) {
+                // ════════════════════════════════════════════════════════════════════
+                // DIGDEEPER 1:1 STUDIO EXPERIENCE (HARMONIZADO COM ABDUCTION STUDIO)
+                // ════════════════════════════════════════════════════════════════════
+                float dd_avail_h = ImGui::GetContentRegionAvail().y;
+                float dd_split_h = dd_avail_h - KuroUI::UIScaleManager::Scale(54.0f);
+                if (dd_split_h < 300.0f) dd_split_h = 300.0f;
+                float dd_left_w = avail_w * 0.35f - KuroUI::UIScaleManager::Scale(6.0f);
+                float dd_right_w = avail_w * 0.65f - KuroUI::UIScaleManager::Scale(6.0f);
+
+                auto dig_matches = spotify_service.getDigDeeperResults();
+                if (dig_matches.empty() && !spotify_service.isDiggingDeeper()) {
+                    std::string ref_q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
+                    std::string ref_a = selected_source_track_artist.empty() ? "JUMPSTREET" : selected_source_track_artist;
+                    std::string ref_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
+                    double ref_b = selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 150.0;
+                    spotify_service.digDeeperAsync(ref_q, ref_a, ref_k, ref_b);
+                }
+
+                // Estado persistente da sessão DigDeeper
+                static bool dd_autoplay = true;
+                static float dd_tempo_slider = 148.0f;
+                static bool dd_already_heard_filter = false;
+                static int dd_active_tab = 0; // 0 = SIMILAR, 1 = ARTIST
+                static bool dd_start_at_25 = true;
+                static bool dd_show_pill = true;
+                static std::string dd_hero_title = "Unknown Tomorrow";
+                static std::string dd_hero_artist = "RUGRATS & AXIAL TILT";
+                static std::string dd_hero_label = "RUGRATS";
+                static std::string dd_hero_dur = "7:05";
+                static std::string dd_hero_year = "2024";
+                static double dd_hero_bpm = 148.0;
+                static std::string dd_hero_key = "12A";
+                static std::string dd_hero_url = "";
+                static bool dd_liked = false;
+                static bool dd_bookmarked = false;
+
+                if (preview_player.isPlaying()) {
+                    dd_hero_title = preview_player.getCurrentTitle();
+                    dd_hero_artist = preview_player.getCurrentArtist();
+                } else if (!dig_matches.empty() && dd_hero_title == "Unknown Tomorrow" && selected_source_track_title != "") {
+                    dd_hero_title = dig_matches[0].title;
+                    dd_hero_artist = dig_matches[0].artist;
+                    dd_hero_label = dig_matches[0].label;
+                    dd_hero_bpm = dig_matches[0].bpm;
+                    dd_hero_key = dig_matches[0].camelot_code;
+                    dd_hero_dur = dig_matches[0].duration_str;
+                    dd_hero_year = dig_matches[0].year;
+                }
+
+                // ────────────────────────────────────────────────────────────────
+                // PAINEL ESQUERDO: NOW PLAYING HERO (35%)
+                // ────────────────────────────────────────────────────────────────
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+                if (ImGui::BeginChild("##DDLeftHeroPane", ImVec2(dd_left_w, dd_split_h), true)) {
+                    ImDrawList* ldl = ImGui::GetWindowDrawList();
+                    float lw = ImGui::GetContentRegionAvail().x;
+
+                    // 1. Header do Painel Esquerdo: NOW PLAYING & AUTOPLAY TOGGLE
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.82f, 0.90f));
+                    ImGui::TextUnformatted("NOW PLAYING");
+                    ImGui::PopStyleColor();
+
+                    float tog_w = KuroUI::UIScaleManager::Scale(110.0f);
+                    ImGui::SameLine(lw - tog_w);
+                    ImGui::TextColored(ImVec4(0.48f, 0.58f, 0.72f, 0.85f), "Autoplay");
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+                    if (dd_autoplay) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.80f, 0.85f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(10.0f));
+                    if (ImGui::SmallButton(dd_autoplay ? "ON" : "OFF")) {
+                        dd_autoplay = !dd_autoplay;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::Spacing();
+
+                    // 2. CAPA QUADRADA GIGANTE / TELA DE VÍDEO (Hero Artwork)
+                    float hero_art_sz = lw;
+                    if (hero_art_sz > KuroUI::UIScaleManager::Scale(340.0f)) hero_art_sz = KuroUI::UIScaleManager::Scale(340.0f);
+                    ImVec2 art_min = ImGui::GetCursorScreenPos();
+                    ImVec2 art_max = ImVec2(art_min.x + hero_art_sz, art_min.y + hero_art_sz);
+                    ImGui::Dummy(ImVec2(hero_art_sz, hero_art_sz));
+
+                    // Fundo da imagem
+                    ldl->AddRectFilled(art_min, art_max, IM_COL32(10, 14, 22, 255), KuroUI::UIScaleManager::Scale(8.0f));
+
+                    if (selected_source_track_tex > 0) {
+                        ldl->AddImageRounded((ImTextureID)(intptr_t)selected_source_track_tex,
+                                             art_min, art_max, ImVec2(0, 0), ImVec2(1, 1),
+                                             IM_COL32_WHITE, KuroUI::UIScaleManager::Scale(8.0f));
+                    } else {
+                        // Artwork Psicodélica Eletrônica Estilizada (Ciber-Espaço / Psytrance)
+                        float cx = art_min.x + hero_art_sz * 0.5f;
+                        float cy = art_min.y + hero_art_sz * 0.5f;
+                        for (int gi = 1; gi <= 6; gi++) {
+                            float rad = (hero_art_sz * 0.45f) * (gi / 6.0f);
+                            ldl->AddCircle(ImVec2(cx, cy), rad, IM_COL32(0, 229, 255, 25 + gi * 18), 40, 1.2f);
+                        }
+                        for (int ri = 0; ri < 12; ri++) {
+                            float ang = ri * (3.14159f / 6.0f);
+                            ImVec2 p1 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.14f), cy + sinf(ang) * (hero_art_sz * 0.14f));
+                            ImVec2 p2 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.44f), cy + sinf(ang) * (hero_art_sz * 0.44f));
+                            ldl->AddLine(p1, p2, IM_COL32(230, 80, 50, 90), 1.0f);
+                        }
+                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(14, 18, 28, 255), 32);
+                        ldl->AddCircle(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(0, 245, 212, 220), 32, 2.0f);
+                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.10f, IM_COL32(230, 80, 50, 240), 24);
+                    }
+                    ldl->AddRect(art_min, art_max, IM_COL32(0, 229, 255, 160), KuroUI::UIScaleManager::Scale(8.0f), 0, 1.5f);
+
+                    // Overlay no Artwork: Selo YouTube no Topo Direito
+                    ImVec2 yt_min = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(90.0f), art_min.y + KuroUI::UIScaleManager::Scale(8.0f));
+                    ImVec2 yt_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(8.0f), art_min.y + KuroUI::UIScaleManager::Scale(30.0f));
+                    ldl->AddRectFilled(yt_min, yt_max, IM_COL32(10, 12, 18, 210), KuroUI::UIScaleManager::Scale(4.0f));
+                    ldl->AddText(ImVec2(yt_min.x + KuroUI::UIScaleManager::Scale(8.0f), yt_min.y + KuroUI::UIScaleManager::Scale(2.0f)),
+                                 IM_COL32(255, 60, 60, 255), "▶ YouTube");
+
+                    // Overlay no Artwork: Botão Circular Central de Play / Pause
+                    bool is_prv_playing = preview_player.isPlaying();
+                    float btn_rad = KuroUI::UIScaleManager::Scale(28.0f);
+                    ImVec2 btn_c = ImVec2(art_min.x + hero_art_sz * 0.5f, art_min.y + hero_art_sz * 0.5f);
+                    ldl->AddCircleFilled(btn_c, btn_rad, IM_COL32(12, 16, 24, 210), 32);
+                    ldl->AddCircle(btn_c, btn_rad, IM_COL32(0, 229, 255, 230), 32, 1.8f);
+
+                    ImGui::SetCursorScreenPos(ImVec2(btn_c.x - btn_rad, btn_c.y - btn_rad));
+                    if (ImGui::InvisibleButton("##DDHeroPlayBtn", ImVec2(btn_rad * 2.0f, btn_rad * 2.0f))) {
+                        if (is_prv_playing) {
+                            preview_player.togglePlayPause();
+                        } else {
+                            std::string p_src = dd_hero_url.empty() ? "scratch/test_astrix.wav" : dd_hero_url;
+                            preview_player.play(p_src, "dd_now", dd_hero_title, dd_hero_artist);
+                        }
+                    }
+                    const char* pp_ic = is_prv_playing ? ICON_FA_PAUSE : ICON_FA_PLAY;
+                    ImVec2 pp_sz = ImGui::CalcTextSize(pp_ic);
+                    ldl->AddText(ImVec2(btn_c.x - pp_sz.x * 0.5f, btn_c.y - pp_sz.y * 0.5f), IM_COL32(255, 255, 255, 255), pp_ic);
+
+                    // Overlay no Artwork: Barra Inferior com Scrubber e Timestamp (2:14 / 7:05)
+                    ImVec2 bar_min = ImVec2(art_min.x + KuroUI::UIScaleManager::Scale(10.0f), art_max.y - KuroUI::UIScaleManager::Scale(34.0f));
+                    ImVec2 bar_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(10.0f), art_max.y - KuroUI::UIScaleManager::Scale(8.0f));
+                    ldl->AddRectFilled(bar_min, bar_max, IM_COL32(8, 12, 18, 230), KuroUI::UIScaleManager::Scale(4.0f));
+
+                    double cur_pos = preview_player.getPosition();
+                    double cur_dur = preview_player.getDuration();
+                    if (cur_dur < 1.0) cur_dur = 425.0; // 7:05 fallback
+                    int pm = (int)cur_pos / 60, ps = (int)cur_pos % 60;
+                    int dm = (int)cur_dur / 60, ds = (int)cur_dur % 60;
+                    char time_buf[32];
+                    snprintf(time_buf, sizeof(time_buf), "%02d:%02d / %02d:%02d", pm, ps, dm, ds);
+                    ldl->AddText(ImVec2(bar_min.x + KuroUI::UIScaleManager::Scale(8.0f), bar_min.y + KuroUI::UIScaleManager::Scale(4.0f)),
+                                 IM_COL32(240, 245, 255, 255), time_buf);
+
+                    // Scrubber fill line
+                    float sc_pct = std::clamp((float)(cur_pos / cur_dur), 0.0f, 1.0f);
+                    float sc_line_x1 = bar_min.x + KuroUI::UIScaleManager::Scale(120.0f);
+                    float sc_line_x2 = bar_max.x - KuroUI::UIScaleManager::Scale(8.0f);
+                    if (sc_line_x2 > sc_line_x1 + 10.0f) {
+                        float sc_y = bar_min.y + KuroUI::UIScaleManager::Scale(13.0f);
+                        ldl->AddLine(ImVec2(sc_line_x1, sc_y), ImVec2(sc_line_x2, sc_y), IM_COL32(40, 55, 75, 200), 3.0f);
+                        ldl->AddLine(ImVec2(sc_line_x1, sc_y), ImVec2(sc_line_x1 + (sc_line_x2 - sc_line_x1) * sc_pct, sc_y), IM_COL32(230, 80, 50, 255), 3.0f);
+                        ldl->AddCircleFilled(ImVec2(sc_line_x1 + (sc_line_x2 - sc_line_x1) * sc_pct, sc_y), 4.5f, IM_COL32(255, 255, 255, 255));
+                    }
+
+                    ImGui::Spacing();
+
+                    // 3. TÍTULO DA FAIXA E SUBTÍTULO
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    ImGui::TextUnformatted(dd_hero_title.c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(ICON_FA_COPY "##DDCopyTitle")) {
+                        ImGui::SetClipboardText(dd_hero_title.c_str());
+                        toast_message = "Copiado para a área de transferência: " + dd_hero_title;
+                        toast_timer = 2.5f;
+                    }
+
+                    ImGui::TextColored(ImVec4(0.55f, 0.68f, 0.82f, 0.90f), "%s • %s • %s",
+                                       dd_hero_artist.c_str(), dd_hero_label.c_str(), dd_hero_year.c_str());
+
+                    ImGui::Spacing();
+
+                    // 4. BARRA DE TRANSPORTE (Shuffle, Prev, Play/Pause, Next, +SAVE, Bookmark, Heart)
+                    float trans_btn_sz = KuroUI::UIScaleManager::Scale(32.0f);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.18f, 0.28f, 0.40f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+
+                    if (ImGui::Button(ICON_FA_SHUFFLE "##DDShuf", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+                    if (ImGui::Button(ICON_FA_BACKWARD_STEP "##DDPrev", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                    if (ImGui::Button(is_prv_playing ? ICON_FA_PAUSE "##DDTrPP" : ICON_FA_PLAY "##DDTrPP", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        preview_player.togglePlayPause();
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+                    if (ImGui::Button(ICON_FA_FORWARD_STEP "##DDNext", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    // Botão + SAVE na Biblioteca
+                    if (ImGui::Button(ICON_FA_PLUS " SAVE", ImVec2(KuroUI::UIScaleManager::Scale(74.0f), trans_btn_sz))) {
+                        KuroAudio::DJLibraryTrack lt;
+                        lt.id = "dig_" + std::to_string(std::hash<std::string>{}(dd_hero_title));
+                        lt.title = dd_hero_title;
+                        lt.artist = dd_hero_artist;
+                        lt.album = dd_hero_label;
+                        lt.bpm = dd_hero_bpm;
+                        lt.key = dd_hero_key;
+                        lt.duration_sec = 425.0;
+                        KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
+                        toast_message = std::string(ICON_FA_CHECK) + " Salva na Biblioteca: " + dd_hero_title;
+                        toast_timer = 3.0f;
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                    // Bookmark
+                    if (dd_bookmarked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.20f, 1.0f));
+                    if (ImGui::Button(ICON_FA_BOOKMARK "##DDBookmark", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        dd_bookmarked = !dd_bookmarked;
+                    }
+                    if (dd_bookmarked) ImGui::PopStyleColor();
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                    // Heart Like
+                    if (dd_liked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.40f, 1.0f));
+                    if (ImGui::Button(ICON_FA_HEART "##DDHeart", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        dd_liked = !dd_liked;
+                        spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "like", 0);
+                        toast_message = "Reforço Gravado no Grafo: Afinidade aumentada!";
+                        toast_timer = 2.5f;
+                    }
+                    if (dd_liked) ImGui::PopStyleColor();
+
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
+                    // 5. TEMPO / PITCH SLIDER (148.0 BPM)
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextColored(ImVec4(0.50f, 0.62f, 0.78f, 0.85f), "TEMPO");
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                    float sld_w = lw - KuroUI::UIScaleManager::Scale(150.0f);
+                    if (sld_w < 80.0f) sld_w = 80.0f;
+                    ImGui::PushItemWidth(sld_w);
+                    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.92f, 0.35f, 0.20f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.50f, 0.30f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.04f, 0.08f, 0.14f, 0.90f));
+                    ImGui::SliderFloat("##DDPitchSlider", &dd_tempo_slider, 135.0f, 160.0f, "");
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopItemWidth();
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+                    ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.25f, 1.0f), "%.1f BPM", dd_tempo_slider);
+
+                    ImGui::Spacing();
+
+                    // 6. CARREGAR DIRETO NOS DECKS (⚡ DECK 1, ⚡ DECK 2, ⚡ DECK 3, ⚡ DECK 4)
+                    ImGui::TextColored(ImVec4(0.48f, 0.60f, 0.75f, 0.85f), "CARREGAR NO DECK:");
+                    ImGui::Spacing();
+
+                    float d_btn_w = (lw - KuroUI::UIScaleManager::Scale(12.0f)) * 0.25f;
+                    struct HeroDeckBtn { const char* lbl; ImVec4 col; int d_idx; };
+                    HeroDeckBtn h_dbtns[4] = {
+                        { "⚡ D1", col_deck_1, 0 },
+                        { "⚡ D2", col_deck_2, 1 },
+                        { "⚡ D3", col_deck_3, 2 },
+                        { "⚡ D4", col_deck_4, 3 },
+                    };
+                    for (int di = 0; di < 4; di++) {
+                        const auto& hdb = h_dbtns[di];
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(hdb.col.x * 0.20f, hdb.col.y * 0.20f, hdb.col.z * 0.20f, 0.90f));
+                        ImGui::PushStyleColor(ImGuiCol_Border, hdb.col);
+                        ImGui::PushStyleColor(ImGuiCol_Text, hdb.col);
+                        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                        if (ImGui::Button(hdb.lbl, ImVec2(d_btn_w, KuroUI::UIScaleManager::Scale(30.0f)))) {
+                            int target_d = hdb.d_idx;
+                            std::string p = "scratch/tracks/track_" + dd_hero_title + ".wav";
+                            if (!std::filesystem::exists(p)) p = (target_d % 2 == 0) ? "scratch/test_cliff.wav" : "scratch/test_astrix.wav";
+                            engine.decks[target_d].loadTrack(p);
+                            engine.decks[target_d].track_title = dd_hero_title;
+                            engine.decks[target_d].track_artist = dd_hero_artist;
+                            engine.decks[target_d].bpm = dd_tempo_slider;
+                            engine.decks[target_d].key_signature = dd_hero_key;
+                            KuroAudio::DJGridEngine::getInstance().setBpm(target_d, dd_tempo_slider);
+                            spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "load_deck", target_d);
+                            toast_message = "Faixa '" + dd_hero_title + "' carregada no Deck " + std::to_string(target_d + 1);
+                            toast_timer = 3.5f;
+                        }
+                        ImGui::PopStyleVar(2);
+                        ImGui::PopStyleColor(3);
+                        if (di < 3) ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(2);
+
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                // ────────────────────────────────────────────────────────────────
+                // PAINEL DIREITO: REFERENCE CARD & SIMILAR TRACKS (65%)
+                // ────────────────────────────────────────────────────────────────
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+                if (ImGui::BeginChild("##DDRightTracksPane", ImVec2(dd_right_w, dd_split_h), true)) {
+                    ImDrawList* rdl = ImGui::GetWindowDrawList();
+                    float rw = ImGui::GetContentRegionAvail().x;
+
+                    // 1. TOP REFERENCE CARD (Toasted - JUMPSTREET • 150 BPM • 8:36 • 2022)
+                    float ref_card_h = KuroUI::UIScaleManager::Scale(78.0f);
+                    ImVec2 rc_min = ImGui::GetCursorScreenPos();
+                    ImVec2 rc_max = ImVec2(rc_min.x + rw, rc_min.y + ref_card_h);
+                    ImGui::Dummy(ImVec2(rw, ref_card_h));
+
+                    rdl->AddRectFilled(rc_min, rc_max, IM_COL32(14, 18, 28, 255), KuroUI::UIScaleManager::Scale(6.0f));
+                    rdl->AddRect(rc_min, rc_max, IM_COL32(230, 80, 50, 160), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.2f);
+
+                    // Mini Thumbnail da Referência
+                    float th_sz = KuroUI::UIScaleManager::Scale(58.0f);
+                    ImVec2 th_min = ImVec2(rc_min.x + KuroUI::UIScaleManager::Scale(10.0f), rc_min.y + (ref_card_h - th_sz) * 0.5f);
+                    ImVec2 th_max = ImVec2(th_min.x + th_sz, th_min.y + th_sz);
+                    rdl->AddRectFilled(th_min, th_max, IM_COL32(18, 24, 38, 255), KuroUI::UIScaleManager::Scale(4.0f));
+                    rdl->AddRect(th_min, th_max, IM_COL32(230, 80, 50, 200), KuroUI::UIScaleManager::Scale(4.0f), 0, 1.0f);
+                    float th_cx = th_min.x + th_sz * 0.5f, th_cy = th_min.y + th_sz * 0.5f;
+                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), th_sz * 0.35f, IM_COL32(230, 80, 50, 180), 20);
+                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), KuroUI::UIScaleManager::Scale(3.0f), IM_COL32(10, 14, 20, 255), 12);
+
+                    // Textos da Referência
+                    float rtx = th_max.x + KuroUI::UIScaleManager::Scale(12.0f);
+                    std::string ref_t = spotify_service.getDigDeeperRefTitle().empty() ? "Toasted" : spotify_service.getDigDeeperRefTitle();
+                    std::string ref_a = spotify_service.getDigDeeperRefArtist().empty() ? "JUMPSTREET" : spotify_service.getDigDeeperRefArtist();
+                    std::string ref_dur = spotify_service.getDigDeeperRefDuration().empty() ? "8:36" : spotify_service.getDigDeeperRefDuration();
+                    std::string ref_yr = spotify_service.getDigDeeperRefYear().empty() ? "2022" : spotify_service.getDigDeeperRefYear();
+                    double ref_bpm = spotify_service.getDigDeeperRefBpm() > 20.0 ? spotify_service.getDigDeeperRefBpm() : 150.0;
+
+                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(14.0f)), IM_COL32(255, 255, 255, 255), ref_t.c_str());
+                    rdl->AddText(ImVec2(rtx + ImGui::CalcTextSize(ref_t.c_str()).x + KuroUI::UIScaleManager::Scale(8.0f), rc_min.y + KuroUI::UIScaleManager::Scale(14.0f)),
+                                 IM_COL32(0, 229, 255, 255), ref_a.c_str());
+
+                    char ref_meta[128];
+                    snprintf(ref_meta, sizeof(ref_meta), "%.0f BPM • %s • %s", ref_bpm, ref_dur.c_str(), ref_yr.c_str());
+                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(42.0f)), IM_COL32(140, 165, 195, 220), ref_meta);
+
+                    // Botões no Canto Direito do Reference Card: [REFERENCE] Badge + [SHARE] + [VOLTAR]
+                    float right_rc_x = rc_max.x - KuroUI::UIScaleManager::Scale(320.0f);
+                    ImGui::SetCursorScreenPos(ImVec2(right_rc_x, rc_min.y + (ref_card_h - KuroUI::UIScaleManager::Scale(30.0f)) * 0.5f));
+
+                    // Badge [REFERENCE] em Laranja Sólido
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
+                    ImGui::SmallButton("REFERENCE");
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    // Botão [SHARE]
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.45f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.85f, 0.98f, 0.95f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                    if (ImGui::Button(ICON_FA_SHARE_NODES " SHARE", ImVec2(KuroUI::UIScaleManager::Scale(76.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                        ImGui::SetClipboardText(("https://digdeeper.fm/similar?q=" + ref_t).c_str());
+                        toast_message = "Link copiado para compartilhar!";
+                        toast_timer = 2.5f;
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    // Botão [VOLTAR AO CATÁLOGO]
+                    if (ImGui::Button(ICON_FA_ARROW_LEFT " CATÁLOGO", ImVec2(KuroUI::UIScaleManager::Scale(95.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                        spotify_service.show_dig_deeper_view = false;
+                    }
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
+                    // 2. TABS & FILTER BAR (SIMILAR, ARTIST, XX TRACKS, Already heard, Filters)
+                    ImVec2 tab_bar_p = ImGui::GetCursorScreenPos();
+                    float tab_bar_h = KuroUI::UIScaleManager::Scale(34.0f);
+
+                    // Tab SIMILAR
+                    bool is_sim = (dd_active_tab == 0);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, is_sim ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
+                    if (ImGui::SmallButton("SIMILAR")) { dd_active_tab = 0; }
+                    ImGui::PopStyleColor(2);
+                    if (is_sim) {
+                        ImVec2 sim_min = ImGui::GetItemRectMin();
+                        ImVec2 sim_max = ImGui::GetItemRectMax();
+                        rdl->AddLine(ImVec2(sim_min.x, sim_max.y + 2.0f), ImVec2(sim_max.x, sim_max.y + 2.0f), IM_COL32(230, 80, 50, 255), 2.0f);
+                    }
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
+
+                    // Tab ARTIST
+                    bool is_art = (dd_active_tab == 1);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, is_art ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
+                    if (ImGui::SmallButton("ARTIST")) { dd_active_tab = 1; }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
+
+                    // Contador de faixas
+                    ImGui::TextColored(ImVec4(0.90f, 0.38f, 0.22f, 1.0f), "%d TRACKS", (int)dig_matches.size());
+
+                    // Canto Direito: Toggle Already heard + Botão Filters
+                    float right_flt_x = rw - KuroUI::UIScaleManager::Scale(210.0f);
+                    ImGui::SameLine(right_flt_x);
+
+                    if (dd_already_heard_filter) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
+                    if (ImGui::SmallButton("Already heard")) {
+                        dd_already_heard_filter = !dd_already_heard_filter;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.42f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.82f, 0.95f, 0.95f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                    if (ImGui::Button(ICON_FA_SLIDERS " Filters", ImVec2(KuroUI::UIScaleManager::Scale(78.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
+                    // 3. SIMILAR TRACKS SCROLLABLE LIST
+                    float list_h = ImGui::GetContentRegionAvail().y - KuroUI::UIScaleManager::Scale(4.0f);
+                    if (ImGui::BeginChild("##DDSimilarTracksList", ImVec2(rw, list_h), false)) {
+                        ImDrawList* cdl = ImGui::GetWindowDrawList();
+                        float cw = ImGui::GetContentRegionAvail().x;
+
+                        if (spotify_service.isDiggingDeeper()) {
+                            ImGui::Spacing();
+                            ImGui::TextColored(ImVec4(0.92f, 0.45f, 0.25f, 1.0f), ICON_FA_SPINNER " Minerando catálogo do DigDeeper ao vivo...");
+                        } else if (dig_matches.empty()) {
+                            ImGui::Spacing();
+                            ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.80f, 0.90f), "Nenhuma faixa similar encontrada. Clique em DIG DEEPER para minerar.");
+                        } else {
+                            for (size_t di = 0; di < dig_matches.size(); di++) {
+                                const auto& m = dig_matches[di];
+                                ImGui::PushID((int)di + 92000);
+
+                                float row_h = KuroUI::UIScaleManager::Scale(68.0f);
+                                ImVec2 row_p = ImGui::GetCursorScreenPos();
+                                ImGui::Dummy(ImVec2(cw, row_h));
+
+                                bool is_playing_this = (preview_player.isPlaying() && preview_player.getCurrentTitle() == m.title);
+                                bool is_hero_sel = (dd_hero_title == m.title);
+
+                                // Fundo do Card
+                                ImU32 bg_col = is_hero_sel ? IM_COL32(18, 22, 34, 255) : IM_COL32(10, 14, 22, 240);
+                                ImU32 border_col = is_hero_sel ? IM_COL32(230, 80, 50, 200) : IM_COL32(26, 36, 52, 160);
+                                cdl->AddRectFilled(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), bg_col, KuroUI::UIScaleManager::Scale(4.0f));
+                                cdl->AddRect(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), border_col, KuroUI::UIScaleManager::Scale(4.0f), 0, is_hero_sel ? 1.5f : 1.0f);
+
+                                // Mini Thumbnail / Botão Play
+                                float t_sz = KuroUI::UIScaleManager::Scale(48.0f);
+                                ImVec2 t_min = ImVec2(row_p.x + KuroUI::UIScaleManager::Scale(8.0f), row_p.y + (row_h - t_sz) * 0.5f);
+                                ImVec2 t_max = ImVec2(t_min.x + t_sz, t_min.y + t_sz);
+                                cdl->AddRectFilled(t_min, t_max, IM_COL32(16, 20, 30, 255), KuroUI::UIScaleManager::Scale(4.0f));
+
+                                ImGui::SetCursorScreenPos(t_min);
+                                char row_play_id[32]; snprintf(row_play_id, sizeof(row_play_id), "##DDPlayRow_%d", (int)di);
+                                if (ImGui::InvisibleButton(row_play_id, ImVec2(t_sz, t_sz))) {
+                                    dd_hero_title = m.title;
+                                    dd_hero_artist = m.artist;
+                                    dd_hero_label = m.label;
+                                    dd_hero_bpm = m.bpm;
+                                    dd_hero_key = m.camelot_code;
+                                    dd_hero_dur = m.duration_str;
+                                    dd_hero_year = m.year;
+                                    dd_tempo_slider = (float)m.bpm;
+                                    std::string p_src = m.url.empty() ? "scratch/test_astrix.wav" : m.url;
+                                    preview_player.play(p_src, m.id, m.title, m.artist);
+                                }
+                                const char* r_ic = is_playing_this ? ICON_FA_PAUSE : ICON_FA_PLAY;
+                                ImVec2 ric_sz = ImGui::CalcTextSize(r_ic);
+                                cdl->AddText(ImVec2(t_min.x + (t_sz - ric_sz.x) * 0.5f, t_min.y + (t_sz - ric_sz.y) * 0.5f),
+                                             is_playing_this ? IM_COL32(0, 229, 255, 255) : IM_COL32(230, 80, 50, 255), r_ic);
+
+                                // Informações da Faixa (Título, Artista, Label, BPM, Duração, Ano)
+                                float info_x = t_max.x + KuroUI::UIScaleManager::Scale(12.0f);
+                                float title_y = row_p.y + KuroUI::UIScaleManager::Scale(12.0f);
+                                cdl->AddText(ImVec2(info_x, title_y), IM_COL32(255, 255, 255, 255), m.title.c_str());
+
+                                float meta_y = row_p.y + KuroUI::UIScaleManager::Scale(36.0f);
+                                char line2[160];
+                                snprintf(line2, sizeof(line2), "%s  •  %s  •  %.0f BPM  •  %s  •  %s  •  %s",
+                                         m.artist.c_str(), m.label.c_str(), m.bpm, m.camelot_code.c_str(), m.duration_str.c_str(), m.year.c_str());
+                                cdl->AddText(ImVec2(info_x, meta_y), IM_COL32(135, 155, 185, 220), line2);
+
+                                // Bloco Direito: [BUY], [+], [🤍], [🔖], [98% MATCH], [DIG >]
+                                float right_w = KuroUI::UIScaleManager::Scale(330.0f);
+                                float rx = row_p.x + cw - right_w - KuroUI::UIScaleManager::Scale(8.0f);
+                                float ry = row_p.y + (row_h - KuroUI::UIScaleManager::Scale(28.0f)) * 0.5f;
+                                ImGui::SetCursorScreenPos(ImVec2(rx, ry));
+
+                                // 1. Botão BUY / Bandcamp
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
+                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.32f, 0.46f, 0.60f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.65f, 0.78f, 0.95f, 0.95f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                                if (ImGui::Button("BUY", ImVec2(KuroUI::UIScaleManager::Scale(46.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    if (!m.url.empty()) {
+                                        #ifdef _WIN32
+                                        ShellExecuteA(NULL, "open", m.url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+                                        #endif
+                                    }
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 2. Botão [+] Add to library
+                                if (ImGui::Button(ICON_FA_PLUS, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    KuroAudio::DJLibraryTrack lt;
+                                    lt.id = "dig_" + std::to_string(std::hash<std::string>{}(m.title));
+                                    lt.title = m.title;
+                                    lt.artist = m.artist;
+                                    lt.album = m.label;
+                                    lt.bpm = m.bpm;
+                                    lt.key = m.camelot_code;
+                                    lt.duration_sec = 425.0;
+                                    KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
+                                    toast_message = "Adicionada à biblioteca: " + m.title;
+                                    toast_timer = 2.5f;
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 3. Botão [🤍] Like
+                                if (ImGui::Button(ICON_FA_HEART, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    spotify_service.recordDigFeedbackAsync(ref_t, m.title, "like", 0);
+                                    toast_message = "Reforço registrado no Grafo!";
+                                    toast_timer = 2.0f;
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 4. Botão [🔖] Bookmark
+                                if (ImGui::Button(ICON_FA_BOOKMARK, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
+                                ImGui::PopStyleVar(2);
+                                ImGui::PopStyleColor(3);
+
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                                // 5. BADGE MATCH % (ex: 98% MATCH)
+                                ImVec2 match_badge_pos = ImGui::GetCursorScreenPos();
+                                char pct_txt[16]; snprintf(pct_txt, sizeof(pct_txt), "%d%%", m.acoustic_match_pct);
+                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                             IM_COL32(255, 255, 255, 255), pct_txt);
+                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(34.0f)),
+                                             IM_COL32(230, 80, 50, 255), "MATCH");
+
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(54.0f));
+
+                                // 6. BOTÃO DIG > (Re-garimpar a partir desta faixa)
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06f, 0.10f, 0.18f, 0.90f));
+                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.24f, 0.36f, 0.52f, 0.70f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                                if (ImGui::Button("DIG >", ImVec2(KuroUI::UIScaleManager::Scale(62.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                                    spotify_service.digDeeperAsync(m.title, m.artist, m.camelot_code, m.bpm);
+                                    dd_hero_title = m.title;
+                                    dd_hero_artist = m.artist;
+                                    dd_hero_label = m.label;
+                                    dd_hero_bpm = m.bpm;
+                                    dd_hero_key = m.camelot_code;
+                                    dd_hero_dur = m.duration_str;
+                                    dd_hero_year = m.year;
+                                    dd_tempo_slider = (float)m.bpm;
+                                    toast_message = "Garimpando a partir de '" + m.title + "'...";
+                                    toast_timer = 3.0f;
+                                }
+                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir esta faixa como nova referência e minerar novas almas gêmeas!");
+                                ImGui::PopStyleVar(2);
+                                ImGui::PopStyleColor(3);
+
+                                ImGui::PopID();
+                                ImGui::SetCursorScreenPos(ImVec2(row_p.x, row_p.y + row_h + KuroUI::UIScaleManager::Scale(4.0f)));
+                            }
+                        }
+                    }
+                    ImGui::EndChild();
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(2);
+
+                // ────────────────────────────────────────────────────────────────
+                // BOTTOM FLOATING QUICK-BAR (Next 1 Prev, Space Pause, +30s-, 1 Like, Start at 25%)
+                // ────────────────────────────────────────────────────────────────
+                if (dd_show_pill) {
+                    float pill_w = KuroUI::UIScaleManager::Scale(580.0f);
+                    float pill_h = KuroUI::UIScaleManager::Scale(38.0f);
+                    float pill_x = (avail_w - pill_w) * 0.5f;
+                    ImGui::SetCursorScreenPos(ImVec2(pill_x, ImGui::GetCursorScreenPos().y + KuroUI::UIScaleManager::Scale(6.0f)));
+
+                    ImVec2 p_min = ImGui::GetCursorScreenPos();
+                    ImVec2 p_max = ImVec2(p_min.x + pill_w, p_min.y + pill_h);
+                    ImDrawList* pdl = ImGui::GetWindowDrawList();
+
+                    pdl->AddRectFilled(p_min, p_max, IM_COL32(10, 14, 22, 240), KuroUI::UIScaleManager::Scale(19.0f));
+                    pdl->AddRect(p_min, p_max, IM_COL32(0, 229, 255, 90), KuroUI::UIScaleManager::Scale(19.0f), 0, 1.2f);
+
+                    float item_y = p_min.y + KuroUI::UIScaleManager::Scale(7.0f);
+                    float cur_px = p_min.x + KuroUI::UIScaleManager::Scale(16.0f);
+
+                    // Shortcut 1: Next [1] Prev
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Next");
+                    cur_px += KuroUI::UIScaleManager::Scale(42.0f);
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 20.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 6.0f, item_y), IM_COL32(0, 229, 255, 255), "1");
+                    cur_px += KuroUI::UIScaleManager::Scale(26.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Prev");
+                    cur_px += KuroUI::UIScaleManager::Scale(54.0f);
+
+                    // Shortcut 2: Space Pause
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 48.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 6.0f, item_y), IM_COL32(255, 255, 255, 255), "Space");
+                    cur_px += KuroUI::UIScaleManager::Scale(54.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Pause");
+                    cur_px += KuroUI::UIScaleManager::Scale(60.0f);
+
+                    // Shortcut 3: + 30s -
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "+  30s  -");
+                    cur_px += KuroUI::UIScaleManager::Scale(68.0f);
+
+                    // Shortcut 4: 1 Like
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 18.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 5.0f, item_y), IM_COL32(0, 229, 255, 255), "L");
+                    cur_px += KuroUI::UIScaleManager::Scale(24.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Like");
+                    cur_px += KuroUI::UIScaleManager::Scale(48.0f);
+
+                    // Shortcut 5: Start at 25% switch
+                    ImGui::SetCursorScreenPos(ImVec2(cur_px, item_y - KuroUI::UIScaleManager::Scale(2.0f)));
+                    if (dd_start_at_25) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
+                    if (ImGui::SmallButton("Start at 25%")) {
+                        dd_start_at_25 = !dd_start_at_25;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+
+                    // Close button
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(12.0f));
+                    if (ImGui::SmallButton("✕")) {
+                        dd_show_pill = false;
+                    }
+                }
+            } else {
             // ── 3. PAINÉIS LADO A LADO (SPLIT DASHBOARD) ────────────────────────
             float split_h = ImGui::GetContentRegionAvail().y - 74.0f; // reserva perfeita para o Audition Dock inferior
             if (split_h < 300.0f) split_h = 300.0f;
@@ -21425,35 +22375,67 @@ private:
                             mini_badge("BP®", ImVec4(0.00f, 0.70f, 1.00f, 1.0f));
                             mini_badge("YT®", ImVec4(1.00f, 0.25f, 0.28f, 1.0f));
 
-                            // Col 7: Ação (Fiel ao Mockup: [ ⚡ NO DECK ] ou [ Abduzir ])
+                            // Col 7: Ação 4-Decks Nativos ([⚡ D1] [D2] [D3] [D4] + Dig Deeper)
                             ImGui::TableSetColumnIndex(7);
                             ImGui::PushID(r_idx + 61000);
                             bool is_dl = (spotify_service.isDownloading() && spotify_service.getDownloadingTrackId() == sr.id);
                             if (is_dl) {
                                 int pct = (int)spotify_service.getDownloadProgressPct();
                                 ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_BOLT " %d%%", pct > 0 ? pct : 1);
-                            } else if (is_sel) {
-                                // Botão Ciano/Verde Sólido ⚡ NO DECK (Fiel ao Mockup)
-                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.88f, 0.78f, 1.0f));
-                                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.10f, 1.00f, 0.88f, 1.0f));
-                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.01f, 0.05f, 0.08f, 1.0f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-                                if (ImGui::Button(ICON_FA_BOLT " NO DECK", ImVec2(KuroUI::UIScaleManager::Scale(118.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
-                                    int act_deck = ddj_hardware.getActiveLeftDeck();
-                                    spotify_service.downloadSourceDirectAsync(sr.id, sr.title, sr.artist, "", act_deck, sr.subgenre);
-                                }
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Faixa carregada/ativa no Deck");
-                                ImGui::PopStyleVar();
-                                ImGui::PopStyleColor(3);
                             } else {
-                                // Botão Escuro Elegante Abduzir (Fiel ao Mockup)
-                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.12f, 0.18f, 0.90f));
-                                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.00f, 0.55f, 0.50f, 0.95f));
-                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.32f, 0.45f, 0.70f));
-                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.90f, 0.98f, 0.95f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                                struct HubDeckLoadDef { int id; const char* lbl; ImVec4 col; };
+                                HubDeckLoadDef ddefs[4] = {
+                                    { 0, "D1", col_deck_1 },
+                                    { 1, "D2", col_deck_2 },
+                                    { 2, "D3", col_deck_3 },
+                                    { 3, "D4", col_deck_4 }
+                                };
+                                float btn_dw = KuroUI::UIScaleManager::Scale(32.0f);
+                                float btn_dh = KuroUI::UIScaleManager::Scale(24.0f);
+                                for (int di = 0; di < 4; di++) {
+                                    const auto& dd = ddefs[di];
+                                    bool is_tgt = (hub_target_deck == dd.id);
+                                    ImGui::PushStyleColor(ImGuiCol_Button, is_tgt ? ImVec4(dd.col.x * 0.40f, dd.col.y * 0.40f, dd.col.z * 0.40f, 0.95f)
+                                                                                  : ImVec4(0.08f, 0.12f, 0.18f, 0.85f));
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(dd.col.x * 0.70f, dd.col.y * 0.70f, dd.col.z * 0.70f, 1.0f));
+                                    ImGui::PushStyleColor(ImGuiCol_Border, dd.col);
+                                    ImGui::PushStyleColor(ImGuiCol_Text, is_tgt ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : dd.col);
+                                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
+                                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, is_tgt ? 1.5f : 1.0f);
+                                    char d_btn_id[24]; snprintf(d_btn_id, sizeof(d_btn_id), "%s%s", is_tgt ? "⚡" : "", dd.lbl);
+                                    if (ImGui::Button(d_btn_id, ImVec2(btn_dw, btn_dh))) {
+                                        hub_target_deck = dd.id;
+                                        selected_source_track_id = sr.id;
+                                        selected_source_track_title = sr.title;
+                                        selected_source_track_artist = sr.artist;
+                                        selected_source_track_album = sr.album;
+                                        selected_source_track_bpm = sr.bpm;
+                                        selected_source_track_key = sr.key;
+                                        selected_source_track_subgenre = sr.subgenre;
+                                        selected_source_track_dur = sr.duration_sec;
+                                        selected_source_track_art_url = sr.artwork_url;
+                                        spotify_service.downloadSourceDirectAsync(sr.id, sr.title, sr.artist, "", dd.id, sr.subgenre);
+                                        toast_message = std::string(ICON_FA_BOLT) + " Carregando no DECK " + std::to_string(dd.id + 1) + ": " + sr.title;
+                                        toast_timer = 3.5f;
+                                    }
+                                    if (ImGui::IsItemHovered()) {
+                                        ImGui::SetTooltip("Abduzir e carregar diretamente no DECK %d (%s)", dd.id + 1,
+                                                          (dd.id == 0 || dd.id == 2) ? "Esquerdo" : "Direito");
+                                    }
+                                    ImGui::PopStyleVar(2);
+                                    ImGui::PopStyleColor(4);
+                                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+                                }
+
+                                // Botão Dig Deeper compacto
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.10f, 0.48f, 0.90f));
+                                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.18f, 0.72f, 1.0f));
+                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.30f, 1.00f, 0.85f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
                                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                                if (ImGui::Button("Abduzir", ImVec2(KuroUI::UIScaleManager::Scale(105.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                char row_dig_id[32]; snprintf(row_dig_id, sizeof(row_dig_id), "%s##DigRow_%d", ICON_FA_COMPACT_DISC, r_idx);
+                                if (ImGui::Button(row_dig_id, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), btn_dh))) {
                                     selected_source_track_id = sr.id;
                                     selected_source_track_title = sr.title;
                                     selected_source_track_artist = sr.artist;
@@ -21461,42 +22443,13 @@ private:
                                     selected_source_track_bpm = sr.bpm;
                                     selected_source_track_key = sr.key;
                                     selected_source_track_subgenre = sr.subgenre;
-                                    selected_source_track_dur = sr.duration_sec;
-                                    selected_source_track_art_url = sr.artwork_url;
-                                    spotify_service.searchSourcesAsync(sr.id, sr.title, sr.artist);
-                                    std::string p_src = sr.local_wav_path.empty() ? (sr.preview_url.empty() ? sr.direct_url : sr.preview_url) : sr.local_wav_path;
-                                    if (!p_src.empty()) {
-                                        preview_player.play(p_src, sr.id, sr.title, sr.artist);
-                                    }
+                                    spotify_service.digDeeperAsync(sr.title, sr.artist, sr.key, sr.bpm);
+                                    spotify_service.show_dig_deeper_view = true;
                                 }
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Inspecionar matrizes de fontes no painel direito e ouvir preview");
+                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Dig Deeper: minerar almas gêmeas acústicas para '%s'", sr.title.c_str());
                                 ImGui::PopStyleVar(2);
                                 ImGui::PopStyleColor(4);
                             }
-
-                            // Botão Dig Deeper na linha da tabela (Ícone Magic Sparkles de Alta Fidelidade)
-                            ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-                            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.10f, 0.48f, 0.90f));
-                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.55f, 0.18f, 0.72f, 1.0f));
-                            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.85f, 0.30f, 1.00f, 0.85f));
-                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-                            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                            char row_dig_id[32]; snprintf(row_dig_id, sizeof(row_dig_id), "%s##DigRow_%d", ICON_FA_WAND_MAGIC_SPARKLES, r_idx);
-                            if (ImGui::Button(row_dig_id, ImVec2(KuroUI::UIScaleManager::Scale(28.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
-                                selected_source_track_id = sr.id;
-                                selected_source_track_title = sr.title;
-                                selected_source_track_artist = sr.artist;
-                                selected_source_track_album = sr.album;
-                                selected_source_track_bpm = sr.bpm;
-                                selected_source_track_key = sr.key;
-                                selected_source_track_subgenre = sr.subgenre;
-                                spotify_service.digDeeperAsync(sr.title, sr.artist, sr.key, sr.bpm);
-                                spotify_service.show_dig_deeper_view = true;
-                            }
-                            if (ImGui::IsItemHovered()) ImGui::SetTooltip(ICON_FA_WAND_MAGIC_SPARKLES " Dig Deeper: minerar almas gêmeas acústicas para '%s'", sr.title.c_str());
-                            ImGui::PopStyleVar(2);
-                            ImGui::PopStyleColor(4);
 
                             ImGui::PopID();
                         }
@@ -21595,10 +22548,10 @@ private:
                 ImGui::SetCursorScreenPos(ImVec2(rh_pos.x, rh_pos.y + 34.0f));
 
                 // ── HERO BOX DA FAIXA SELECIONADA (Thumbnail Ampliada com Destaque Máximo) ──────
-                float hero_h = KuroUI::UIScaleManager::Scale(152.0f);
+                float hero_h = KuroUI::UIScaleManager::Scale(168.0f);
                 ImVec2 hero_p = ImGui::GetCursorScreenPos();
                 rdl->AddRectFilled(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(8, 14, 22, 255), KuroUI::UIScaleManager::Scale(6.0f));
-                rdl->AddRect(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(0, 220, 200, 120), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.5f);
+                rdl->AddRect(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(0, 220, 200, 140), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.5f);
 
                 // Thumbnail / Capa Oficial da Faixa em Alta Fidelidade
                 static std::string s_last_loaded_art_id = "";
@@ -21622,28 +22575,57 @@ private:
                     }
                 }
 
-                float art_sz = KuroUI::UIScaleManager::Scale(126.0f);
-                ImVec2 art_p = ImVec2(hero_p.x + KuroUI::UIScaleManager::Scale(12.0f), hero_p.y + (hero_h - art_sz) * 0.5f);
+                // Fallback: Se ainda não carregou textura exclusiva, herdar do deck alvo ou de qualquer deck ativo
+                if (selected_source_track_tex == 0) {
+                    if (engine.decks[hub_target_deck].has_cover_texture && engine.decks[hub_target_deck].gl_cover_texture > 0) {
+                        selected_source_track_tex = engine.decks[hub_target_deck].gl_cover_texture;
+                    } else {
+                        for (int di = 0; di < 4; di++) {
+                            if (engine.decks[di].has_cover_texture && engine.decks[di].gl_cover_texture > 0) {
+                                selected_source_track_tex = engine.decks[di].gl_cover_texture;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                float art_sz = KuroUI::UIScaleManager::Scale(142.0f);
+                ImVec2 art_p = ImVec2(hero_p.x + KuroUI::UIScaleManager::Scale(13.0f), hero_p.y + (hero_h - art_sz) * 0.5f);
                 if (selected_source_track_tex > 0) {
-                    // Renderiza a Capa Real Carregada
+                    // Renderiza a Capa Real Carregada com Glow e Destaque
                     rdl->AddImageRounded((ImTextureID)(intptr_t)selected_source_track_tex,
                                          art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz),
                                          ImVec2(0, 0), ImVec2(1, 1), IM_COL32_WHITE, KuroUI::UIScaleManager::Scale(6.0f));
                     rdl->AddRect(art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz),
-                                 IM_COL32(0, 245, 212, 220), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.8f);
+                                 IM_COL32(0, 245, 212, 240), KuroUI::UIScaleManager::Scale(6.0f), 0, 2.0f);
+                    ImVec2 hd_min = ImVec2(art_p.x + KuroUI::UIScaleManager::Scale(4.0f), art_p.y + art_sz - KuroUI::UIScaleManager::Scale(18.0f));
+                    ImVec2 hd_max = ImVec2(hd_min.x + KuroUI::UIScaleManager::Scale(58.0f), art_p.y + art_sz - KuroUI::UIScaleManager::Scale(4.0f));
+                    rdl->AddRectFilled(hd_min, hd_max, IM_COL32(10, 16, 26, 220), KuroUI::UIScaleManager::Scale(2.5f));
+                    rdl->AddText(ImVec2(hd_min.x + KuroUI::UIScaleManager::Scale(4.0f), hd_min.y + KuroUI::UIScaleManager::Scale(1.0f)),
+                                 IM_COL32(0, 255, 180, 255), "HD 600px");
                 } else {
-                    // Vinyl Artwork com Ranhuras Acústicas e Selo Central (Zero sobreposição de texto)
-                    rdl->AddRectFilled(art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz), IM_COL32(12, 16, 24, 255), KuroUI::UIScaleManager::Scale(6.0f));
-                    rdl->AddRect(art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz), IM_COL32(0, 245, 212, 180), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.5f);
+                    // Holographic Vinyl Artwork com Ranhuras Acústicas, Selo Central Colorido e Inscrições
+                    rdl->AddRectFilled(art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz), IM_COL32(12, 16, 25, 255), KuroUI::UIScaleManager::Scale(6.0f));
+                    rdl->AddRect(art_p, ImVec2(art_p.x + art_sz, art_p.y + art_sz), IM_COL32(0, 245, 212, 200), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.8f);
                     float cax = art_p.x + art_sz * 0.5f, cay = art_p.y + art_sz * 0.5f;
-                    rdl->AddCircleFilled(ImVec2(cax, cay), art_sz * 0.44f, IM_COL32(6, 8, 12, 255), 32);
-                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.44f, IM_COL32(32, 45, 60, 200), 32, 1.0f);
-                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.36f, IM_COL32(24, 34, 48, 180), 32, 1.0f);
-                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.28f, IM_COL32(38, 52, 70, 180), 32, 1.0f);
-                    rdl->AddCircleFilled(ImVec2(cax, cay), art_sz * 0.18f, IM_COL32(0, 200, 175, 255), 24);
-                    rdl->AddCircleFilled(ImVec2(cax, cay), KuroUI::UIScaleManager::Scale(3.5f), IM_COL32(10, 14, 20, 255), 16);
-                    ImVec2 cd_sz = ImGui::CalcTextSize(ICON_FA_COMPACT_DISC);
-                    rdl->AddText(ImVec2(cax - cd_sz.x * 0.5f, cay - cd_sz.y * 0.5f), IM_COL32(10, 15, 22, 255), ICON_FA_COMPACT_DISC);
+                    rdl->AddCircleFilled(ImVec2(cax, cay), art_sz * 0.44f, IM_COL32(8, 10, 16, 255), 32);
+                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.44f, IM_COL32(40, 56, 75, 220), 32, 1.2f);
+                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.36f, IM_COL32(28, 42, 58, 200), 32, 1.0f);
+                    rdl->AddCircle(ImVec2(cax, cay), art_sz * 0.28f, IM_COL32(42, 60, 82, 200), 32, 1.0f);
+                    
+                    ImVec4 tgt_col = (hub_target_deck == 0) ? col_deck_1 : ((hub_target_deck == 1) ? col_deck_2 : ((hub_target_deck == 2) ? col_deck_3 : col_deck_4));
+                    rdl->AddCircleFilled(ImVec2(cax, cay), art_sz * 0.19f, ImGui::GetColorU32(tgt_col), 28);
+                    rdl->AddCircleFilled(ImVec2(cax, cay), KuroUI::UIScaleManager::Scale(4.0f), IM_COL32(10, 14, 20, 255), 16);
+                    
+                    std::string k_mark = selected_source_track_key.empty() ? "12A" : selected_source_track_key.substr(0, 3);
+                    ImVec2 km_sz = ImGui::CalcTextSize(k_mark.c_str());
+                    rdl->AddText(ImVec2(cax - km_sz.x * 0.5f, cay - km_sz.y * 0.5f), IM_COL32(0, 0, 0, 255), k_mark.c_str());
+                    
+                    ImVec2 bm_min = ImVec2(art_p.x + KuroUI::UIScaleManager::Scale(4.0f), art_p.y + art_sz - KuroUI::UIScaleManager::Scale(18.0f));
+                    ImVec2 bm_max = ImVec2(bm_min.x + KuroUI::UIScaleManager::Scale(68.0f), art_p.y + art_sz - KuroUI::UIScaleManager::Scale(4.0f));
+                    rdl->AddRectFilled(bm_min, bm_max, IM_COL32(10, 16, 26, 220), KuroUI::UIScaleManager::Scale(2.5f));
+                    rdl->AddText(ImVec2(bm_min.x + KuroUI::UIScaleManager::Scale(4.0f), bm_min.y + KuroUI::UIScaleManager::Scale(1.0f)),
+                                 IM_COL32(0, 220, 255, 255), "VINYL MASTER");
                 }
 
                 // Textos do Hero Box com layout DPI espaçoso
@@ -21720,7 +22702,7 @@ private:
                                                int score, ImVec4 border_col, bool is_solid_btn, ImVec4 btn_col, const char* btn_lbl,
                                                const std::string& url) {
                     float cw = ImGui::GetContentRegionAvail().x;
-                    float ch = KuroUI::UIScaleManager::Scale(104.0f);
+                    float ch = KuroUI::UIScaleManager::Scale(114.0f);
                     ImVec2 cp = ImGui::GetCursorScreenPos();
                     ImGui::Dummy(ImVec2(cw, ch));
 
@@ -21728,66 +22710,30 @@ private:
                     rdl->AddRect(cp, ImVec2(cp.x + cw, cp.y + ch), ImGui::GetColorU32(border_col), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.4f);
 
                     // Ícone oficial autêntico da plataforma (Vetor de Alta Fidelidade)
-                    float ic_r = KuroUI::UIScaleManager::Scale(20.0f);
-                    float icx = cp.x + KuroUI::UIScaleManager::Scale(30.0f), icy = cp.y + ch * 0.5f;
+                    float ic_r = KuroUI::UIScaleManager::Scale(22.0f);
+                    float icx = cp.x + KuroUI::UIScaleManager::Scale(32.0f);
+                    float icy = cp.y + ch * 0.5f;
                     drawPlatformBrandIcon(rdl, plat_type, ImVec2(icx, icy), ic_r);
 
-                    // Botão de Download no Extremo Direito (Responsivo e dinamicamente proporcional)
-                    float btn_w = std::clamp(cw * 0.28f, KuroUI::UIScaleManager::Scale(130.0f), KuroUI::UIScaleManager::Scale(200.0f));
-                    float btn_h = KuroUI::UIScaleManager::Scale(36.0f);
-                    float btn_x = cp.x + cw - btn_w - KuroUI::UIScaleManager::Scale(12.0f);
-                    float btn_y = cp.y + (ch - btn_h) * 0.5f;
+                    // Bloco Direito: Ações e Pureza Espectral Agrupados Verticalmente (Sem Colisão)
+                    float right_cluster_w = KuroUI::UIScaleManager::Scale(185.0f);
+                    float right_cluster_x = cp.x + cw - right_cluster_w - KuroUI::UIScaleManager::Scale(12.0f);
 
-                    // Bloco de Estrelas & Pureza Espectral: Responsivo para nunca engolir os textos
-                    float stars_x = btn_x;
-                    if (cw > KuroUI::UIScaleManager::Scale(680.0f)) {
-                        float stars_w = KuroUI::UIScaleManager::Scale(130.0f);
-                        stars_x = btn_x - stars_w - KuroUI::UIScaleManager::Scale(14.0f);
-                        float stars_y = cp.y + (ch - KuroUI::UIScaleManager::Scale(36.0f)) * 0.5f;
-                        char score_str[32]; snprintf(score_str, sizeof(score_str), "%s %s %s %s %s %d%%",
-                            ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, score);
-                        rdl->AddText(ImVec2(stars_x, stars_y), IM_COL32(255, 215, 50, 255), score_str);
-                        rdl->AddText(ImVec2(stars_x, stars_y + KuroUI::UIScaleManager::Scale(18.0f)), IM_COL32(130, 165, 205, 190), "Pureza Espectral");
-                    } else {
-                        float badge_w = KuroUI::UIScaleManager::Scale(76.0f);
-                        stars_x = btn_x - badge_w - KuroUI::UIScaleManager::Scale(10.0f);
-                        float badge_h = KuroUI::UIScaleManager::Scale(22.0f);
-                        float badge_y = cp.y + (ch - badge_h) * 0.5f;
-                        rdl->AddRectFilled(ImVec2(stars_x, badge_y), ImVec2(stars_x + badge_w, badge_y + badge_h), IM_COL32(20, 28, 42, 220), KuroUI::UIScaleManager::Scale(3.0f));
-                        rdl->AddRect(ImVec2(stars_x, badge_y), ImVec2(stars_x + badge_w, badge_y + badge_h), IM_COL32(255, 215, 50, 160), KuroUI::UIScaleManager::Scale(3.0f), 0, 1.0f);
-                        char b_txt[24]; snprintf(b_txt, sizeof(b_txt), "%s %d%%", ICON_FA_STAR, score);
-                        ImVec2 sz_bt = ImGui::CalcTextSize(b_txt);
-                        rdl->AddText(ImVec2(stars_x + (badge_w - sz_bt.x) * 0.5f, badge_y + (badge_h - sz_bt.y) * 0.5f), IM_COL32(255, 215, 50, 255), b_txt);
-                    }
+                    // 1. Topo Direito: Estrelas & Pureza Espectral
+                    float stars_y = cp.y + KuroUI::UIScaleManager::Scale(12.0f);
+                    char score_str[48];
+                    snprintf(score_str, sizeof(score_str), "%s %s %s %s %s %d%%",
+                             ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, ICON_FA_STAR, score);
+                    rdl->AddText(ImVec2(right_cluster_x, stars_y), IM_COL32(255, 215, 50, 255), score_str);
+                    rdl->AddText(ImVec2(right_cluster_x, stars_y + KuroUI::UIScaleManager::Scale(17.0f)),
+                                 IM_COL32(140, 175, 210, 200), "Pureza Espectral (Lossless)");
 
-                    // Textos do Provedor (Título, Sub1, Sub2) com margens seguras anti-fatiamento e área ampla
-                    float tx = cp.x + KuroUI::UIScaleManager::Scale(62.0f);
-                    float text_right_limit = stars_x - KuroUI::UIScaleManager::Scale(10.0f);
-                    if (text_right_limit > tx + 20.0f) {
-                        rdl->PushClipRect(ImVec2(tx, cp.y), ImVec2(text_right_limit, cp.y + ch), true);
-                    }
+                    // 2. Base Direita: Botão Principal de Abdução + Pílulas de Deck [1][2][3][4]
+                    float btn_w = right_cluster_w - KuroUI::UIScaleManager::Scale(76.0f);
+                    float btn_h = KuroUI::UIScaleManager::Scale(32.0f);
+                    float btn_y = cp.y + ch - btn_h - KuroUI::UIScaleManager::Scale(12.0f);
 
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(13.0f)));
-                    ImGui::PushStyleColor(ImGuiCol_Text, border_col);
-                    ImGui::TextUnformatted(name);
-                    ImGui::PopStyleColor();
-
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(38.0f)));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.85f, 0.95f, 0.90f));
-                    ImGui::TextUnformatted(sub1);
-                    ImGui::PopStyleColor();
-
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(63.0f)));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.62f, 0.75f, 0.85f));
-                    ImGui::TextUnformatted(sub2);
-                    ImGui::PopStyleColor();
-
-                    if (text_right_limit > tx + 20.0f) {
-                        rdl->PopClipRect();
-                    }
-
-                    // Render do Botão
-                    ImGui::SetCursorScreenPos(ImVec2(btn_x, btn_y));
+                    ImGui::SetCursorScreenPos(ImVec2(right_cluster_x, btn_y));
                     if (is_solid_btn) {
                         ImGui::PushStyleColor(ImGuiCol_Button, btn_col);
                         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(btn_col.x + 0.15f, btn_col.y + 0.15f, btn_col.z + 0.10f, 1.0f));
@@ -21798,21 +22744,90 @@ private:
                         ImGui::PushStyleColor(ImGuiCol_Border, btn_col);
                         ImGui::PushStyleColor(ImGuiCol_Text, btn_col);
                     }
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(5.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
                     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
-                    if (ImGui::Button(btn_lbl, ImVec2(btn_w, btn_h))) {
+                    char d_main_lbl[64];
+                    snprintf(d_main_lbl, sizeof(d_main_lbl), "%s (D%d)", btn_lbl, hub_target_deck + 1);
+                    if (ImGui::Button(d_main_lbl, ImVec2(btn_w, btn_h))) {
                         if (!selected_source_track_id.empty()) {
                             spotify_service.downloadSourceDirectAsync(selected_source_track_id,
-                                selected_source_track_title, selected_source_track_artist, url, 0, selected_source_track_subgenre);
-                            toast_message = std::string(ICON_FA_DOWNLOAD) + " Abduzindo " + selected_source_track_title + " [" + name + "]";
+                                selected_source_track_title, selected_source_track_artist, url, hub_target_deck, selected_source_track_subgenre);
+                            toast_message = std::string(ICON_FA_DOWNLOAD) + " Abduzindo para o Deck " + std::to_string(hub_target_deck + 1) + ": " + selected_source_track_title;
                             toast_timer = 4.0f;
                         }
                     }
                     ImGui::PopStyleVar(2);
                     ImGui::PopStyleColor(is_solid_btn ? 3 : 4);
 
-                    // RESTAURAÇÃO CRÍTICA DO CURSOR IMGUI: Garante que o próximo card comece abaixo deste com espaçamento limpo
-                    ImGui::SetCursorScreenPos(ImVec2(cp.x, cp.y + ch + KuroUI::UIScaleManager::Scale(8.0f)));
+                    // Pílulas Rápidas de Destino [1][2][3][4]
+                    float dpill_w = KuroUI::UIScaleManager::Scale(16.0f);
+                    float dpills_x = right_cluster_x + btn_w + KuroUI::UIScaleManager::Scale(4.0f);
+                    struct QuickDeckPill { int id; const char* lbl; ImVec4 col; };
+                    QuickDeckPill qdpills[4] = {
+                        { 0, "1", col_deck_1 },
+                        { 1, "2", col_deck_2 },
+                        { 2, "3", col_deck_3 },
+                        { 3, "4", col_deck_4 }
+                    };
+                    for (int di = 0; di < 4; di++) {
+                        const auto& qp = qdpills[di];
+                        bool is_tgt = (hub_target_deck == qp.id);
+                        float qpx = dpills_x + (di % 2) * (dpill_w + KuroUI::UIScaleManager::Scale(2.5f));
+                        float qpy = btn_y + (di / 2) * (btn_h * 0.5f);
+                        ImVec2 qp_min = ImVec2(qpx, qpy);
+                        ImVec2 qp_max = ImVec2(qpx + dpill_w, qpy + btn_h * 0.5f - 1.0f);
+
+                        rdl->AddRectFilled(qp_min, qp_max, is_tgt ? ImGui::GetColorU32(qp.col) : IM_COL32(18, 24, 34, 230), KuroUI::UIScaleManager::Scale(2.0f));
+                        rdl->AddRect(qp_min, qp_max, ImGui::GetColorU32(qp.col), KuroUI::UIScaleManager::Scale(2.0f), 0, is_tgt ? 1.5f : 1.0f);
+                        ImVec2 tsz_qp = ImGui::CalcTextSize(qp.lbl);
+                        rdl->AddText(ImVec2(qp_min.x + (dpill_w - tsz_qp.x) * 0.5f, qp_min.y + (qp_max.y - qp_min.y - tsz_qp.y) * 0.5f),
+                                     is_tgt ? IM_COL32(0, 0, 0, 255) : ImGui::GetColorU32(qp.col), qp.lbl);
+
+                        ImGui::SetCursorScreenPos(qp_min);
+                        char qp_bid[32]; snprintf(qp_bid, sizeof(qp_bid), "##SrcCardPill_%d_%d", plat_type, qp.id);
+                        if (ImGui::InvisibleButton(qp_bid, ImVec2(dpill_w, btn_h * 0.5f - 1.0f))) {
+                            hub_target_deck = qp.id;
+                            if (!selected_source_track_id.empty()) {
+                                spotify_service.downloadSourceDirectAsync(selected_source_track_id,
+                                    selected_source_track_title, selected_source_track_artist, url, qp.id, selected_source_track_subgenre);
+                                toast_message = std::string(ICON_FA_DOWNLOAD) + " Abduzindo para o Deck " + std::to_string(qp.id + 1) + ": " + selected_source_track_title;
+                                toast_timer = 4.0f;
+                            }
+                        }
+                        if (ImGui::IsItemHovered()) {
+                            ImGui::SetTooltip("Abduzir diretamente para o DECK %d (%s)", qp.id + 1,
+                                              (qp.id == 0 || qp.id == 2) ? "Esquerdo" : "Direito");
+                        }
+                    }
+
+                    // Textos do Provedor (Título, Sub1, Sub2) - Margens Amplas sem Fatiamento
+                    float tx = cp.x + KuroUI::UIScaleManager::Scale(66.0f);
+                    float text_right_limit = right_cluster_x - KuroUI::UIScaleManager::Scale(12.0f);
+                    if (text_right_limit > tx + 20.0f) {
+                        rdl->PushClipRect(ImVec2(tx, cp.y), ImVec2(text_right_limit, cp.y + ch), true);
+                    }
+
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(14.0f)));
+                    ImGui::PushStyleColor(ImGuiCol_Text, border_col);
+                    ImGui::TextUnformatted(name);
+                    ImGui::PopStyleColor();
+
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(42.0f)));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.88f, 0.98f, 0.95f));
+                    ImGui::TextUnformatted(sub1);
+                    ImGui::PopStyleColor();
+
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(70.0f)));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.82f, 0.90f));
+                    ImGui::TextUnformatted(sub2);
+                    ImGui::PopStyleColor();
+
+                    if (text_right_limit > tx + 20.0f) {
+                        rdl->PopClipRect();
+                    }
+
+                    // RESTAURAÇÃO DO CURSOR IMGUI COM ESPAÇAMENTO SEGURO
+                    ImGui::SetCursorScreenPos(ImVec2(cp.x, cp.y + ch + KuroUI::UIScaleManager::Scale(10.0f)));
                     ImGui::Dummy(ImVec2(cw, KuroUI::UIScaleManager::Scale(2.0f)));
                 };
 
@@ -22229,6 +23244,7 @@ private:
                 ImGui::PopStyleColor(4);
                 ImGui::SameLine(0, 4.0f);
             }
+            } // Fecha o else de if (!spotify_service.show_dig_deeper_view)
         }
 
         else if (cloud_hub_active_tab == 1) {
@@ -22839,24 +23855,19 @@ private:
                 setlist_mgr.moveItem(si, si + 1);
               ImGui::SameLine(0, 3.0f);
             }
-            char b_d1[16];
-            snprintf(b_d1, sizeof(b_d1), "D%d", left_id + 1);
-            if (ImGui::SmallButton(b_d1)) {
-              auto *trk_p =
-                  KuroAudio::DJLibraryManager::getInstance().getTrackById(
-                      it.track_id);
-              if (trk_p)
-                spotify_service.loadLibraryTrack(*trk_p, left_id, engine);
-            }
-            ImGui::SameLine(0, 3.0f);
-            char b_d2[16];
-            snprintf(b_d2, sizeof(b_d2), "D%d", right_id + 1);
-            if (ImGui::SmallButton(b_d2)) {
-              auto *trk_p =
-                  KuroAudio::DJLibraryManager::getInstance().getTrackById(
-                      it.track_id);
-              if (trk_p)
-                spotify_service.loadLibraryTrack(*trk_p, right_id, engine);
+            for (int di = 0; di < 4; di++) {
+              char b_dn[16];
+              snprintf(b_dn, sizeof(b_dn), "D%d", di + 1);
+              if (ImGui::SmallButton(b_dn)) {
+                auto *trk_p =
+                    KuroAudio::DJLibraryManager::getInstance().getTrackById(
+                        it.track_id);
+                if (trk_p)
+                  spotify_service.loadLibraryTrack(*trk_p, di, engine);
+              }
+              if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Carregar no Deck %d", di + 1);
+              ImGui::SameLine(0, 3.0f);
             }
             ImGui::SameLine(0, 6.0f);
             if (ImGui::SmallButton("✕")) {
@@ -24410,15 +25421,49 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
       ImGui::PushStyleColor(ImGuiCol_Button,
                             ImVec4(0.10f, 0.35f, 0.45f, 0.85f));
       if (ImGui::SmallButton(ICON_FA_FOLDER_PLUS " + IMPORTAR ÁUDIO")) {
-        std::string local_path = KuroUI::FileDialog::OpenFile(
-            "Audio Files "
-            "(*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files "
-            "(*.*)\0*.*\0");
-        if (!local_path.empty()) {
-          spotify_service.importLocalTrack(local_path);
-        }
+        ImGui::OpenPopup("ModalImportAudioPopup");
       }
       ImGui::PopStyleColor();
+
+      if (ImGui::BeginPopup("ModalImportAudioPopup")) {
+        ImGui::TextColored(ImVec4(0.0f, 0.90f, 1.0f, 1.0f), ICON_FA_FOLDER_PLUS " IMPORTAR PARA BIBLIOTECA");
+        ImGui::Separator();
+        if (ImGui::MenuItem(ICON_FA_MUSIC " Importar Arquivo...")) {
+          std::string p = KuroUI::FileDialog::OpenFile("Audio Files (*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files (*.*)\0*.*\0");
+          if (!p.empty()) spotify_service.importLocalTrack(p);
+        }
+        ImGui::Separator();
+        ImGui::TextDisabled("Importar e carregar direto no Deck:");
+        if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 1")) {
+          std::string p = KuroUI::FileDialog::OpenFile("Audio Files (*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files (*.*)\0*.*\0");
+          if (!p.empty()) {
+            spotify_service.importLocalTrack(p);
+            engine.decks[0].loadTrack(p);
+          }
+        }
+        if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 2")) {
+          std::string p = KuroUI::FileDialog::OpenFile("Audio Files (*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files (*.*)\0*.*\0");
+          if (!p.empty()) {
+            spotify_service.importLocalTrack(p);
+            engine.decks[1].loadTrack(p);
+          }
+        }
+        if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 3")) {
+          std::string p = KuroUI::FileDialog::OpenFile("Audio Files (*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files (*.*)\0*.*\0");
+          if (!p.empty()) {
+            spotify_service.importLocalTrack(p);
+            engine.decks[2].loadTrack(p);
+          }
+        }
+        if (ImGui::MenuItem("⚡ Importar e Carregar no DECK 4")) {
+          std::string p = KuroUI::FileDialog::OpenFile("Audio Files (*.wav;*.mp3;*.flac;*.ogg)\0*.wav;*.mp3;*.flac;*.ogg\0All Files (*.*)\0*.*\0");
+          if (!p.empty()) {
+            spotify_service.importLocalTrack(p);
+            engine.decks[3].loadTrack(p);
+          }
+        }
+        ImGui::EndPopup();
+      }
 
       ImGui::SameLine(0, 4.0f);
       ImGui::PushStyleColor(ImGuiCol_Button,
@@ -24979,28 +26024,27 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
 
                 ImGui::Separator();
 
-                // 2. Carregamento nos Decks
-                char m_l[64];
-                snprintf(m_l, sizeof(m_l),
-                         ICON_FA_ARROW_DOWN " Carregar no DECK %d",
-                         left_id + 1);
-                if (ImGui::MenuItem(m_l)) {
-                  if (t.is_downloaded)
-                    spotify_service.loadLibraryTrack(t, left_id, engine);
-                  else
-                    spotify_service.downloadLibraryTrackAsync(t, left_id,
-                                                              engine);
+                // 2. Carregamento nos 4 Decks
+                char ml1[64], ml2[64], ml3[64], ml4[64];
+                snprintf(ml1, sizeof(ml1), ICON_FA_ARROW_DOWN " Carregar no DECK 1 %s", left_id == 0 ? "(Ativo L)" : "");
+                snprintf(ml2, sizeof(ml2), ICON_FA_ARROW_DOWN " Carregar no DECK 2 %s", right_id == 1 ? "(Ativo R)" : "");
+                snprintf(ml3, sizeof(ml3), ICON_FA_ARROW_DOWN " Carregar no DECK 3 %s", left_id == 2 ? "(Ativo L)" : "");
+                snprintf(ml4, sizeof(ml4), ICON_FA_ARROW_DOWN " Carregar no DECK 4 %s", right_id == 3 ? "(Ativo R)" : "");
+                if (ImGui::MenuItem(ml1)) {
+                  if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 0, engine);
+                  else spotify_service.downloadLibraryTrackAsync(t, 0, engine);
                 }
-                char m_r[64];
-                snprintf(m_r, sizeof(m_r),
-                         ICON_FA_ARROW_DOWN " Carregar no DECK %d",
-                         right_id + 1);
-                if (ImGui::MenuItem(m_r)) {
-                  if (t.is_downloaded)
-                    spotify_service.loadLibraryTrack(t, right_id, engine);
-                  else
-                    spotify_service.downloadLibraryTrackAsync(t, right_id,
-                                                              engine);
+                if (ImGui::MenuItem(ml2)) {
+                  if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 1, engine);
+                  else spotify_service.downloadLibraryTrackAsync(t, 1, engine);
+                }
+                if (ImGui::MenuItem(ml3)) {
+                  if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 2, engine);
+                  else spotify_service.downloadLibraryTrackAsync(t, 2, engine);
+                }
+                if (ImGui::MenuItem(ml4)) {
+                  if (t.is_downloaded) spotify_service.loadLibraryTrack(t, 3, engine);
+                  else spotify_service.downloadLibraryTrackAsync(t, 3, engine);
                 }
 
                 // 3. Adicionar ao Setlist Ativo ou Outro Setlist
@@ -25110,46 +26154,37 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
               ImGui::TextColored(ImVec4(0.6f, 0.7f, 0.8f, 1.0f), "%02d:%02d",
                                  min, sec);
 
-              // Coluna 7: Ações Cirúrgicas & Decks
+              // Coluna 7: Ações Cirúrgicas & 4 Decks Nativos
               ImGui::TableNextColumn();
-              ImGui::PushStyleColor(ImGuiCol_Button,
-                                    ImVec4(0.00f, 0.52f, 0.65f, 0.95f));
-              ImGui::PushStyleColor(ImGuiCol_Text,
-                                    ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-              char btn_d1[32];
-              snprintf(btn_d1, sizeof(btn_d1), ICON_FA_ARROW_DOWN " D%d",
-                       left_id + 1);
-              if (ImGui::SmallButton(t.is_downloading ? "..." : btn_d1)) {
-                if (t.is_downloaded)
-                  spotify_service.loadLibraryTrack(t, left_id, engine);
-                else
-                  spotify_service.downloadLibraryTrackAsync(t, left_id, engine);
+              struct LibDeckBtnDef { int deck; const char* lbl; ImVec4 col; const char* tip; };
+              LibDeckBtnDef lbtns[4] = {
+                  { 0, "D1", col_deck_1, "Carregar no DECK 1 (Esquerdo)" },
+                  { 1, "D2", col_deck_2, "Carregar no DECK 2 (Direito)" },
+                  { 2, "D3", col_deck_3, "Carregar no DECK 3 (Esquerdo Dual Layer)" },
+                  { 3, "D4", col_deck_4, "Carregar no DECK 4 (Direito Dual Layer)" }
+              };
+              for (int di = 0; di < 4; di++) {
+                const auto& lb = lbtns[di];
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(lb.col.x * 0.28f, lb.col.y * 0.28f, lb.col.z * 0.28f, 0.95f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(lb.col.x * 0.60f, lb.col.y * 0.60f, lb.col.z * 0.60f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Border, lb.col);
+                ImGui::PushStyleColor(ImGuiCol_Text, lb.col);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
+                char d_lbl[16];
+                snprintf(d_lbl, sizeof(d_lbl), "%s", lb.lbl);
+                if (ImGui::SmallButton(t.is_downloading ? "..." : d_lbl)) {
+                  if (t.is_downloaded)
+                    spotify_service.loadLibraryTrack(t, lb.deck, engine);
+                  else
+                    spotify_service.downloadLibraryTrackAsync(t, lb.deck, engine);
+                }
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(4);
+                if (ImGui::IsItemHovered())
+                  ImGui::SetTooltip("%s", lb.tip);
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
               }
-              ImGui::PopStyleColor(2);
-              if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Carregar no Deck %d", left_id + 1);
-
-              ImGui::SameLine(0, 4);
-
-              ImGui::PushStyleColor(ImGuiCol_Button,
-                                    ImVec4(0.70f, 0.15f, 0.45f, 0.95f));
-              ImGui::PushStyleColor(ImGuiCol_Text,
-                                    ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-              char btn_d2[32];
-              snprintf(btn_d2, sizeof(btn_d2), ICON_FA_ARROW_DOWN " D%d",
-                       right_id + 1);
-              if (ImGui::SmallButton(t.is_downloading ? "..." : btn_d2)) {
-                if (t.is_downloaded)
-                  spotify_service.loadLibraryTrack(t, right_id, engine);
-                else
-                  spotify_service.downloadLibraryTrackAsync(t, right_id,
-                                                            engine);
-              }
-              ImGui::PopStyleColor(2);
-              if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Carregar no Deck %d", right_id + 1);
-
-              ImGui::SameLine(0, 4);
 
               // Botão Rápido: Adicionar ao Setlist Ativo
               ImGui::PushStyleColor(ImGuiCol_Button,
@@ -25374,22 +26409,17 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
                 setlist_mgr.moveItem(i, i + 1);
               ImGui::SameLine(0, 3.0f);
             }
-            int left_id = ddj_hardware.getActiveLeftDeck();
-            int right_id = ddj_hardware.getActiveRightDeck();
-            char b_d1[16];
-            snprintf(b_d1, sizeof(b_d1), "D%d", left_id + 1);
-            if (ImGui::SmallButton(b_d1)) {
-              auto *trk_p = lib_mgr.getTrackById(it.track_id);
-              if (trk_p)
-                spotify_service.loadLibraryTrack(*trk_p, left_id, engine);
-            }
-            ImGui::SameLine(0, 3.0f);
-            char b_d2[16];
-            snprintf(b_d2, sizeof(b_d2), "D%d", right_id + 1);
-            if (ImGui::SmallButton(b_d2)) {
-              auto *trk_p = lib_mgr.getTrackById(it.track_id);
-              if (trk_p)
-                spotify_service.loadLibraryTrack(*trk_p, right_id, engine);
+            for (int di = 0; di < 4; di++) {
+              char b_dn[16];
+              snprintf(b_dn, sizeof(b_dn), "D%d", di + 1);
+              if (ImGui::SmallButton(b_dn)) {
+                auto *trk_p = lib_mgr.getTrackById(it.track_id);
+                if (trk_p)
+                  spotify_service.loadLibraryTrack(*trk_p, di, engine);
+              }
+              if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Carregar no Deck %d", di + 1);
+              ImGui::SameLine(0, 3.0f);
             }
             ImGui::SameLine(0, 6.0f);
             if (ImGui::SmallButton("✕ Remover")) {
@@ -25525,20 +26555,16 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
               toast_timer = 3.0f;
             }
             ImGui::SameLine(0, 8.0f);
-            int left_id = ddj_hardware.getActiveLeftDeck();
-            int right_id = ddj_hardware.getActiveRightDeck();
-            char b1[16];
-            snprintf(b1, sizeof(b1), "DECK %d", left_id + 1);
-            if (ImGui::SmallButton(b1)) {
-              KuroAudio::DJLibraryTrack copy_trk = sug.track;
-              spotify_service.loadLibraryTrack(copy_trk, left_id, engine);
-            }
-            ImGui::SameLine(0, 4.0f);
-            char b2[16];
-            snprintf(b2, sizeof(b2), "DECK %d", right_id + 1);
-            if (ImGui::SmallButton(b2)) {
-              KuroAudio::DJLibraryTrack copy_trk = sug.track;
-              spotify_service.loadLibraryTrack(copy_trk, right_id, engine);
+            for (int di = 0; di < 4; di++) {
+              char b_dn[16];
+              snprintf(b_dn, sizeof(b_dn), "D%d", di + 1);
+              if (ImGui::SmallButton(b_dn)) {
+                KuroAudio::DJLibraryTrack copy_trk = sug.track;
+                spotify_service.loadLibraryTrack(copy_trk, di, engine);
+              }
+              if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Carregar recomendação no Deck %d", di + 1);
+              ImGui::SameLine(0, 3.0f);
             }
 
             ImGui::Separator();
@@ -25650,26 +26676,17 @@ void renderCamelotRadarModal(KuroAudio::DJEngine &engine) {
         ImGui::Separator();
         ImGui::Spacing();
 
-        int left_id = ddj_hardware.getActiveLeftDeck();
-        int right_id = ddj_hardware.getActiveRightDeck();
-        char b_d1[32];
-        snprintf(b_d1, sizeof(b_d1), "CARREGAR NO DECK %d", left_id + 1);
-        if (ImGui::Button(b_d1, ImVec2(160, 28))) {
-          auto *tp = lib_mgr.getTrackById(last_analysis_result.track_id);
-          if (tp)
-            spotify_service.loadLibraryTrack(*tp, left_id, engine);
-          show_analysis_result_modal = false;
+        for (int di = 0; di < 4; di++) {
+          char b_dn[32];
+          snprintf(b_dn, sizeof(b_dn), "DECK %d", di + 1);
+          if (ImGui::Button(b_dn, ImVec2(KuroUI::UIScaleManager::Scale(95.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+            auto *tp = lib_mgr.getTrackById(last_analysis_result.track_id);
+            if (tp)
+              spotify_service.loadLibraryTrack(*tp, di, engine);
+            show_analysis_result_modal = false;
+          }
+          ImGui::SameLine();
         }
-        ImGui::SameLine();
-        char b_d2[32];
-        snprintf(b_d2, sizeof(b_d2), "CARREGAR NO DECK %d", right_id + 1);
-        if (ImGui::Button(b_d2, ImVec2(160, 28))) {
-          auto *tp = lib_mgr.getTrackById(last_analysis_result.track_id);
-          if (tp)
-            spotify_service.loadLibraryTrack(*tp, right_id, engine);
-          show_analysis_result_modal = false;
-        }
-        ImGui::SameLine();
         if (ImGui::Button("OK / CONCLUÍDO", ImVec2(120, 28))) {
           show_analysis_result_modal = false;
         }

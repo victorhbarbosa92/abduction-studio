@@ -90,6 +90,12 @@ namespace KuroAudio {
         std::string provider = "SoundCloud HQ";
         std::string url = "";
         std::string artwork_url = "";
+        std::string duration_str = "7:05";
+        std::string year = "2024";
+        std::string label = "Underground";
+        std::string video_id = "";
+        bool is_favorite = false;
+        bool is_bookmarked = false;
         int acoustic_match_pct = 95;
         int groove_match_pct = 95;
         std::string match_badge = "ALMA GÊMEA TÍMBRICA";
@@ -149,6 +155,9 @@ namespace KuroAudio {
         std::string dig_deeper_ref_title = "";
         std::string dig_deeper_ref_artist = "";
         std::string dig_deeper_ref_key = "";
+        std::string dig_deeper_ref_duration = "8:36";
+        std::string dig_deeper_ref_year = "2022";
+        std::string dig_deeper_ref_label = "Sangoma Records";
         double dig_deeper_ref_bpm = 0.0;
         bool show_sources_modal = false;
 
@@ -2007,6 +2016,9 @@ namespace KuroAudio {
         std::string getDigDeeperRefTitle() const { return dig_deeper_ref_title; }
         std::string getDigDeeperRefArtist() const { return dig_deeper_ref_artist; }
         std::string getDigDeeperRefKey() const { return dig_deeper_ref_key; }
+        std::string getDigDeeperRefDuration() const { return dig_deeper_ref_duration; }
+        std::string getDigDeeperRefYear() const { return dig_deeper_ref_year; }
+        std::string getDigDeeperRefLabel() const { return dig_deeper_ref_label; }
         double getDigDeeperRefBpm() const { return dig_deeper_ref_bpm; }
 
         void parseDigDeeperJsonFile(const std::filesystem::path& json_path) {
@@ -2043,6 +2055,12 @@ namespace KuroAudio {
                     if (!ra.empty()) dig_deeper_ref_artist = ra;
                     std::string rk = get_rfield("key");
                     if (!rk.empty()) dig_deeper_ref_key = rk;
+                    std::string rdur = get_rfield("duration_str");
+                    if (!rdur.empty()) dig_deeper_ref_duration = rdur;
+                    std::string ryr = get_rfield("year");
+                    if (!ryr.empty()) dig_deeper_ref_year = ryr;
+                    std::string rlbl = get_rfield("label");
+                    if (!rlbl.empty()) dig_deeper_ref_label = rlbl;
                     std::string rb = get_rfield("bpm");
                     if (!rb.empty()) { try { dig_deeper_ref_bpm = std::stod(rb); } catch (...) {} }
                 }
@@ -2092,6 +2110,13 @@ namespace KuroAudio {
                 m.provider = get_field("provider");
                 m.url = get_field("url");
                 m.artwork_url = get_field("artwork_url");
+                m.duration_str = get_field("duration_str");
+                if (m.duration_str.empty()) m.duration_str = "7:05";
+                m.year = get_field("year");
+                if (m.year.empty()) m.year = "2024";
+                m.label = get_field("label");
+                if (m.label.empty()) m.label = m.artist;
+                m.video_id = get_field("video_id");
                 try { m.acoustic_match_pct = std::stoi(get_field("acoustic_match_pct")); } catch (...) { m.acoustic_match_pct = 95; }
                 try { m.groove_match_pct = std::stoi(get_field("groove_match_pct")); } catch (...) { m.groove_match_pct = 95; }
                 m.match_badge = get_field("match_badge");
