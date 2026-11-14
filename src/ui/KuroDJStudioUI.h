@@ -10383,7 +10383,7 @@ private:
     if (timeinfo)
       strftime(time_buf, sizeof(time_buf), "%H:%M", timeinfo);
     ImVec2 sz_clk = ImGui::CalcTextSize(time_buf);
-    float clk_w = sz_clk.x + KuroUI::UIScaleManager::Scale(12.0f);
+    float clk_w = sz_clk.x + KuroUI::UIScaleManager::Scale(16.0f);
 
     bool is_dl = spotify_service.isDownloading();
     float pulse = (std::sin((float)ImGui::GetTime() * 8.0f) + 1.0f) * 0.5f;
@@ -10449,11 +10449,11 @@ private:
                  ddj_hardware.autoConnect(&engine);
                });
 
-    // Relogio Digital HH:MM
+    // Relogio Digital HH:MM (Perfeitamente centralizado com respiro anti-colisão)
     {
       ImVec2 clk_pos = ImVec2(clk_x, topbar_item_y);
-      dl->AddText(ImVec2(clk_pos.x + KuroUI::UIScaleManager::Scale(2.0f), clk_pos.y + (topbar_btn_h - sz_clk.y) * 0.5f),
-                  IM_COL32(180, 195, 215, 240), time_buf);
+      dl->AddText(ImVec2(clk_pos.x + (clk_w - sz_clk.x) * 0.5f, clk_pos.y + (topbar_btn_h - sz_clk.y) * 0.5f),
+                  IM_COL32(190, 205, 225, 240), time_buf);
     }
 
     // Botão Cyberpunk / Rekordbox: ABDUCTION HUB (Posicionado com exatidão e sem corte à direita)
@@ -13540,9 +13540,9 @@ private:
     auto &live_inst = KuroAudio::DJLiveInstrumentEngine::getInstance();
     auto &gain_staging = KuroAudio::DJGainStagingAnalyzer::getInstance();
 
-    // Altura ampliada e proporcional de 395.0f escalada dinamicamente via UIScaleManager
+    // Altura ampliada e proporcional de 415.0f escalada dinamicamente via UIScaleManager
     // Garante visibilidade perfeita de todos os controles, pedais de efeito e sequenciador touch
-    float h = KuroUI::UIScaleManager::Scale(395.0f);
+    float h = KuroUI::UIScaleManager::Scale(415.0f);
     ImDrawList *dl = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos();
 
@@ -15650,9 +15650,9 @@ private:
     ImFont *f_ctrl = g_font_control_small ? g_font_control_small : f_bld;
 
     // Linha 1 do Header: TEMPO e Botão MT (Key Lock)
-    float mt_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(48.0f));
-    float mt_h = KuroUI::UIScaleManager::Scale(22.0f);
-    ImVec2 mt_pos = ImVec2(pos.x + size.x - mt_w - KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(4.0f));
+    float mt_w = std::clamp(size.x * 0.38f, KuroUI::UIScaleManager::Scale(30.0f), KuroUI::UIScaleManager::Scale(42.0f));
+    float mt_h = KuroUI::UIScaleManager::Scale(20.0f);
+    ImVec2 mt_pos = ImVec2(pos.x + size.x - mt_w - KuroUI::UIScaleManager::Scale(5.0f), pos.y + KuroUI::UIScaleManager::Scale(5.0f));
     char mt_id[32];
     snprintf(mt_id, sizeof(mt_id), "##PF_MT_%d", deck.deck_id);
     ImGui::SetCursorScreenPos(mt_pos);
@@ -15668,12 +15668,12 @@ private:
     
     // Centralização perfeita sem corte via DrawFittedText
     ImU32 mt_txt_col = deck.key_sync_active ? IM_COL32(255, 255, 255, 255) : IM_COL32(190, 210, 235, 240);
-    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(12.0f), mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_txt_col, "MT", 2.0f, 1.0f);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(11.5f), mt_pos, ImVec2(mt_pos.x + mt_w, mt_pos.y + mt_h), mt_txt_col, "MT", 2.0f, 1.0f);
 
     // Texto TEMPO com clipping para nunca encavalar no botão MT
     dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), pos.y + KuroUI::UIScaleManager::Scale(2.0f)),
-                     ImVec2(mt_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + KuroUI::UIScaleManager::Scale(26.0f)), true);
-    dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(12.0f), ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), mt_pos.y + KuroUI::UIScaleManager::Scale(3.5f)),
+                     ImVec2(mt_pos.x - KuroUI::UIScaleManager::Scale(3.0f), pos.y + KuroUI::UIScaleManager::Scale(26.0f)), true);
+    dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(12.0f), ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), mt_pos.y + KuroUI::UIScaleManager::Scale(2.5f)),
                 IM_COL32(170, 185, 205, 230), "TEMPO");
     dl->PopClipRect();
 
@@ -15700,9 +15700,9 @@ private:
             : (deck.pitch_range >= 15.0f
                    ? "±16%"
                    : (deck.pitch_range >= 9.0f ? "±10%" : "±6%"));
-    float rg_w = std::clamp(size.x * 0.44f, KuroUI::UIScaleManager::Scale(36.0f), KuroUI::UIScaleManager::Scale(48.0f));
-    float rg_h = KuroUI::UIScaleManager::Scale(22.0f);
-    ImVec2 rg_pos = ImVec2(pos.x + size.x - rg_w - KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h + KuroUI::UIScaleManager::Scale(3.0f));
+    float rg_w = std::clamp(size.x * 0.38f, KuroUI::UIScaleManager::Scale(30.0f), KuroUI::UIScaleManager::Scale(42.0f));
+    float rg_h = KuroUI::UIScaleManager::Scale(20.0f);
+    ImVec2 rg_pos = ImVec2(pos.x + size.x - rg_w - KuroUI::UIScaleManager::Scale(5.0f), mt_pos.y + mt_h + KuroUI::UIScaleManager::Scale(4.0f));
     char rg_id[32];
     snprintf(rg_id, sizeof(rg_id), "##PFRG_%d", deck.deck_id);
     ImGui::SetCursorScreenPos(rg_pos);
@@ -15727,13 +15727,13 @@ private:
     
     // Centralização perfeita do texto de Range com DrawFittedText
     ImU32 rg_txt_col = (deck.pitch_range >= 90.0f) ? IM_COL32(255, 180, 190, 255) : IM_COL32(200, 220, 245, 230);
-    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(11.5f), rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_txt_col, rg_str, 2.0f, 1.0f);
+    DJLayoutEditorUI::DrawFittedText(dl, f_ctrl, KuroUI::UIScaleManager::Scale(11.0f), rg_pos, ImVec2(rg_pos.x + rg_w, rg_pos.y + rg_h), rg_txt_col, rg_str, 2.0f, 1.0f);
 
     // Texto de valor do pitch com clipping para não encavalar no botão de Range
     dl->PushClipRect(ImVec2(pos.x + KuroUI::UIScaleManager::Scale(4.0f), mt_pos.y + mt_h),
-                     ImVec2(rg_pos.x - KuroUI::UIScaleManager::Scale(2.0f), pos.y + hdr_h - KuroUI::UIScaleManager::Scale(2.0f)), true);
+                     ImVec2(rg_pos.x - KuroUI::UIScaleManager::Scale(3.0f), pos.y + hdr_h - KuroUI::UIScaleManager::Scale(2.0f)), true);
     float v_font_sz = (size.x < KuroUI::UIScaleManager::Scale(80.0f)) ? KuroUI::UIScaleManager::Scale(12.0f) : KuroUI::UIScaleManager::Scale(13.5f);
-    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), rg_pos.y + KuroUI::UIScaleManager::Scale(3.5f)), col_val,
+    dl->AddText(f_bld, v_font_sz, ImVec2(pos.x + KuroUI::UIScaleManager::Scale(5.0f), rg_pos.y + KuroUI::UIScaleManager::Scale(2.5f)), col_val,
                 val_str);
     dl->PopClipRect();
 
@@ -16434,12 +16434,19 @@ private:
 
     // Distribuição horizontal responsiva para cobrir 100% da largura em
     // qualquer resolução:
-    float left_w = std::clamp(usable_w * 0.055f, KuroUI::UIScaleManager::Scale(48.0f), KuroUI::UIScaleManager::Scale(68.0f));
-    float fader_w = std::clamp(usable_w * 0.098f, KuroUI::UIScaleManager::Scale(88.0f), KuroUI::UIScaleManager::Scale(130.0f));
-    float mem_w = std::clamp(usable_w * 0.13f, KuroUI::UIScaleManager::Scale(80.0f), KuroUI::UIScaleManager::Scale(150.0f));
-    float side_w = std::clamp(usable_w * 0.12f, KuroUI::UIScaleManager::Scale(80.0f), KuroUI::UIScaleManager::Scale(140.0f));
-    float jog_bay_w =
-        usable_w - left_w - fader_w - mem_w - side_w - gap_x * 4.0f;
+    // Distribuição horizontal responsiva ancorada nas duas extremidades:
+    // Garante que o Pitch Fader NUNCA seja cortado na borda direita do deck
+    float left_w = std::clamp(usable_w * 0.055f, KuroUI::UIScaleManager::Scale(46.0f), KuroUI::UIScaleManager::Scale(64.0f));
+    float fader_w = std::clamp(usable_w * 0.102f, KuroUI::UIScaleManager::Scale(96.0f), KuroUI::UIScaleManager::Scale(135.0f));
+    float mem_w = std::clamp(usable_w * 0.13f, KuroUI::UIScaleManager::Scale(78.0f), KuroUI::UIScaleManager::Scale(140.0f));
+    float side_w = std::clamp(usable_w * 0.12f, KuroUI::UIScaleManager::Scale(78.0f), KuroUI::UIScaleManager::Scale(135.0f));
+
+    float cur_left_x = p_min.x + margin_x;
+    float fader_x = cur_left_x + usable_w - fader_w;
+    float mem_x = fader_x - gap_x - mem_w;
+    float side_x = mem_x - gap_x - side_w;
+    float jog_bay_x = cur_left_x + left_w + gap_x;
+    float jog_bay_w = std::max(KuroUI::UIScaleManager::Scale(70.0f), side_x - gap_x - jog_bay_x);
 
     float j_sz = std::clamp(target_jog, 80.0f,
                             std::min(jog_bay_w - 6.0f, upper_h - 6.0f));
@@ -16448,35 +16455,28 @@ private:
     // TIER SUPERIOR: LOOP (ESQ) | JOGWHEEL (CENTRO) | TEMPO PANEL | MEMORY CUE
     // | PITCH FADER (DIR)
     // =========================================================================
-    float cur_left_x = p_min.x + margin_x;
-
-    // 1. Bloco de Botões Auxiliares Pioneer Rekordbox 1:1 (Loop, 1/2X, 2X, IN,
-    // OUT, SLIP, Q, INT)
+    // 1. Bloco de Botões Auxiliares Pioneer Rekordbox 1:1
     renderRekordboxAuxiliaryControlBlock(deck,
                                          ImVec2(cur_left_x, body_y + 2.0f),
                                          left_w, upper_h - 4.0f, theme_col);
 
     // 2. JOGWHEEL CENTRALIZADO NA SUA BAIA COM RESPIRO EFEITO GLOW
-    float jog_bay_x = cur_left_x + left_w + gap_x;
     float jog_x = jog_bay_x + (jog_bay_w - j_sz) * 0.5f;
     float jog_y = body_y + (upper_h - j_sz) * 0.5f;
 
     renderRekordboxJogwheel(deck, ImVec2(jog_x, jog_y), j_sz, theme_col, true);
 
     // 3. PAINEL DE BPM / TEMPO / KEY
-    float side_x = jog_bay_x + jog_bay_w + gap_x;
     float side_y = body_y + 2.0f;
     float side_h = upper_h - 4.0f;
     renderRekordboxSideTempoPanel(deck, ImVec2(side_x, side_y),
                                   ImVec2(side_w, side_h), theme_col);
 
     // 4. PAINEL DE MEMORY CUE / CUE CALL & DROP COUNTDOWN (CDJ-3000 Standard)
-    float mem_x = side_x + side_w + gap_x;
     renderRekordboxMemoryCuePanel(deck, ImVec2(mem_x, body_y + 2.0f), mem_w,
                                   upper_h - 4.0f, theme_col);
 
-    // 5. PITCH FADER na extrema direita do Tier Superior
-    float fader_x = mem_x + mem_w + gap_x;
+    // 5. PITCH FADER na extrema direita do Tier Superior (ancorado e sem corte)
     renderRekordboxPitchFaderWidget(deck, ImVec2(fader_x, body_y + 2.0f),
                                     ImVec2(fader_w, upper_h - 4.0f), theme_col);
 
@@ -21261,15 +21261,15 @@ private:
         ImGui::PopStyleVar();
 
         // 4 Deck status badges — Cápsulas de Hardware Interativas com Seleção de Destino de Abdução
-        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(70.0f);
-        float dbadge_slot_h = KuroUI::UIScaleManager::Scale(22.0f);
-        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(14.0f);
-        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(12.0f);
-        float dbadge_y = h_start.y + KuroUI::UIScaleManager::Scale(7.0f);
+        float dbadge_slot_w = KuroUI::UIScaleManager::Scale(82.0f);
+        float dbadge_slot_h = KuroUI::UIScaleManager::Scale(24.0f);
+        float dbadges_tot_w = dbadge_slot_w * 4.0f + KuroUI::UIScaleManager::Scale(18.0f);
+        float dbadge_x = win_x - dbadges_tot_w - KuroUI::UIScaleManager::Scale(14.0f);
+        float dbadge_y = h_start.y + KuroUI::UIScaleManager::Scale(6.0f);
 
-        // Renderiza os badges táteis se houver espaço na barra superior
+        // Renderiza os badges táteis se houver espaço livre na barra superior
         float nav_pills_end_x = h_start.x + KuroUI::UIScaleManager::Scale(620.0f);
-        if (dbadge_x > nav_pills_end_x) {
+        if (dbadge_x > nav_pills_end_x + KuroUI::UIScaleManager::Scale(14.0f)) {
             struct DeckBadge { const char* label; bool playing; ImVec4 col; };
             DeckBadge dbadges[4] = {
                 { engine.decks[0].is_playing.load() ? "D1: ON AIR" : (engine.decks[0].buffer_l.empty() ? "D1: LIVRE" : "D1: CUE"), engine.decks[0].is_playing.load(), col_deck_1 },
@@ -21279,7 +21279,7 @@ private:
             };
             ImDrawList* h_dl = ImGui::GetWindowDrawList();
             for (int di = 0; di < 4; di++) {
-                ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(4.5f)), dbadge_y);
+                ImVec2 b_min = ImVec2(dbadge_x + di * (dbadge_slot_w + KuroUI::UIScaleManager::Scale(5.0f)), dbadge_y);
                 ImVec2 b_max = ImVec2(b_min.x + dbadge_slot_w, b_min.y + dbadge_slot_h);
                 ImVec4 bc = dbadges[di].col;
                 bool is_target = (hub_target_deck == di);
@@ -21341,6 +21341,791 @@ private:
                 }
             };
 
+            if (spotify_service.show_dig_deeper_view) {
+                // ════════════════════════════════════════════════════════════════════
+                // DIGDEEPER 1:1 STUDIO EXPERIENCE (HARMONIZADO COM ABDUCTION STUDIO)
+                // ════════════════════════════════════════════════════════════════════
+
+                // ── 1. HEADER DO DIGDEEPER COM BARRA DE BUSCA INTEGRADA ─────────────
+                float dd_header_h = KuroUI::UIScaleManager::Scale(38.0f);
+                ImVec2 dh_p = ImGui::GetCursorScreenPos();
+                ImDrawList* top_dl = ImGui::GetWindowDrawList();
+
+                // Marca DigDeeper. com ponto laranja característico
+                top_dl->AddText(ImVec2(dh_p.x, dh_p.y + KuroUI::UIScaleManager::Scale(6.0f)), IM_COL32(255, 255, 255, 255), "DigDeeper");
+                top_dl->AddCircleFilled(ImVec2(dh_p.x + KuroUI::UIScaleManager::Scale(82.0f), dh_p.y + KuroUI::UIScaleManager::Scale(20.0f)),
+                                        KuroUI::UIScaleManager::Scale(3.5f), IM_COL32(230, 80, 50, 255));
+
+                float logo_w = KuroUI::UIScaleManager::Scale(98.0f);
+                float hub_btn_w = KuroUI::UIScaleManager::Scale(175.0f);
+                float dig_btn_w = KuroUI::UIScaleManager::Scale(130.0f);
+                float dd_search_w = avail_w - logo_w - hub_btn_w - dig_btn_w - KuroUI::UIScaleManager::Scale(30.0f);
+
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + logo_w);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(KuroUI::UIScaleManager::Scale(10.0f), KuroUI::UIScaleManager::Scale(7.0f)));
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(14, 18, 28, 250));
+                ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(230, 80, 50, 150));
+                ImGui::PushItemWidth(dd_search_w);
+                if (ImGui::InputTextWithHint("##DigDeeperSearchInput", "Garimpar nova faixa ou artista no DigDeeper (ex: Jumpstreet, Rugrats)...",
+                    online_search_query_buf, sizeof(online_search_query_buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    if (strlen(online_search_query_buf) > 0) {
+                        spotify_service.digDeeperAsync(online_search_query_buf, "", "", 0.0);
+                    }
+                }
+                ImGui::PopItemWidth();
+                ImGui::PopStyleColor(2);
+                ImGui::PopStyleVar(3);
+
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                // Botão REMINERAR
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.42f, 0.25f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                if (ImGui::Button(ICON_FA_ROTATE " REMINERAR", ImVec2(dig_btn_w, KuroUI::UIScaleManager::Scale(34.0f)))) {
+                    std::string q = strlen(online_search_query_buf) > 0 ? online_search_query_buf : spotify_service.getDigDeeperRefTitle();
+                    if (q.empty()) q = selected_source_track_title.empty() ? "Jumpstreet" : selected_source_track_title;
+                    spotify_service.digDeeperAsync(q, spotify_service.getDigDeeperRefArtist(), spotify_service.getDigDeeperRefKey(), spotify_service.getDigDeeperRefBpm());
+                }
+                ImGui::PopStyleVar();
+                ImGui::PopStyleColor(3);
+
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                // Botão VOLTAR AO HUB ORIGINAL
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.00f, 0.85f, 0.80f, 0.70f));
+                ImGui::PushStyleColor(ImGuiCol_Text, col_deck_1);
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.2f);
+                if (ImGui::Button(ICON_FA_ARROW_LEFT " VOLTAR AO HUB", ImVec2(hub_btn_w, KuroUI::UIScaleManager::Scale(34.0f)))) {
+                    spotify_service.show_dig_deeper_view = false;
+                }
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(3);
+
+                ImGui::Spacing();
+                ImGui::Spacing();
+
+                // ── 2. PAINÉIS LADO A LADO DIGDEEPER (ESQUERDA 34%, DIREITA 66%) ─────
+                float dd_avail_h = ImGui::GetContentRegionAvail().y;
+                float dd_split_h = dd_avail_h - KuroUI::UIScaleManager::Scale(54.0f);
+                if (dd_split_h < 320.0f) dd_split_h = 320.0f;
+                float dd_left_w = avail_w * 0.34f - KuroUI::UIScaleManager::Scale(6.0f);
+                float dd_right_w = avail_w * 0.66f - KuroUI::UIScaleManager::Scale(6.0f);
+
+                auto dig_matches = spotify_service.getDigDeeperResults();
+                static std::string dd_last_queried = "";
+                if (dig_matches.empty() && !spotify_service.isDiggingDeeper()) {
+                    std::string ref_q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
+                    std::string ref_a = selected_source_track_artist.empty() ? "JUMPSTREET" : selected_source_track_artist;
+                    std::string ref_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
+                    double ref_b = selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 150.0;
+                    std::string q_key = ref_q + "|" + ref_a;
+                    if (dd_last_queried != q_key) {
+                        dd_last_queried = q_key;
+                        spotify_service.digDeeperAsync(ref_q, ref_a, ref_k, ref_b);
+                    }
+                }
+
+                // Estado persistente da sessão DigDeeper
+                static bool dd_autoplay = true;
+                static float dd_tempo_slider = 148.0f;
+                static bool dd_already_heard_filter = false;
+                static int dd_active_tab = 0; // 0 = SIMILAR, 1 = ARTIST
+                static bool dd_start_at_25 = true;
+                static bool dd_show_pill = true;
+                static std::string dd_hero_title = "Unknown Tomorrow";
+                static std::string dd_hero_artist = "RUGRATS & AXIAL TILT";
+                static std::string dd_hero_label = "RUGRATS";
+                static std::string dd_hero_dur = "7:05";
+                static std::string dd_hero_year = "2024";
+                static double dd_hero_bpm = 148.0;
+                static std::string dd_hero_key = "12A";
+                static std::string dd_hero_url = "";
+                static bool dd_liked = false;
+                static bool dd_bookmarked = false;
+
+                if (preview_player.isPlaying()) {
+                    dd_hero_title = preview_player.getCurrentTitle();
+                    dd_hero_artist = preview_player.getCurrentArtist();
+                } else if (!dig_matches.empty() && dd_hero_title == "Unknown Tomorrow" && !selected_source_track_title.empty()) {
+                    dd_hero_title = dig_matches[0].title;
+                    dd_hero_artist = dig_matches[0].artist;
+                    dd_hero_label = dig_matches[0].label;
+                    dd_hero_bpm = dig_matches[0].bpm;
+                    dd_hero_key = dig_matches[0].camelot_code;
+                    dd_hero_dur = dig_matches[0].duration_str;
+                    dd_hero_year = dig_matches[0].year;
+                }
+
+                // ────────────────────────────────────────────────────────────────
+                // PAINEL ESQUERDO: NOW PLAYING HERO (34%)
+                // ────────────────────────────────────────────────────────────────
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+                if (ImGui::BeginChild("##DDLeftHeroPane", ImVec2(dd_left_w, dd_split_h), true)) {
+                    ImDrawList* ldl = ImGui::GetWindowDrawList();
+                    float lw = ImGui::GetContentRegionAvail().x;
+
+                    // 1. Header do Painel Esquerdo: NOW PLAYING & AUTOPLAY TOGGLE
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.82f, 0.90f));
+                    ImGui::TextUnformatted("NOW PLAYING");
+                    ImGui::PopStyleColor();
+
+                    float tog_w = KuroUI::UIScaleManager::Scale(110.0f);
+                    ImGui::SameLine(lw - tog_w);
+                    ImGui::TextColored(ImVec4(0.48f, 0.58f, 0.72f, 0.85f), "Autoplay");
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+                    if (dd_autoplay) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.80f, 0.85f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(10.0f));
+                    if (ImGui::SmallButton(dd_autoplay ? "ON" : "OFF")) {
+                        dd_autoplay = !dd_autoplay;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::Spacing();
+
+                    // 2. CAPA QUADRADA GIGANTE COM ESCALONAMENTO INTELIGENTE
+                    float max_art_h = dd_split_h - KuroUI::UIScaleManager::Scale(190.0f);
+                    float hero_art_sz = lw;
+                    if (hero_art_sz > max_art_h) hero_art_sz = max_art_h;
+                    if (hero_art_sz < KuroUI::UIScaleManager::Scale(140.0f)) hero_art_sz = KuroUI::UIScaleManager::Scale(140.0f);
+                    if (hero_art_sz > KuroUI::UIScaleManager::Scale(310.0f)) hero_art_sz = KuroUI::UIScaleManager::Scale(310.0f);
+
+                    float art_offset_x = (lw - hero_art_sz) * 0.5f;
+                    ImVec2 art_min = ImVec2(ImGui::GetCursorScreenPos().x + art_offset_x, ImGui::GetCursorScreenPos().y);
+                    ImVec2 art_max = ImVec2(art_min.x + hero_art_sz, art_min.y + hero_art_sz);
+                    ImGui::Dummy(ImVec2(lw, hero_art_sz));
+
+                    // Fundo da imagem
+                    ldl->AddRectFilled(art_min, art_max, IM_COL32(10, 14, 22, 255), KuroUI::UIScaleManager::Scale(8.0f));
+
+                    if (selected_source_track_tex > 0) {
+                        ldl->AddImageRounded((ImTextureID)(intptr_t)selected_source_track_tex,
+                                             art_min, art_max, ImVec2(0, 0), ImVec2(1, 1),
+                                             IM_COL32_WHITE, KuroUI::UIScaleManager::Scale(8.0f));
+                    } else {
+                        // Artwork Psicodélica Eletrônica Estilizada
+                        float cx = art_min.x + hero_art_sz * 0.5f;
+                        float cy = art_min.y + hero_art_sz * 0.5f;
+                        for (int gi = 1; gi <= 6; gi++) {
+                            float rad = (hero_art_sz * 0.45f) * (gi / 6.0f);
+                            ldl->AddCircle(ImVec2(cx, cy), rad, IM_COL32(0, 229, 255, 25 + gi * 18), 40, 1.2f);
+                        }
+                        for (int ri = 0; ri < 12; ri++) {
+                            float ang = ri * (3.14159f / 6.0f);
+                            ImVec2 p1 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.14f), cy + sinf(ang) * (hero_art_sz * 0.14f));
+                            ImVec2 p2 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.44f), cy + sinf(ang) * (hero_art_sz * 0.44f));
+                            ldl->AddLine(p1, p2, IM_COL32(230, 80, 50, 90), 1.0f);
+                        }
+                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(14, 18, 28, 255), 32);
+                        ldl->AddCircle(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(0, 245, 212, 220), 32, 2.0f);
+                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.10f, IM_COL32(230, 80, 50, 240), 24);
+                    }
+                    ldl->AddRect(art_min, art_max, IM_COL32(0, 229, 255, 160), KuroUI::UIScaleManager::Scale(8.0f), 0, 1.5f);
+
+                    // Overlay: Selo YouTube
+                    ImVec2 yt_min = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(85.0f), art_min.y + KuroUI::UIScaleManager::Scale(8.0f));
+                    ImVec2 yt_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(8.0f), art_min.y + KuroUI::UIScaleManager::Scale(28.0f));
+                    ldl->AddRectFilled(yt_min, yt_max, IM_COL32(10, 12, 18, 210), KuroUI::UIScaleManager::Scale(4.0f));
+                    ldl->AddText(ImVec2(yt_min.x + KuroUI::UIScaleManager::Scale(6.0f), yt_min.y + KuroUI::UIScaleManager::Scale(2.0f)),
+                                 IM_COL32(255, 60, 60, 255), "▶ YouTube");
+
+                    // Overlay: Botão Play/Pause circular
+                    bool is_prv_playing = preview_player.isPlaying();
+                    float btn_rad = KuroUI::UIScaleManager::Scale(26.0f);
+                    ImVec2 btn_c = ImVec2(art_min.x + hero_art_sz * 0.5f, art_min.y + hero_art_sz * 0.5f);
+                    ldl->AddCircleFilled(btn_c, btn_rad, IM_COL32(12, 16, 24, 210), 32);
+                    ldl->AddCircle(btn_c, btn_rad, IM_COL32(0, 229, 255, 230), 32, 1.8f);
+
+                    ImGui::SetCursorScreenPos(ImVec2(btn_c.x - btn_rad, btn_c.y - btn_rad));
+                    if (ImGui::InvisibleButton("##DDHeroPlayBtn", ImVec2(btn_rad * 2.0f, btn_rad * 2.0f))) {
+                        if (is_prv_playing) {
+                            preview_player.togglePlayPause();
+                        } else {
+                            std::string p_src = dd_hero_url.empty() ? "scratch/test_astrix.wav" : dd_hero_url;
+                            preview_player.play(p_src, "dd_now", dd_hero_title, dd_hero_artist);
+                        }
+                    }
+                    const char* pp_ic = is_prv_playing ? ICON_FA_PAUSE : ICON_FA_PLAY;
+                    ImVec2 pp_sz = ImGui::CalcTextSize(pp_ic);
+                    ldl->AddText(ImVec2(btn_c.x - pp_sz.x * 0.5f, btn_c.y - pp_sz.y * 0.5f), IM_COL32(255, 255, 255, 255), pp_ic);
+
+                    // Overlay: Barra de scrubber inferior
+                    ImVec2 bar_min = ImVec2(art_min.x + KuroUI::UIScaleManager::Scale(8.0f), art_max.y - KuroUI::UIScaleManager::Scale(30.0f));
+                    ImVec2 bar_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(8.0f), art_max.y - KuroUI::UIScaleManager::Scale(6.0f));
+                    ldl->AddRectFilled(bar_min, bar_max, IM_COL32(8, 12, 18, 230), KuroUI::UIScaleManager::Scale(4.0f));
+
+                    double cur_pos = preview_player.getPosition();
+                    double cur_dur = preview_player.getDuration();
+                    if (cur_dur < 1.0) cur_dur = 425.0;
+                    int pm = (int)cur_pos / 60, ps = (int)cur_pos % 60;
+                    int dm = (int)cur_dur / 60, ds = (int)cur_dur % 60;
+                    char time_buf[32];
+                    snprintf(time_buf, sizeof(time_buf), "%02d:%02d / %02d:%02d", pm, ps, dm, ds);
+                    ldl->AddText(ImVec2(bar_min.x + KuroUI::UIScaleManager::Scale(6.0f), bar_min.y + KuroUI::UIScaleManager::Scale(3.0f)),
+                                 IM_COL32(240, 245, 255, 255), time_buf);
+
+                    float sc_pct = std::clamp((float)(cur_pos / cur_dur), 0.0f, 1.0f);
+                    float sc_line_x1 = bar_min.x + KuroUI::UIScaleManager::Scale(110.0f);
+                    float sc_line_x2 = bar_max.x - KuroUI::UIScaleManager::Scale(6.0f);
+                    if (sc_line_x2 > sc_line_x1 + 10.0f) {
+                        float cur_sc_x = sc_line_x1 + (sc_line_x2 - sc_line_x1) * sc_pct;
+                        ldl->AddLine(ImVec2(sc_line_x1, bar_min.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                     ImVec2(sc_line_x2, bar_min.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                     IM_COL32(40, 50, 70, 200), 2.5f);
+                        ldl->AddLine(ImVec2(sc_line_x1, bar_min.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                     ImVec2(cur_sc_x, bar_min.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                     IM_COL32(230, 80, 50, 255), 2.5f);
+                        ldl->AddCircleFilled(ImVec2(cur_sc_x, bar_min.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                                             KuroUI::UIScaleManager::Scale(4.0f), IM_COL32(255, 255, 255, 255));
+                    }
+
+                    ImGui::Spacing();
+
+                    // 3. TÍTULO E ARTISTA
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    ImGui::TextUnformatted(dd_hero_title.c_str());
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton(ICON_FA_COPY "##DDCopyTitle")) {
+                        ImGui::SetClipboardText(dd_hero_title.c_str());
+                        toast_message = "Título copiado!";
+                        toast_timer = 2.5f;
+                    }
+
+                    ImGui::TextColored(ImVec4(0.55f, 0.68f, 0.82f, 0.90f), "%s • %s • %s",
+                                       dd_hero_artist.c_str(), dd_hero_label.c_str(), dd_hero_year.c_str());
+
+                    ImGui::Spacing();
+
+                    // 4. BARRA DE TRANSPORTE
+                    float trans_btn_sz = KuroUI::UIScaleManager::Scale(28.0f);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.18f, 0.28f, 0.40f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+
+                    if (ImGui::Button(ICON_FA_SHUFFLE "##DDShuf", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+                    if (ImGui::Button(ICON_FA_BACKWARD_STEP "##DDPrev", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+
+                    if (ImGui::Button(is_prv_playing ? ICON_FA_PAUSE "##DDTrPP" : ICON_FA_PLAY "##DDTrPP", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        preview_player.togglePlayPause();
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+                    if (ImGui::Button(ICON_FA_FORWARD_STEP "##DDNext", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                    // Botão + SAVE na Biblioteca
+                    if (ImGui::Button(ICON_FA_PLUS " SAVE", ImVec2(KuroUI::UIScaleManager::Scale(68.0f), trans_btn_sz))) {
+                        KuroAudio::DJLibraryTrack lt;
+                        lt.id = "dig_" + std::to_string(std::hash<std::string>{}(dd_hero_title));
+                        lt.title = dd_hero_title;
+                        lt.artist = dd_hero_artist;
+                        lt.album = dd_hero_label;
+                        lt.bpm = dd_hero_bpm;
+                        lt.key = dd_hero_key;
+                        lt.duration_sec = 425.0;
+                        KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
+                        toast_message = std::string(ICON_FA_CHECK) + " Salva na Biblioteca: " + dd_hero_title;
+                        toast_timer = 3.0f;
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+
+                    // Bookmark
+                    if (dd_bookmarked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.20f, 1.0f));
+                    if (ImGui::Button(ICON_FA_BOOKMARK "##DDBookmark", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        dd_bookmarked = !dd_bookmarked;
+                    }
+                    if (dd_bookmarked) ImGui::PopStyleColor();
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
+
+                    // Heart Like
+                    if (dd_liked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.40f, 1.0f));
+                    if (ImGui::Button(ICON_FA_HEART "##DDHeart", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        dd_liked = !dd_liked;
+                        spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "like", 0);
+                        toast_message = "Reforço Gravado no Grafo!";
+                        toast_timer = 2.5f;
+                    }
+                    if (dd_liked) ImGui::PopStyleColor();
+
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
+                    // 5. TEMPO / PITCH SLIDER
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::TextColored(ImVec4(0.50f, 0.62f, 0.78f, 0.85f), "TEMPO");
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    float sld_w = lw - KuroUI::UIScaleManager::Scale(130.0f);
+                    if (sld_w < 70.0f) sld_w = 70.0f;
+                    ImGui::PushItemWidth(sld_w);
+                    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.92f, 0.35f, 0.20f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.50f, 0.30f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.04f, 0.08f, 0.14f, 0.90f));
+                    ImGui::SliderFloat("##DDPitchSlider", &dd_tempo_slider, 135.0f, 160.0f, "");
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopItemWidth();
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+                    ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.25f, 1.0f), "%.1f BPM", dd_tempo_slider);
+
+                    ImGui::Spacing();
+
+                    // 6. CARREGAR DIRETO NOS DECKS
+                    ImGui::TextColored(ImVec4(0.48f, 0.60f, 0.75f, 0.85f), "CARREGAR NO DECK:");
+                    ImGui::Spacing();
+
+                    float d_btn_w = (lw - KuroUI::UIScaleManager::Scale(12.0f)) * 0.25f;
+                    struct HeroDeckBtn { const char* lbl; ImVec4 col; int d_idx; };
+                    HeroDeckBtn h_dbtns[4] = {
+                        { "⚡ D1", col_deck_1, 0 },
+                        { "⚡ D2", col_deck_2, 1 },
+                        { "⚡ D3", col_deck_3, 2 },
+                        { "⚡ D4", col_deck_4, 3 },
+                    };
+                    for (int di = 0; di < 4; di++) {
+                        const auto& hdb = h_dbtns[di];
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(hdb.col.x * 0.20f, hdb.col.y * 0.20f, hdb.col.z * 0.20f, 0.90f));
+                        ImGui::PushStyleColor(ImGuiCol_Border, hdb.col);
+                        ImGui::PushStyleColor(ImGuiCol_Text, hdb.col);
+                        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                        if (ImGui::Button(hdb.lbl, ImVec2(d_btn_w, KuroUI::UIScaleManager::Scale(28.0f)))) {
+                            int target_d = hdb.d_idx;
+                            std::string p = "scratch/tracks/track_" + dd_hero_title + ".wav";
+                            if (!std::filesystem::exists(p)) p = (target_d % 2 == 0) ? "scratch/test_cliff.wav" : "scratch/test_astrix.wav";
+                            engine.decks[target_d].loadTrack(p);
+                            engine.decks[target_d].track_title = dd_hero_title;
+                            engine.decks[target_d].track_artist = dd_hero_artist;
+                            engine.decks[target_d].bpm = dd_tempo_slider;
+                            engine.decks[target_d].key_signature = dd_hero_key;
+                            KuroAudio::DJGridEngine::getInstance().setBpm(target_d, dd_tempo_slider);
+                            spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "load_deck", target_d);
+                            toast_message = "Faixa '" + dd_hero_title + "' carregada no Deck " + std::to_string(target_d + 1);
+                            toast_timer = 3.5f;
+                        }
+                        ImGui::PopStyleVar(2);
+                        ImGui::PopStyleColor(3);
+                        if (di < 3) ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(2);
+
+                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                // ────────────────────────────────────────────────────────────────
+                // PAINEL DIREITO: REFERENCE CARD & SIMILAR TRACKS (66%)
+                // ────────────────────────────────────────────────────────────────
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
+                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+                if (ImGui::BeginChild("##DDRightTracksPane", ImVec2(dd_right_w, dd_split_h), true)) {
+                    ImDrawList* rdl = ImGui::GetWindowDrawList();
+                    float rw = ImGui::GetContentRegionAvail().x;
+
+                    // 1. TOP REFERENCE CARD (Faixa Guia)
+                    float ref_card_h = KuroUI::UIScaleManager::Scale(74.0f);
+                    ImVec2 rc_min = ImGui::GetCursorScreenPos();
+                    ImVec2 rc_max = ImVec2(rc_min.x + rw, rc_min.y + ref_card_h);
+
+                    rdl->AddRectFilled(rc_min, rc_max, IM_COL32(14, 18, 28, 255), KuroUI::UIScaleManager::Scale(6.0f));
+                    rdl->AddRect(rc_min, rc_max, IM_COL32(230, 80, 50, 160), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.2f);
+
+                    // Mini Thumbnail da Referência
+                    float th_sz = KuroUI::UIScaleManager::Scale(54.0f);
+                    ImVec2 th_min = ImVec2(rc_min.x + KuroUI::UIScaleManager::Scale(10.0f), rc_min.y + (ref_card_h - th_sz) * 0.5f);
+                    ImVec2 th_max = ImVec2(th_min.x + th_sz, th_min.y + th_sz);
+                    rdl->AddRectFilled(th_min, th_max, IM_COL32(18, 24, 38, 255), KuroUI::UIScaleManager::Scale(4.0f));
+                    rdl->AddRect(th_min, th_max, IM_COL32(230, 80, 50, 200), KuroUI::UIScaleManager::Scale(4.0f), 0, 1.0f);
+                    float th_cx = th_min.x + th_sz * 0.5f, th_cy = th_min.y + th_sz * 0.5f;
+                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), th_sz * 0.35f, IM_COL32(230, 80, 50, 180), 20);
+                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), KuroUI::UIScaleManager::Scale(3.0f), IM_COL32(10, 14, 20, 255), 12);
+
+                    std::string ref_t = spotify_service.getDigDeeperRefTitle().empty() ? "Toasted" : spotify_service.getDigDeeperRefTitle();
+                    std::string ref_a = spotify_service.getDigDeeperRefArtist().empty() ? "JUMPSTREET" : spotify_service.getDigDeeperRefArtist();
+                    std::string ref_dur = spotify_service.getDigDeeperRefDuration().empty() ? "8:36" : spotify_service.getDigDeeperRefDuration();
+                    std::string ref_yr = spotify_service.getDigDeeperRefYear().empty() ? "2022" : spotify_service.getDigDeeperRefYear();
+                    double ref_bpm = spotify_service.getDigDeeperRefBpm() > 20.0 ? spotify_service.getDigDeeperRefBpm() : 150.0;
+
+                    // Botões no Canto Direito do Reference Card: [REFERENCE] Badge + [SHARE] + [VOLTAR]
+                    float btn_cluster_w = KuroUI::UIScaleManager::Scale(280.0f);
+                    float right_rc_x = rc_max.x - btn_cluster_w;
+
+                    // Textos da Referência com Clipping Seguro (nunca colide com os botões!)
+                    float rtx = th_max.x + KuroUI::UIScaleManager::Scale(12.0f);
+                    rdl->PushClipRect(ImVec2(rtx, rc_min.y), ImVec2(right_rc_x - KuroUI::UIScaleManager::Scale(8.0f), rc_max.y), true);
+
+                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(12.0f)), IM_COL32(255, 255, 255, 255), ref_t.c_str());
+
+                    char ref_meta[160];
+                    snprintf(ref_meta, sizeof(ref_meta), "%s  •  %.0f BPM  •  %s  •  %s", ref_a.c_str(), ref_bpm, ref_dur.c_str(), ref_yr.c_str());
+                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(38.0f)), IM_COL32(0, 229, 255, 220), ref_meta);
+
+                    rdl->PopClipRect();
+
+                    // Renderiza os botões do Reference Card
+                    ImGui::SetCursorScreenPos(ImVec2(right_rc_x, rc_min.y + (ref_card_h - KuroUI::UIScaleManager::Scale(28.0f)) * 0.5f));
+
+                    // Badge [REFERENCE] em Laranja Sólido
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
+                    ImGui::SmallButton("REFERENCE");
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    // Botão [SHARE]
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.45f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.85f, 0.98f, 0.95f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                    if (ImGui::Button(ICON_FA_SHARE_NODES " SHARE", ImVec2(KuroUI::UIScaleManager::Scale(76.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                        ImGui::SetClipboardText(("https://digdeeper.fm/similar?q=" + ref_t).c_str());
+                        toast_message = "Link copiado para compartilhar!";
+                        toast_timer = 2.5f;
+                    }
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+                    // Botão [CATÁLOGO]
+                    if (ImGui::Button(ICON_FA_ARROW_LEFT " CATÁLOGO", ImVec2(KuroUI::UIScaleManager::Scale(95.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                        spotify_service.show_dig_deeper_view = false;
+                    }
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    // Avança o cursor para baixo do Reference Card com Dummy para validar boundaries
+                    ImGui::SetCursorScreenPos(ImVec2(rc_min.x, rc_min.y + ref_card_h + KuroUI::UIScaleManager::Scale(4.0f)));
+                    ImGui::Dummy(ImVec2(rw, KuroUI::UIScaleManager::Scale(2.0f)));
+
+                    ImGui::Spacing();
+
+                    // 2. TABS & FILTER BAR (SIMILAR, ARTIST, XX TRACKS, Already heard, Filters)
+                    ImVec2 tab_bar_p = ImGui::GetCursorScreenPos();
+                    float tab_bar_h = KuroUI::UIScaleManager::Scale(32.0f);
+
+                    // Tab SIMILAR
+                    bool is_sim = (dd_active_tab == 0);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, is_sim ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
+                    if (ImGui::SmallButton("SIMILAR")) { dd_active_tab = 0; }
+                    ImGui::PopStyleColor(2);
+                    if (is_sim) {
+                        ImVec2 sim_min = ImGui::GetItemRectMin();
+                        ImVec2 sim_max = ImGui::GetItemRectMax();
+                        rdl->AddLine(ImVec2(sim_min.x, sim_max.y + 2.0f), ImVec2(sim_max.x, sim_max.y + 2.0f), IM_COL32(230, 80, 50, 255), 2.0f);
+                    }
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
+
+                    // Tab ARTIST
+                    bool is_art = (dd_active_tab == 1);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                    ImGui::PushStyleColor(ImGuiCol_Text, is_art ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
+                    if (ImGui::SmallButton("ARTIST")) { dd_active_tab = 1; }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
+
+                    // Contador de faixas
+                    ImGui::TextColored(ImVec4(0.90f, 0.38f, 0.22f, 1.0f), "%d TRACKS", (int)dig_matches.size());
+
+                    // Canto Direito: Toggle Already heard + Botão Filters
+                    float right_flt_x = rw - KuroUI::UIScaleManager::Scale(210.0f);
+                    if (right_flt_x > ImGui::GetCursorPosX()) ImGui::SameLine(right_flt_x);
+
+                    if (dd_already_heard_filter) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
+                    if (ImGui::SmallButton("Already heard")) {
+                        dd_already_heard_filter = !dd_already_heard_filter;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
+                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.42f, 0.60f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.82f, 0.95f, 0.95f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                    if (ImGui::Button(ICON_FA_SLIDERS " Filters", ImVec2(KuroUI::UIScaleManager::Scale(78.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
+                    ImGui::PopStyleVar(2);
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
+                    // 3. SIMILAR TRACKS SCROLLABLE LIST
+                    float list_h = ImGui::GetContentRegionAvail().y - KuroUI::UIScaleManager::Scale(4.0f);
+                    if (ImGui::BeginChild("##DDSimilarTracksList", ImVec2(rw, list_h), false)) {
+                        ImDrawList* cdl = ImGui::GetWindowDrawList();
+                        float cw = ImGui::GetContentRegionAvail().x;
+
+                        if (spotify_service.isDiggingDeeper()) {
+                            ImGui::Spacing();
+                            ImGui::TextColored(ImVec4(0.92f, 0.45f, 0.25f, 1.0f), ICON_FA_SPINNER " Minerando catálogo do DigDeeper ao vivo...");
+                        } else if (dig_matches.empty()) {
+                            ImGui::Spacing();
+                            ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.80f, 0.90f), "Nenhuma faixa similar encontrada. Clique em REMINERAR para pesquisar.");
+                        } else {
+                            for (size_t di = 0; di < dig_matches.size(); di++) {
+                                const auto& m = dig_matches[di];
+                                ImGui::PushID((int)di + 92000);
+
+                                float row_h = KuroUI::UIScaleManager::Scale(64.0f);
+                                ImVec2 row_p = ImGui::GetCursorScreenPos();
+
+                                bool is_playing_this = (preview_player.isPlaying() && preview_player.getCurrentTitle() == m.title);
+                                bool is_hero_sel = (dd_hero_title == m.title);
+
+                                // Fundo do Card
+                                ImU32 bg_col = is_hero_sel ? IM_COL32(18, 22, 34, 255) : IM_COL32(10, 14, 22, 240);
+                                ImU32 border_col = is_hero_sel ? IM_COL32(230, 80, 50, 200) : IM_COL32(26, 36, 52, 160);
+                                cdl->AddRectFilled(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), bg_col, KuroUI::UIScaleManager::Scale(4.0f));
+                                cdl->AddRect(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), border_col, KuroUI::UIScaleManager::Scale(4.0f), 0, is_hero_sel ? 1.5f : 1.0f);
+
+                                // Mini Thumbnail / Botão Play
+                                float t_sz = KuroUI::UIScaleManager::Scale(46.0f);
+                                ImVec2 t_min = ImVec2(row_p.x + KuroUI::UIScaleManager::Scale(8.0f), row_p.y + (row_h - t_sz) * 0.5f);
+                                ImVec2 t_max = ImVec2(t_min.x + t_sz, t_min.y + t_sz);
+                                cdl->AddRectFilled(t_min, t_max, IM_COL32(16, 20, 30, 255), KuroUI::UIScaleManager::Scale(4.0f));
+
+                                ImGui::SetCursorScreenPos(t_min);
+                                char row_play_id[32]; snprintf(row_play_id, sizeof(row_play_id), "##DDPlayRow_%d", (int)di);
+                                if (ImGui::InvisibleButton(row_play_id, ImVec2(t_sz, t_sz))) {
+                                    dd_hero_title = m.title;
+                                    dd_hero_artist = m.artist;
+                                    dd_hero_label = m.label;
+                                    dd_hero_bpm = m.bpm;
+                                    dd_hero_key = m.camelot_code;
+                                    dd_hero_dur = m.duration_str;
+                                    dd_hero_year = m.year;
+                                    dd_tempo_slider = (float)m.bpm;
+                                    std::string p_src = m.url.empty() ? "scratch/test_astrix.wav" : m.url;
+                                    preview_player.play(p_src, m.id, m.title, m.artist);
+                                }
+                                const char* r_ic = is_playing_this ? ICON_FA_PAUSE : ICON_FA_PLAY;
+                                ImVec2 ric_sz = ImGui::CalcTextSize(r_ic);
+                                cdl->AddText(ImVec2(t_min.x + (t_sz - ric_sz.x) * 0.5f, t_min.y + (t_sz - ric_sz.y) * 0.5f),
+                                             is_playing_this ? IM_COL32(0, 229, 255, 255) : IM_COL32(230, 80, 50, 255), r_ic);
+
+                                // Bloco Direito: [BUY], [+], [🤍], [🔖], [98% MATCH], [DIG >]
+                                float right_w = KuroUI::UIScaleManager::Scale(330.0f);
+                                float rx = row_p.x + cw - right_w - KuroUI::UIScaleManager::Scale(8.0f);
+                                float ry = row_p.y + (row_h - KuroUI::UIScaleManager::Scale(28.0f)) * 0.5f;
+
+                                // Informações da Faixa (Título, Artista, Label, BPM, Duração, Ano) - com clipping seguro
+                                float info_x = t_max.x + KuroUI::UIScaleManager::Scale(12.0f);
+                                cdl->PushClipRect(ImVec2(info_x, row_p.y), ImVec2(rx - KuroUI::UIScaleManager::Scale(8.0f), row_p.y + row_h), true);
+
+                                float title_y = row_p.y + KuroUI::UIScaleManager::Scale(11.0f);
+                                cdl->AddText(ImVec2(info_x, title_y), IM_COL32(255, 255, 255, 255), m.title.c_str());
+
+                                float meta_y = row_p.y + KuroUI::UIScaleManager::Scale(34.0f);
+                                char line2[160];
+                                snprintf(line2, sizeof(line2), "%s  •  %s  •  %.0f BPM  •  %s  •  %s  •  %s",
+                                         m.artist.c_str(), m.label.c_str(), m.bpm, m.camelot_code.c_str(), m.duration_str.c_str(), m.year.c_str());
+                                cdl->AddText(ImVec2(info_x, meta_y), IM_COL32(135, 155, 185, 220), line2);
+
+                                cdl->PopClipRect();
+
+                                // Renderização dos botões da direita
+                                ImGui::SetCursorScreenPos(ImVec2(rx, ry));
+
+                                // 1. Botão BUY / Bandcamp
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
+                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.32f, 0.46f, 0.60f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.65f, 0.78f, 0.95f, 0.95f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                                if (ImGui::Button("BUY", ImVec2(KuroUI::UIScaleManager::Scale(44.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    if (!m.url.empty()) {
+                                        #ifdef _WIN32
+                                        ShellExecuteA(NULL, "open", m.url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+                                        #endif
+                                    }
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 2. Botão [+] Add to library
+                                if (ImGui::Button(ICON_FA_PLUS, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    KuroAudio::DJLibraryTrack lt;
+                                    lt.id = "dig_" + std::to_string(std::hash<std::string>{}(m.title));
+                                    lt.title = m.title;
+                                    lt.artist = m.artist;
+                                    lt.album = m.label;
+                                    lt.bpm = m.bpm;
+                                    lt.key = m.camelot_code;
+                                    lt.duration_sec = 425.0;
+                                    KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
+                                    toast_message = "Adicionada à biblioteca: " + m.title;
+                                    toast_timer = 2.5f;
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 3. Botão [🤍] Like
+                                if (ImGui::Button(ICON_FA_HEART, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+                                    spotify_service.recordDigFeedbackAsync(ref_t, m.title, "like", 0);
+                                    toast_message = "Reforço registrado no Grafo!";
+                                    toast_timer = 2.0f;
+                                }
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+
+                                // 4. Botão [🔖] Bookmark
+                                if (ImGui::Button(ICON_FA_BOOKMARK, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
+                                ImGui::PopStyleVar(2);
+                                ImGui::PopStyleColor(3);
+
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
+
+                                // 5. BADGE MATCH %
+                                ImVec2 match_badge_pos = ImGui::GetCursorScreenPos();
+                                char pct_txt[16]; snprintf(pct_txt, sizeof(pct_txt), "%d%%", m.acoustic_match_pct);
+                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(11.0f)),
+                                             IM_COL32(255, 255, 255, 255), pct_txt);
+                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(32.0f)),
+                                             IM_COL32(230, 80, 50, 255), "MATCH");
+
+                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(54.0f));
+
+                                // 6. BOTÃO DIG >
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06f, 0.10f, 0.18f, 0.90f));
+                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.24f, 0.36f, 0.52f, 0.70f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+                                if (ImGui::Button("DIG >", ImVec2(KuroUI::UIScaleManager::Scale(62.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
+                                    spotify_service.digDeeperAsync(m.title, m.artist, m.camelot_code, m.bpm);
+                                    dd_hero_title = m.title;
+                                    dd_hero_artist = m.artist;
+                                    dd_hero_label = m.label;
+                                    dd_hero_bpm = m.bpm;
+                                    dd_hero_key = m.camelot_code;
+                                    dd_hero_dur = m.duration_str;
+                                    dd_hero_year = m.year;
+                                    dd_tempo_slider = (float)m.bpm;
+                                    toast_message = "Garimpando a partir de '" + m.title + "'...";
+                                    toast_timer = 3.0f;
+                                }
+                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir esta faixa como nova referência e minerar novas almas gêmeas!");
+                                ImGui::PopStyleVar(2);
+                                ImGui::PopStyleColor(3);
+
+                                ImGui::PopID();
+                                ImGui::SetCursorScreenPos(ImVec2(row_p.x, row_p.y + row_h + KuroUI::UIScaleManager::Scale(4.0f)));
+                                ImGui::Dummy(ImVec2(cw, KuroUI::UIScaleManager::Scale(2.0f)));
+                            }
+                        }
+                    }
+                    ImGui::EndChild();
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleVar(2);
+                ImGui::PopStyleColor(2);
+
+                // ────────────────────────────────────────────────────────────────
+                // BOTTOM FLOATING QUICK-BAR (Next 1 Prev, Space Pause, +30s-, L Like, Start at 25%)
+                // ────────────────────────────────────────────────────────────────
+                if (dd_show_pill) {
+                    ImGui::Spacing();
+                    float pill_w = KuroUI::UIScaleManager::Scale(580.0f);
+                    float pill_h = KuroUI::UIScaleManager::Scale(36.0f);
+                    float pill_x = (avail_w - pill_w) * 0.5f;
+                    if (pill_x < 0) pill_x = 0;
+                    ImGui::SetCursorPosX(pill_x);
+
+                    ImVec2 p_min = ImGui::GetCursorScreenPos();
+                    ImVec2 p_max = ImVec2(p_min.x + pill_w, p_min.y + pill_h);
+                    ImDrawList* pdl = ImGui::GetWindowDrawList();
+
+                    pdl->AddRectFilled(p_min, p_max, IM_COL32(10, 14, 22, 245), KuroUI::UIScaleManager::Scale(18.0f));
+                    pdl->AddRect(p_min, p_max, IM_COL32(0, 229, 255, 90), KuroUI::UIScaleManager::Scale(18.0f), 0, 1.2f);
+
+                    float item_y = p_min.y + KuroUI::UIScaleManager::Scale(6.0f);
+                    float cur_px = p_min.x + KuroUI::UIScaleManager::Scale(16.0f);
+
+                    // Shortcut 1: Next [1] Prev
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Next");
+                    cur_px += KuroUI::UIScaleManager::Scale(40.0f);
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 20.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 6.0f, item_y), IM_COL32(0, 229, 255, 255), "1");
+                    cur_px += KuroUI::UIScaleManager::Scale(26.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Prev");
+                    cur_px += KuroUI::UIScaleManager::Scale(50.0f);
+
+                    // Shortcut 2: Space Pause
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 46.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 5.0f, item_y), IM_COL32(255, 255, 255, 255), "Space");
+                    cur_px += KuroUI::UIScaleManager::Scale(52.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Pause");
+                    cur_px += KuroUI::UIScaleManager::Scale(58.0f);
+
+                    // Shortcut 3: + 30s -
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "+  30s  -");
+                    cur_px += KuroUI::UIScaleManager::Scale(68.0f);
+
+                    // Shortcut 4: L Like
+                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 18.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
+                    pdl->AddText(ImVec2(cur_px + 5.0f, item_y), IM_COL32(0, 229, 255, 255), "L");
+                    cur_px += KuroUI::UIScaleManager::Scale(24.0f);
+                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Like");
+                    cur_px += KuroUI::UIScaleManager::Scale(46.0f);
+
+                    // Shortcut 5: Start at 25% switch
+                    ImGui::SetCursorScreenPos(ImVec2(cur_px, item_y - KuroUI::UIScaleManager::Scale(2.0f)));
+                    if (dd_start_at_25) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
+                    if (ImGui::SmallButton("Start at 25%")) {
+                        dd_start_at_25 = !dd_start_at_25;
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+
+                    // Close button
+                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(10.0f));
+                    if (ImGui::SmallButton("✕")) {
+                        dd_show_pill = false;
+                    }
+
+                    ImGui::SetCursorScreenPos(ImVec2(p_min.x, p_max.y + KuroUI::UIScaleManager::Scale(2.0f)));
+                    ImGui::Dummy(ImVec2(pill_w, KuroUI::UIScaleManager::Scale(4.0f)));
+                }
+            } else {
             // ── 1. OMNIBAR ROW (Fiel ao Mockup + Dig Deeper Pixel-Perfect) ──────
             float omni_btn_w = KuroUI::UIScaleManager::Scale(140.0f);
             float omni_paste_w = KuroUI::UIScaleManager::Scale(165.0f);
@@ -21505,693 +22290,6 @@ private:
                 }
                 spotify_service.searchSourcesAsync(results_all[0].id, results_all[0].title, results_all[0].artist);
             }
-
-            // ── 3. PAINÉIS LADO A LADO (SPLIT DASHBOARD OU EXPERIÊNCIA 1:1 DIGDEEPER) ────────────────────────
-            if (spotify_service.show_dig_deeper_view) {
-                // ════════════════════════════════════════════════════════════════════
-                // DIGDEEPER 1:1 STUDIO EXPERIENCE (HARMONIZADO COM ABDUCTION STUDIO)
-                // ════════════════════════════════════════════════════════════════════
-                float dd_avail_h = ImGui::GetContentRegionAvail().y;
-                float dd_split_h = dd_avail_h - KuroUI::UIScaleManager::Scale(54.0f);
-                if (dd_split_h < 300.0f) dd_split_h = 300.0f;
-                float dd_left_w = avail_w * 0.35f - KuroUI::UIScaleManager::Scale(6.0f);
-                float dd_right_w = avail_w * 0.65f - KuroUI::UIScaleManager::Scale(6.0f);
-
-                auto dig_matches = spotify_service.getDigDeeperResults();
-                if (dig_matches.empty() && !spotify_service.isDiggingDeeper()) {
-                    std::string ref_q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
-                    std::string ref_a = selected_source_track_artist.empty() ? "JUMPSTREET" : selected_source_track_artist;
-                    std::string ref_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
-                    double ref_b = selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 150.0;
-                    spotify_service.digDeeperAsync(ref_q, ref_a, ref_k, ref_b);
-                }
-
-                // Estado persistente da sessão DigDeeper
-                static bool dd_autoplay = true;
-                static float dd_tempo_slider = 148.0f;
-                static bool dd_already_heard_filter = false;
-                static int dd_active_tab = 0; // 0 = SIMILAR, 1 = ARTIST
-                static bool dd_start_at_25 = true;
-                static bool dd_show_pill = true;
-                static std::string dd_hero_title = "Unknown Tomorrow";
-                static std::string dd_hero_artist = "RUGRATS & AXIAL TILT";
-                static std::string dd_hero_label = "RUGRATS";
-                static std::string dd_hero_dur = "7:05";
-                static std::string dd_hero_year = "2024";
-                static double dd_hero_bpm = 148.0;
-                static std::string dd_hero_key = "12A";
-                static std::string dd_hero_url = "";
-                static bool dd_liked = false;
-                static bool dd_bookmarked = false;
-
-                if (preview_player.isPlaying()) {
-                    dd_hero_title = preview_player.getCurrentTitle();
-                    dd_hero_artist = preview_player.getCurrentArtist();
-                } else if (!dig_matches.empty() && dd_hero_title == "Unknown Tomorrow" && selected_source_track_title != "") {
-                    dd_hero_title = dig_matches[0].title;
-                    dd_hero_artist = dig_matches[0].artist;
-                    dd_hero_label = dig_matches[0].label;
-                    dd_hero_bpm = dig_matches[0].bpm;
-                    dd_hero_key = dig_matches[0].camelot_code;
-                    dd_hero_dur = dig_matches[0].duration_str;
-                    dd_hero_year = dig_matches[0].year;
-                }
-
-                // ────────────────────────────────────────────────────────────────
-                // PAINEL ESQUERDO: NOW PLAYING HERO (35%)
-                // ────────────────────────────────────────────────────────────────
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
-                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
-                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
-                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
-                if (ImGui::BeginChild("##DDLeftHeroPane", ImVec2(dd_left_w, dd_split_h), true)) {
-                    ImDrawList* ldl = ImGui::GetWindowDrawList();
-                    float lw = ImGui::GetContentRegionAvail().x;
-
-                    // 1. Header do Painel Esquerdo: NOW PLAYING & AUTOPLAY TOGGLE
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.82f, 0.90f));
-                    ImGui::TextUnformatted("NOW PLAYING");
-                    ImGui::PopStyleColor();
-
-                    float tog_w = KuroUI::UIScaleManager::Scale(110.0f);
-                    ImGui::SameLine(lw - tog_w);
-                    ImGui::TextColored(ImVec4(0.48f, 0.58f, 0.72f, 0.85f), "Autoplay");
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
-                    if (dd_autoplay) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-                    } else {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.80f, 0.85f));
-                    }
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(10.0f));
-                    if (ImGui::SmallButton(dd_autoplay ? "ON" : "OFF")) {
-                        dd_autoplay = !dd_autoplay;
-                    }
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor(2);
-
-                    ImGui::Spacing();
-
-                    // 2. CAPA QUADRADA GIGANTE / TELA DE VÍDEO (Hero Artwork)
-                    float hero_art_sz = lw;
-                    if (hero_art_sz > KuroUI::UIScaleManager::Scale(340.0f)) hero_art_sz = KuroUI::UIScaleManager::Scale(340.0f);
-                    ImVec2 art_min = ImGui::GetCursorScreenPos();
-                    ImVec2 art_max = ImVec2(art_min.x + hero_art_sz, art_min.y + hero_art_sz);
-                    ImGui::Dummy(ImVec2(hero_art_sz, hero_art_sz));
-
-                    // Fundo da imagem
-                    ldl->AddRectFilled(art_min, art_max, IM_COL32(10, 14, 22, 255), KuroUI::UIScaleManager::Scale(8.0f));
-
-                    if (selected_source_track_tex > 0) {
-                        ldl->AddImageRounded((ImTextureID)(intptr_t)selected_source_track_tex,
-                                             art_min, art_max, ImVec2(0, 0), ImVec2(1, 1),
-                                             IM_COL32_WHITE, KuroUI::UIScaleManager::Scale(8.0f));
-                    } else {
-                        // Artwork Psicodélica Eletrônica Estilizada (Ciber-Espaço / Psytrance)
-                        float cx = art_min.x + hero_art_sz * 0.5f;
-                        float cy = art_min.y + hero_art_sz * 0.5f;
-                        for (int gi = 1; gi <= 6; gi++) {
-                            float rad = (hero_art_sz * 0.45f) * (gi / 6.0f);
-                            ldl->AddCircle(ImVec2(cx, cy), rad, IM_COL32(0, 229, 255, 25 + gi * 18), 40, 1.2f);
-                        }
-                        for (int ri = 0; ri < 12; ri++) {
-                            float ang = ri * (3.14159f / 6.0f);
-                            ImVec2 p1 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.14f), cy + sinf(ang) * (hero_art_sz * 0.14f));
-                            ImVec2 p2 = ImVec2(cx + cosf(ang) * (hero_art_sz * 0.44f), cy + sinf(ang) * (hero_art_sz * 0.44f));
-                            ldl->AddLine(p1, p2, IM_COL32(230, 80, 50, 90), 1.0f);
-                        }
-                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(14, 18, 28, 255), 32);
-                        ldl->AddCircle(ImVec2(cx, cy), hero_art_sz * 0.22f, IM_COL32(0, 245, 212, 220), 32, 2.0f);
-                        ldl->AddCircleFilled(ImVec2(cx, cy), hero_art_sz * 0.10f, IM_COL32(230, 80, 50, 240), 24);
-                    }
-                    ldl->AddRect(art_min, art_max, IM_COL32(0, 229, 255, 160), KuroUI::UIScaleManager::Scale(8.0f), 0, 1.5f);
-
-                    // Overlay no Artwork: Selo YouTube no Topo Direito
-                    ImVec2 yt_min = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(90.0f), art_min.y + KuroUI::UIScaleManager::Scale(8.0f));
-                    ImVec2 yt_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(8.0f), art_min.y + KuroUI::UIScaleManager::Scale(30.0f));
-                    ldl->AddRectFilled(yt_min, yt_max, IM_COL32(10, 12, 18, 210), KuroUI::UIScaleManager::Scale(4.0f));
-                    ldl->AddText(ImVec2(yt_min.x + KuroUI::UIScaleManager::Scale(8.0f), yt_min.y + KuroUI::UIScaleManager::Scale(2.0f)),
-                                 IM_COL32(255, 60, 60, 255), "▶ YouTube");
-
-                    // Overlay no Artwork: Botão Circular Central de Play / Pause
-                    bool is_prv_playing = preview_player.isPlaying();
-                    float btn_rad = KuroUI::UIScaleManager::Scale(28.0f);
-                    ImVec2 btn_c = ImVec2(art_min.x + hero_art_sz * 0.5f, art_min.y + hero_art_sz * 0.5f);
-                    ldl->AddCircleFilled(btn_c, btn_rad, IM_COL32(12, 16, 24, 210), 32);
-                    ldl->AddCircle(btn_c, btn_rad, IM_COL32(0, 229, 255, 230), 32, 1.8f);
-
-                    ImGui::SetCursorScreenPos(ImVec2(btn_c.x - btn_rad, btn_c.y - btn_rad));
-                    if (ImGui::InvisibleButton("##DDHeroPlayBtn", ImVec2(btn_rad * 2.0f, btn_rad * 2.0f))) {
-                        if (is_prv_playing) {
-                            preview_player.togglePlayPause();
-                        } else {
-                            std::string p_src = dd_hero_url.empty() ? "scratch/test_astrix.wav" : dd_hero_url;
-                            preview_player.play(p_src, "dd_now", dd_hero_title, dd_hero_artist);
-                        }
-                    }
-                    const char* pp_ic = is_prv_playing ? ICON_FA_PAUSE : ICON_FA_PLAY;
-                    ImVec2 pp_sz = ImGui::CalcTextSize(pp_ic);
-                    ldl->AddText(ImVec2(btn_c.x - pp_sz.x * 0.5f, btn_c.y - pp_sz.y * 0.5f), IM_COL32(255, 255, 255, 255), pp_ic);
-
-                    // Overlay no Artwork: Barra Inferior com Scrubber e Timestamp (2:14 / 7:05)
-                    ImVec2 bar_min = ImVec2(art_min.x + KuroUI::UIScaleManager::Scale(10.0f), art_max.y - KuroUI::UIScaleManager::Scale(34.0f));
-                    ImVec2 bar_max = ImVec2(art_max.x - KuroUI::UIScaleManager::Scale(10.0f), art_max.y - KuroUI::UIScaleManager::Scale(8.0f));
-                    ldl->AddRectFilled(bar_min, bar_max, IM_COL32(8, 12, 18, 230), KuroUI::UIScaleManager::Scale(4.0f));
-
-                    double cur_pos = preview_player.getPosition();
-                    double cur_dur = preview_player.getDuration();
-                    if (cur_dur < 1.0) cur_dur = 425.0; // 7:05 fallback
-                    int pm = (int)cur_pos / 60, ps = (int)cur_pos % 60;
-                    int dm = (int)cur_dur / 60, ds = (int)cur_dur % 60;
-                    char time_buf[32];
-                    snprintf(time_buf, sizeof(time_buf), "%02d:%02d / %02d:%02d", pm, ps, dm, ds);
-                    ldl->AddText(ImVec2(bar_min.x + KuroUI::UIScaleManager::Scale(8.0f), bar_min.y + KuroUI::UIScaleManager::Scale(4.0f)),
-                                 IM_COL32(240, 245, 255, 255), time_buf);
-
-                    // Scrubber fill line
-                    float sc_pct = std::clamp((float)(cur_pos / cur_dur), 0.0f, 1.0f);
-                    float sc_line_x1 = bar_min.x + KuroUI::UIScaleManager::Scale(120.0f);
-                    float sc_line_x2 = bar_max.x - KuroUI::UIScaleManager::Scale(8.0f);
-                    if (sc_line_x2 > sc_line_x1 + 10.0f) {
-                        float sc_y = bar_min.y + KuroUI::UIScaleManager::Scale(13.0f);
-                        ldl->AddLine(ImVec2(sc_line_x1, sc_y), ImVec2(sc_line_x2, sc_y), IM_COL32(40, 55, 75, 200), 3.0f);
-                        ldl->AddLine(ImVec2(sc_line_x1, sc_y), ImVec2(sc_line_x1 + (sc_line_x2 - sc_line_x1) * sc_pct, sc_y), IM_COL32(230, 80, 50, 255), 3.0f);
-                        ldl->AddCircleFilled(ImVec2(sc_line_x1 + (sc_line_x2 - sc_line_x1) * sc_pct, sc_y), 4.5f, IM_COL32(255, 255, 255, 255));
-                    }
-
-                    ImGui::Spacing();
-
-                    // 3. TÍTULO DA FAIXA E SUBTÍTULO
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-                    ImGui::TextUnformatted(dd_hero_title.c_str());
-                    ImGui::PopStyleColor();
-                    ImGui::SameLine();
-                    if (ImGui::SmallButton(ICON_FA_COPY "##DDCopyTitle")) {
-                        ImGui::SetClipboardText(dd_hero_title.c_str());
-                        toast_message = "Copiado para a área de transferência: " + dd_hero_title;
-                        toast_timer = 2.5f;
-                    }
-
-                    ImGui::TextColored(ImVec4(0.55f, 0.68f, 0.82f, 0.90f), "%s • %s • %s",
-                                       dd_hero_artist.c_str(), dd_hero_label.c_str(), dd_hero_year.c_str());
-
-                    ImGui::Spacing();
-
-                    // 4. BARRA DE TRANSPORTE (Shuffle, Prev, Play/Pause, Next, +SAVE, Bookmark, Heart)
-                    float trans_btn_sz = KuroUI::UIScaleManager::Scale(32.0f);
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
-                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.18f, 0.28f, 0.40f, 0.60f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-
-                    if (ImGui::Button(ICON_FA_SHUFFLE "##DDShuf", ImVec2(trans_btn_sz, trans_btn_sz))) {}
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-                    if (ImGui::Button(ICON_FA_BACKWARD_STEP "##DDPrev", ImVec2(trans_btn_sz, trans_btn_sz))) {}
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                    if (ImGui::Button(is_prv_playing ? ICON_FA_PAUSE "##DDTrPP" : ICON_FA_PLAY "##DDTrPP", ImVec2(trans_btn_sz, trans_btn_sz))) {
-                        preview_player.togglePlayPause();
-                    }
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-                    if (ImGui::Button(ICON_FA_FORWARD_STEP "##DDNext", ImVec2(trans_btn_sz, trans_btn_sz))) {}
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
-
-                    // Botão + SAVE na Biblioteca
-                    if (ImGui::Button(ICON_FA_PLUS " SAVE", ImVec2(KuroUI::UIScaleManager::Scale(74.0f), trans_btn_sz))) {
-                        KuroAudio::DJLibraryTrack lt;
-                        lt.id = "dig_" + std::to_string(std::hash<std::string>{}(dd_hero_title));
-                        lt.title = dd_hero_title;
-                        lt.artist = dd_hero_artist;
-                        lt.album = dd_hero_label;
-                        lt.bpm = dd_hero_bpm;
-                        lt.key = dd_hero_key;
-                        lt.duration_sec = 425.0;
-                        KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
-                        toast_message = std::string(ICON_FA_CHECK) + " Salva na Biblioteca: " + dd_hero_title;
-                        toast_timer = 3.0f;
-                    }
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                    // Bookmark
-                    if (dd_bookmarked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.20f, 1.0f));
-                    if (ImGui::Button(ICON_FA_BOOKMARK "##DDBookmark", ImVec2(trans_btn_sz, trans_btn_sz))) {
-                        dd_bookmarked = !dd_bookmarked;
-                    }
-                    if (dd_bookmarked) ImGui::PopStyleColor();
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                    // Heart Like
-                    if (dd_liked) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.25f, 0.40f, 1.0f));
-                    if (ImGui::Button(ICON_FA_HEART "##DDHeart", ImVec2(trans_btn_sz, trans_btn_sz))) {
-                        dd_liked = !dd_liked;
-                        spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "like", 0);
-                        toast_message = "Reforço Gravado no Grafo: Afinidade aumentada!";
-                        toast_timer = 2.5f;
-                    }
-                    if (dd_liked) ImGui::PopStyleColor();
-
-                    ImGui::PopStyleVar(2);
-                    ImGui::PopStyleColor(3);
-
-                    ImGui::Spacing();
-
-                    // 5. TEMPO / PITCH SLIDER (148.0 BPM)
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::TextColored(ImVec4(0.50f, 0.62f, 0.78f, 0.85f), "TEMPO");
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
-
-                    float sld_w = lw - KuroUI::UIScaleManager::Scale(150.0f);
-                    if (sld_w < 80.0f) sld_w = 80.0f;
-                    ImGui::PushItemWidth(sld_w);
-                    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.92f, 0.35f, 0.20f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.50f, 0.30f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.04f, 0.08f, 0.14f, 0.90f));
-                    ImGui::SliderFloat("##DDPitchSlider", &dd_tempo_slider, 135.0f, 160.0f, "");
-                    ImGui::PopStyleColor(3);
-                    ImGui::PopItemWidth();
-
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
-                    ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.25f, 1.0f), "%.1f BPM", dd_tempo_slider);
-
-                    ImGui::Spacing();
-
-                    // 6. CARREGAR DIRETO NOS DECKS (⚡ DECK 1, ⚡ DECK 2, ⚡ DECK 3, ⚡ DECK 4)
-                    ImGui::TextColored(ImVec4(0.48f, 0.60f, 0.75f, 0.85f), "CARREGAR NO DECK:");
-                    ImGui::Spacing();
-
-                    float d_btn_w = (lw - KuroUI::UIScaleManager::Scale(12.0f)) * 0.25f;
-                    struct HeroDeckBtn { const char* lbl; ImVec4 col; int d_idx; };
-                    HeroDeckBtn h_dbtns[4] = {
-                        { "⚡ D1", col_deck_1, 0 },
-                        { "⚡ D2", col_deck_2, 1 },
-                        { "⚡ D3", col_deck_3, 2 },
-                        { "⚡ D4", col_deck_4, 3 },
-                    };
-                    for (int di = 0; di < 4; di++) {
-                        const auto& hdb = h_dbtns[di];
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(hdb.col.x * 0.20f, hdb.col.y * 0.20f, hdb.col.z * 0.20f, 0.90f));
-                        ImGui::PushStyleColor(ImGuiCol_Border, hdb.col);
-                        ImGui::PushStyleColor(ImGuiCol_Text, hdb.col);
-                        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                        if (ImGui::Button(hdb.lbl, ImVec2(d_btn_w, KuroUI::UIScaleManager::Scale(30.0f)))) {
-                            int target_d = hdb.d_idx;
-                            std::string p = "scratch/tracks/track_" + dd_hero_title + ".wav";
-                            if (!std::filesystem::exists(p)) p = (target_d % 2 == 0) ? "scratch/test_cliff.wav" : "scratch/test_astrix.wav";
-                            engine.decks[target_d].loadTrack(p);
-                            engine.decks[target_d].track_title = dd_hero_title;
-                            engine.decks[target_d].track_artist = dd_hero_artist;
-                            engine.decks[target_d].bpm = dd_tempo_slider;
-                            engine.decks[target_d].key_signature = dd_hero_key;
-                            KuroAudio::DJGridEngine::getInstance().setBpm(target_d, dd_tempo_slider);
-                            spotify_service.recordDigFeedbackAsync(spotify_service.getDigDeeperRefTitle(), dd_hero_title, "load_deck", target_d);
-                            toast_message = "Faixa '" + dd_hero_title + "' carregada no Deck " + std::to_string(target_d + 1);
-                            toast_timer = 3.5f;
-                        }
-                        ImGui::PopStyleVar(2);
-                        ImGui::PopStyleColor(3);
-                        if (di < 3) ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-                    }
-                }
-                ImGui::EndChild();
-                ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(2);
-
-                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
-
-                // ────────────────────────────────────────────────────────────────
-                // PAINEL DIREITO: REFERENCE CARD & SIMILAR TRACKS (65%)
-                // ────────────────────────────────────────────────────────────────
-                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.010f, 0.014f, 0.022f, 0.98f));
-                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.70f));
-                ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, KuroUI::UIScaleManager::Scale(6.0f));
-                ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
-                if (ImGui::BeginChild("##DDRightTracksPane", ImVec2(dd_right_w, dd_split_h), true)) {
-                    ImDrawList* rdl = ImGui::GetWindowDrawList();
-                    float rw = ImGui::GetContentRegionAvail().x;
-
-                    // 1. TOP REFERENCE CARD (Toasted - JUMPSTREET • 150 BPM • 8:36 • 2022)
-                    float ref_card_h = KuroUI::UIScaleManager::Scale(78.0f);
-                    ImVec2 rc_min = ImGui::GetCursorScreenPos();
-                    ImVec2 rc_max = ImVec2(rc_min.x + rw, rc_min.y + ref_card_h);
-                    ImGui::Dummy(ImVec2(rw, ref_card_h));
-
-                    rdl->AddRectFilled(rc_min, rc_max, IM_COL32(14, 18, 28, 255), KuroUI::UIScaleManager::Scale(6.0f));
-                    rdl->AddRect(rc_min, rc_max, IM_COL32(230, 80, 50, 160), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.2f);
-
-                    // Mini Thumbnail da Referência
-                    float th_sz = KuroUI::UIScaleManager::Scale(58.0f);
-                    ImVec2 th_min = ImVec2(rc_min.x + KuroUI::UIScaleManager::Scale(10.0f), rc_min.y + (ref_card_h - th_sz) * 0.5f);
-                    ImVec2 th_max = ImVec2(th_min.x + th_sz, th_min.y + th_sz);
-                    rdl->AddRectFilled(th_min, th_max, IM_COL32(18, 24, 38, 255), KuroUI::UIScaleManager::Scale(4.0f));
-                    rdl->AddRect(th_min, th_max, IM_COL32(230, 80, 50, 200), KuroUI::UIScaleManager::Scale(4.0f), 0, 1.0f);
-                    float th_cx = th_min.x + th_sz * 0.5f, th_cy = th_min.y + th_sz * 0.5f;
-                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), th_sz * 0.35f, IM_COL32(230, 80, 50, 180), 20);
-                    rdl->AddCircleFilled(ImVec2(th_cx, th_cy), KuroUI::UIScaleManager::Scale(3.0f), IM_COL32(10, 14, 20, 255), 12);
-
-                    // Textos da Referência
-                    float rtx = th_max.x + KuroUI::UIScaleManager::Scale(12.0f);
-                    std::string ref_t = spotify_service.getDigDeeperRefTitle().empty() ? "Toasted" : spotify_service.getDigDeeperRefTitle();
-                    std::string ref_a = spotify_service.getDigDeeperRefArtist().empty() ? "JUMPSTREET" : spotify_service.getDigDeeperRefArtist();
-                    std::string ref_dur = spotify_service.getDigDeeperRefDuration().empty() ? "8:36" : spotify_service.getDigDeeperRefDuration();
-                    std::string ref_yr = spotify_service.getDigDeeperRefYear().empty() ? "2022" : spotify_service.getDigDeeperRefYear();
-                    double ref_bpm = spotify_service.getDigDeeperRefBpm() > 20.0 ? spotify_service.getDigDeeperRefBpm() : 150.0;
-
-                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(14.0f)), IM_COL32(255, 255, 255, 255), ref_t.c_str());
-                    rdl->AddText(ImVec2(rtx + ImGui::CalcTextSize(ref_t.c_str()).x + KuroUI::UIScaleManager::Scale(8.0f), rc_min.y + KuroUI::UIScaleManager::Scale(14.0f)),
-                                 IM_COL32(0, 229, 255, 255), ref_a.c_str());
-
-                    char ref_meta[128];
-                    snprintf(ref_meta, sizeof(ref_meta), "%.0f BPM • %s • %s", ref_bpm, ref_dur.c_str(), ref_yr.c_str());
-                    rdl->AddText(ImVec2(rtx, rc_min.y + KuroUI::UIScaleManager::Scale(42.0f)), IM_COL32(140, 165, 195, 220), ref_meta);
-
-                    // Botões no Canto Direito do Reference Card: [REFERENCE] Badge + [SHARE] + [VOLTAR]
-                    float right_rc_x = rc_max.x - KuroUI::UIScaleManager::Scale(320.0f);
-                    ImGui::SetCursorScreenPos(ImVec2(right_rc_x, rc_min.y + (ref_card_h - KuroUI::UIScaleManager::Scale(30.0f)) * 0.5f));
-
-                    // Badge [REFERENCE] em Laranja Sólido
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(3.0f));
-                    ImGui::SmallButton("REFERENCE");
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor(2);
-
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
-
-                    // Botão [SHARE]
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
-                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.45f, 0.60f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.85f, 0.98f, 0.95f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                    if (ImGui::Button(ICON_FA_SHARE_NODES " SHARE", ImVec2(KuroUI::UIScaleManager::Scale(76.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
-                        ImGui::SetClipboardText(("https://digdeeper.fm/similar?q=" + ref_t).c_str());
-                        toast_message = "Link copiado para compartilhar!";
-                        toast_timer = 2.5f;
-                    }
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
-
-                    // Botão [VOLTAR AO CATÁLOGO]
-                    if (ImGui::Button(ICON_FA_ARROW_LEFT " CATÁLOGO", ImVec2(KuroUI::UIScaleManager::Scale(95.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
-                        spotify_service.show_dig_deeper_view = false;
-                    }
-                    ImGui::PopStyleVar(2);
-                    ImGui::PopStyleColor(3);
-
-                    ImGui::Spacing();
-
-                    // 2. TABS & FILTER BAR (SIMILAR, ARTIST, XX TRACKS, Already heard, Filters)
-                    ImVec2 tab_bar_p = ImGui::GetCursorScreenPos();
-                    float tab_bar_h = KuroUI::UIScaleManager::Scale(34.0f);
-
-                    // Tab SIMILAR
-                    bool is_sim = (dd_active_tab == 0);
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                    ImGui::PushStyleColor(ImGuiCol_Text, is_sim ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
-                    if (ImGui::SmallButton("SIMILAR")) { dd_active_tab = 0; }
-                    ImGui::PopStyleColor(2);
-                    if (is_sim) {
-                        ImVec2 sim_min = ImGui::GetItemRectMin();
-                        ImVec2 sim_max = ImGui::GetItemRectMax();
-                        rdl->AddLine(ImVec2(sim_min.x, sim_max.y + 2.0f), ImVec2(sim_max.x, sim_max.y + 2.0f), IM_COL32(230, 80, 50, 255), 2.0f);
-                    }
-
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
-
-                    // Tab ARTIST
-                    bool is_art = (dd_active_tab == 1);
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-                    ImGui::PushStyleColor(ImGuiCol_Text, is_art ? ImVec4(0.95f, 0.40f, 0.25f, 1.0f) : ImVec4(0.55f, 0.65f, 0.78f, 0.85f));
-                    if (ImGui::SmallButton("ARTIST")) { dd_active_tab = 1; }
-                    ImGui::PopStyleColor(2);
-
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(14.0f));
-
-                    // Contador de faixas
-                    ImGui::TextColored(ImVec4(0.90f, 0.38f, 0.22f, 1.0f), "%d TRACKS", (int)dig_matches.size());
-
-                    // Canto Direito: Toggle Already heard + Botão Filters
-                    float right_flt_x = rw - KuroUI::UIScaleManager::Scale(210.0f);
-                    ImGui::SameLine(right_flt_x);
-
-                    if (dd_already_heard_filter) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
-                    } else {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
-                    }
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
-                    if (ImGui::SmallButton("Already heard")) {
-                        dd_already_heard_filter = !dd_already_heard_filter;
-                    }
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor();
-
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
-
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
-                    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.30f, 0.42f, 0.60f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.82f, 0.95f, 0.95f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                    if (ImGui::Button(ICON_FA_SLIDERS " Filters", ImVec2(KuroUI::UIScaleManager::Scale(78.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
-                    ImGui::PopStyleVar(2);
-                    ImGui::PopStyleColor(3);
-
-                    ImGui::Spacing();
-
-                    // 3. SIMILAR TRACKS SCROLLABLE LIST
-                    float list_h = ImGui::GetContentRegionAvail().y - KuroUI::UIScaleManager::Scale(4.0f);
-                    if (ImGui::BeginChild("##DDSimilarTracksList", ImVec2(rw, list_h), false)) {
-                        ImDrawList* cdl = ImGui::GetWindowDrawList();
-                        float cw = ImGui::GetContentRegionAvail().x;
-
-                        if (spotify_service.isDiggingDeeper()) {
-                            ImGui::Spacing();
-                            ImGui::TextColored(ImVec4(0.92f, 0.45f, 0.25f, 1.0f), ICON_FA_SPINNER " Minerando catálogo do DigDeeper ao vivo...");
-                        } else if (dig_matches.empty()) {
-                            ImGui::Spacing();
-                            ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.80f, 0.90f), "Nenhuma faixa similar encontrada. Clique em DIG DEEPER para minerar.");
-                        } else {
-                            for (size_t di = 0; di < dig_matches.size(); di++) {
-                                const auto& m = dig_matches[di];
-                                ImGui::PushID((int)di + 92000);
-
-                                float row_h = KuroUI::UIScaleManager::Scale(68.0f);
-                                ImVec2 row_p = ImGui::GetCursorScreenPos();
-                                ImGui::Dummy(ImVec2(cw, row_h));
-
-                                bool is_playing_this = (preview_player.isPlaying() && preview_player.getCurrentTitle() == m.title);
-                                bool is_hero_sel = (dd_hero_title == m.title);
-
-                                // Fundo do Card
-                                ImU32 bg_col = is_hero_sel ? IM_COL32(18, 22, 34, 255) : IM_COL32(10, 14, 22, 240);
-                                ImU32 border_col = is_hero_sel ? IM_COL32(230, 80, 50, 200) : IM_COL32(26, 36, 52, 160);
-                                cdl->AddRectFilled(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), bg_col, KuroUI::UIScaleManager::Scale(4.0f));
-                                cdl->AddRect(row_p, ImVec2(row_p.x + cw, row_p.y + row_h), border_col, KuroUI::UIScaleManager::Scale(4.0f), 0, is_hero_sel ? 1.5f : 1.0f);
-
-                                // Mini Thumbnail / Botão Play
-                                float t_sz = KuroUI::UIScaleManager::Scale(48.0f);
-                                ImVec2 t_min = ImVec2(row_p.x + KuroUI::UIScaleManager::Scale(8.0f), row_p.y + (row_h - t_sz) * 0.5f);
-                                ImVec2 t_max = ImVec2(t_min.x + t_sz, t_min.y + t_sz);
-                                cdl->AddRectFilled(t_min, t_max, IM_COL32(16, 20, 30, 255), KuroUI::UIScaleManager::Scale(4.0f));
-
-                                ImGui::SetCursorScreenPos(t_min);
-                                char row_play_id[32]; snprintf(row_play_id, sizeof(row_play_id), "##DDPlayRow_%d", (int)di);
-                                if (ImGui::InvisibleButton(row_play_id, ImVec2(t_sz, t_sz))) {
-                                    dd_hero_title = m.title;
-                                    dd_hero_artist = m.artist;
-                                    dd_hero_label = m.label;
-                                    dd_hero_bpm = m.bpm;
-                                    dd_hero_key = m.camelot_code;
-                                    dd_hero_dur = m.duration_str;
-                                    dd_hero_year = m.year;
-                                    dd_tempo_slider = (float)m.bpm;
-                                    std::string p_src = m.url.empty() ? "scratch/test_astrix.wav" : m.url;
-                                    preview_player.play(p_src, m.id, m.title, m.artist);
-                                }
-                                const char* r_ic = is_playing_this ? ICON_FA_PAUSE : ICON_FA_PLAY;
-                                ImVec2 ric_sz = ImGui::CalcTextSize(r_ic);
-                                cdl->AddText(ImVec2(t_min.x + (t_sz - ric_sz.x) * 0.5f, t_min.y + (t_sz - ric_sz.y) * 0.5f),
-                                             is_playing_this ? IM_COL32(0, 229, 255, 255) : IM_COL32(230, 80, 50, 255), r_ic);
-
-                                // Informações da Faixa (Título, Artista, Label, BPM, Duração, Ano)
-                                float info_x = t_max.x + KuroUI::UIScaleManager::Scale(12.0f);
-                                float title_y = row_p.y + KuroUI::UIScaleManager::Scale(12.0f);
-                                cdl->AddText(ImVec2(info_x, title_y), IM_COL32(255, 255, 255, 255), m.title.c_str());
-
-                                float meta_y = row_p.y + KuroUI::UIScaleManager::Scale(36.0f);
-                                char line2[160];
-                                snprintf(line2, sizeof(line2), "%s  •  %s  •  %.0f BPM  •  %s  •  %s  •  %s",
-                                         m.artist.c_str(), m.label.c_str(), m.bpm, m.camelot_code.c_str(), m.duration_str.c_str(), m.year.c_str());
-                                cdl->AddText(ImVec2(info_x, meta_y), IM_COL32(135, 155, 185, 220), line2);
-
-                                // Bloco Direito: [BUY], [+], [🤍], [🔖], [98% MATCH], [DIG >]
-                                float right_w = KuroUI::UIScaleManager::Scale(330.0f);
-                                float rx = row_p.x + cw - right_w - KuroUI::UIScaleManager::Scale(8.0f);
-                                float ry = row_p.y + (row_h - KuroUI::UIScaleManager::Scale(28.0f)) * 0.5f;
-                                ImGui::SetCursorScreenPos(ImVec2(rx, ry));
-
-                                // 1. Botão BUY / Bandcamp
-                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.14f, 0.22f, 0.85f));
-                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.32f, 0.46f, 0.60f));
-                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.65f, 0.78f, 0.95f, 0.95f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                                if (ImGui::Button("BUY", ImVec2(KuroUI::UIScaleManager::Scale(46.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
-                                    if (!m.url.empty()) {
-                                        #ifdef _WIN32
-                                        ShellExecuteA(NULL, "open", m.url.c_str(), NULL, NULL, SW_SHOWNORMAL);
-                                        #endif
-                                    }
-                                }
-                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                                // 2. Botão [+] Add to library
-                                if (ImGui::Button(ICON_FA_PLUS, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
-                                    KuroAudio::DJLibraryTrack lt;
-                                    lt.id = "dig_" + std::to_string(std::hash<std::string>{}(m.title));
-                                    lt.title = m.title;
-                                    lt.artist = m.artist;
-                                    lt.album = m.label;
-                                    lt.bpm = m.bpm;
-                                    lt.key = m.camelot_code;
-                                    lt.duration_sec = 425.0;
-                                    KuroAudio::DJLibraryManager::getInstance().addOrUpdateTrack(lt);
-                                    toast_message = "Adicionada à biblioteca: " + m.title;
-                                    toast_timer = 2.5f;
-                                }
-                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                                // 3. Botão [🤍] Like
-                                if (ImGui::Button(ICON_FA_HEART, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
-                                    spotify_service.recordDigFeedbackAsync(ref_t, m.title, "like", 0);
-                                    toast_message = "Reforço registrado no Grafo!";
-                                    toast_timer = 2.0f;
-                                }
-                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
-
-                                // 4. Botão [🔖] Bookmark
-                                if (ImGui::Button(ICON_FA_BOOKMARK, ImVec2(KuroUI::UIScaleManager::Scale(26.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {}
-                                ImGui::PopStyleVar(2);
-                                ImGui::PopStyleColor(3);
-
-                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(8.0f));
-
-                                // 5. BADGE MATCH % (ex: 98% MATCH)
-                                ImVec2 match_badge_pos = ImGui::GetCursorScreenPos();
-                                char pct_txt[16]; snprintf(pct_txt, sizeof(pct_txt), "%d%%", m.acoustic_match_pct);
-                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(12.0f)),
-                                             IM_COL32(255, 255, 255, 255), pct_txt);
-                                cdl->AddText(ImVec2(match_badge_pos.x, row_p.y + KuroUI::UIScaleManager::Scale(34.0f)),
-                                             IM_COL32(230, 80, 50, 255), "MATCH");
-
-                                ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(54.0f));
-
-                                // 6. BOTÃO DIG > (Re-garimpar a partir desta faixa)
-                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06f, 0.10f, 0.18f, 0.90f));
-                                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.24f, 0.36f, 0.52f, 0.70f));
-                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.92f, 1.0f, 1.0f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
-                                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-                                if (ImGui::Button("DIG >", ImVec2(KuroUI::UIScaleManager::Scale(62.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
-                                    spotify_service.digDeeperAsync(m.title, m.artist, m.camelot_code, m.bpm);
-                                    dd_hero_title = m.title;
-                                    dd_hero_artist = m.artist;
-                                    dd_hero_label = m.label;
-                                    dd_hero_bpm = m.bpm;
-                                    dd_hero_key = m.camelot_code;
-                                    dd_hero_dur = m.duration_str;
-                                    dd_hero_year = m.year;
-                                    dd_tempo_slider = (float)m.bpm;
-                                    toast_message = "Garimpando a partir de '" + m.title + "'...";
-                                    toast_timer = 3.0f;
-                                }
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir esta faixa como nova referência e minerar novas almas gêmeas!");
-                                ImGui::PopStyleVar(2);
-                                ImGui::PopStyleColor(3);
-
-                                ImGui::PopID();
-                                ImGui::SetCursorScreenPos(ImVec2(row_p.x, row_p.y + row_h + KuroUI::UIScaleManager::Scale(4.0f)));
-                            }
-                        }
-                    }
-                    ImGui::EndChild();
-                }
-                ImGui::EndChild();
-                ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(2);
-
-                // ────────────────────────────────────────────────────────────────
-                // BOTTOM FLOATING QUICK-BAR (Next 1 Prev, Space Pause, +30s-, 1 Like, Start at 25%)
-                // ────────────────────────────────────────────────────────────────
-                if (dd_show_pill) {
-                    float pill_w = KuroUI::UIScaleManager::Scale(580.0f);
-                    float pill_h = KuroUI::UIScaleManager::Scale(38.0f);
-                    float pill_x = (avail_w - pill_w) * 0.5f;
-                    ImGui::SetCursorScreenPos(ImVec2(pill_x, ImGui::GetCursorScreenPos().y + KuroUI::UIScaleManager::Scale(6.0f)));
-
-                    ImVec2 p_min = ImGui::GetCursorScreenPos();
-                    ImVec2 p_max = ImVec2(p_min.x + pill_w, p_min.y + pill_h);
-                    ImDrawList* pdl = ImGui::GetWindowDrawList();
-
-                    pdl->AddRectFilled(p_min, p_max, IM_COL32(10, 14, 22, 240), KuroUI::UIScaleManager::Scale(19.0f));
-                    pdl->AddRect(p_min, p_max, IM_COL32(0, 229, 255, 90), KuroUI::UIScaleManager::Scale(19.0f), 0, 1.2f);
-
-                    float item_y = p_min.y + KuroUI::UIScaleManager::Scale(7.0f);
-                    float cur_px = p_min.x + KuroUI::UIScaleManager::Scale(16.0f);
-
-                    // Shortcut 1: Next [1] Prev
-                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Next");
-                    cur_px += KuroUI::UIScaleManager::Scale(42.0f);
-                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 20.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
-                    pdl->AddText(ImVec2(cur_px + 6.0f, item_y), IM_COL32(0, 229, 255, 255), "1");
-                    cur_px += KuroUI::UIScaleManager::Scale(26.0f);
-                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Prev");
-                    cur_px += KuroUI::UIScaleManager::Scale(54.0f);
-
-                    // Shortcut 2: Space Pause
-                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 48.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
-                    pdl->AddText(ImVec2(cur_px + 6.0f, item_y), IM_COL32(255, 255, 255, 255), "Space");
-                    cur_px += KuroUI::UIScaleManager::Scale(54.0f);
-                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Pause");
-                    cur_px += KuroUI::UIScaleManager::Scale(60.0f);
-
-                    // Shortcut 3: + 30s -
-                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "+  30s  -");
-                    cur_px += KuroUI::UIScaleManager::Scale(68.0f);
-
-                    // Shortcut 4: 1 Like
-                    pdl->AddRectFilled(ImVec2(cur_px, item_y - 1.0f), ImVec2(cur_px + 18.0f, item_y + 19.0f), IM_COL32(24, 32, 48, 255), 3.0f);
-                    pdl->AddText(ImVec2(cur_px + 5.0f, item_y), IM_COL32(0, 229, 255, 255), "L");
-                    cur_px += KuroUI::UIScaleManager::Scale(24.0f);
-                    pdl->AddText(ImVec2(cur_px, item_y), IM_COL32(200, 215, 235, 255), "Like");
-                    cur_px += KuroUI::UIScaleManager::Scale(48.0f);
-
-                    // Shortcut 5: Start at 25% switch
-                    ImGui::SetCursorScreenPos(ImVec2(cur_px, item_y - KuroUI::UIScaleManager::Scale(2.0f)));
-                    if (dd_start_at_25) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.95f));
-                    } else {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.18f, 0.26f, 0.80f));
-                    }
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(8.0f));
-                    if (ImGui::SmallButton("Start at 25%")) {
-                        dd_start_at_25 = !dd_start_at_25;
-                    }
-                    ImGui::PopStyleVar();
-                    ImGui::PopStyleColor();
-
-                    // Close button
-                    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(12.0f));
-                    if (ImGui::SmallButton("✕")) {
-                        dd_show_pill = false;
-                    }
-                }
-            } else {
             // ── 3. PAINÉIS LADO A LADO (SPLIT DASHBOARD) ────────────────────────
             float split_h = ImGui::GetContentRegionAvail().y - 74.0f; // reserva perfeita para o Audition Dock inferior
             if (split_h < 300.0f) split_h = 300.0f;
@@ -22553,7 +22651,29 @@ private:
                 rdl->AddRectFilled(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(8, 14, 22, 255), KuroUI::UIScaleManager::Scale(6.0f));
                 rdl->AddRect(hero_p, ImVec2(hero_p.x + rw, hero_p.y + hero_h), IM_COL32(0, 220, 200, 140), KuroUI::UIScaleManager::Scale(6.0f), 0, 1.5f);
 
-                // Thumbnail / Capa Oficial da Faixa em Alta Fidelidade
+                // Thumbnail / Capa Oficial da Faixa em Alta Fidelidade (Auto-Resolução e Destaque)
+                if (selected_source_track_id.empty()) {
+                    int d_idx = (engine.decks[0].buffer_l.empty() && !engine.decks[1].buffer_l.empty()) ? 1 : 0;
+                    if (!engine.decks[d_idx].track_title.empty()) {
+                        if (!engine.decks[d_idx].track_path.empty()) {
+                            try {
+                                selected_source_track_id = std::filesystem::u8path(engine.decks[d_idx].track_path).stem().string();
+                            } catch (...) {
+                                selected_source_track_id = engine.decks[d_idx].track_title;
+                            }
+                        } else {
+                            selected_source_track_id = engine.decks[d_idx].track_title;
+                        }
+                        selected_source_track_title = engine.decks[d_idx].track_title;
+                        selected_source_track_artist = engine.decks[d_idx].track_artist;
+                        if (engine.decks[d_idx].bpm > 20.0) selected_source_track_bpm = engine.decks[d_idx].bpm;
+                        if (!engine.decks[d_idx].key_signature.empty()) selected_source_track_key = engine.decks[d_idx].key_signature;
+                        if (engine.decks[d_idx].has_cover_texture && engine.decks[d_idx].gl_cover_texture > 0) {
+                            selected_source_track_tex = engine.decks[d_idx].gl_cover_texture;
+                        }
+                    }
+                }
+
                 static std::string s_last_loaded_art_id = "";
                 if (selected_source_track_id != s_last_loaded_art_id) {
                     s_last_loaded_art_id = selected_source_track_id;
@@ -22563,29 +22683,48 @@ private:
                     }
                 }
 
-                if (selected_source_track_tex == 0 && !selected_source_track_id.empty()) {
-                    auto tracks_dir = KuroAudio::getTracksDirectory();
-                    auto exp_rgba = tracks_dir / ("track_" + selected_source_track_id + ".rgba");
-                    std::error_code ec_art;
-                    if (std::filesystem::exists(exp_rgba, ec_art) && std::filesystem::file_size(exp_rgba, ec_art) >= 262144) {
-                        selected_source_track_rgba = exp_rgba.string();
+                if (selected_source_track_tex == 0) {
+                    // 1. Busca por resolveRgbaCoverArt inteligente em todas as pastas e formatos
+                    std::string res_rgba = KuroAudio::DJLibraryManager::resolveRgbaCoverArt("", selected_source_track_id);
+                    if (!res_rgba.empty()) {
+                        selected_source_track_rgba = res_rgba;
                         selected_source_track_tex = KuroAudio::SpotifyDJService::UploadRGBATexture(selected_source_track_rgba);
-                    } else if (!selected_source_track_art_url.empty()) {
+                    } else if (!selected_source_track_id.empty() && !selected_source_track_art_url.empty()) {
                         spotify_service.fetchTrackArtworkAsync(selected_source_track_id, selected_source_track_art_url);
                     }
                 }
 
-                // Fallback: Se ainda não carregou textura exclusiva, herdar do deck alvo ou de qualquer deck ativo
+                // Fallback 1: Herdar textura de qualquer deck ativo
                 if (selected_source_track_tex == 0) {
-                    if (engine.decks[hub_target_deck].has_cover_texture && engine.decks[hub_target_deck].gl_cover_texture > 0) {
-                        selected_source_track_tex = engine.decks[hub_target_deck].gl_cover_texture;
-                    } else {
-                        for (int di = 0; di < 4; di++) {
-                            if (engine.decks[di].has_cover_texture && engine.decks[di].gl_cover_texture > 0) {
-                                selected_source_track_tex = engine.decks[di].gl_cover_texture;
+                    for (int di = 0; di < 4; di++) {
+                        if (engine.decks[di].has_cover_texture && engine.decks[di].gl_cover_texture > 0) {
+                            selected_source_track_tex = engine.decks[di].gl_cover_texture;
+                            break;
+                        }
+                    }
+                }
+
+                // Fallback 2: Carregar a primeira capa HD disponível no acervo para nunca exibir placeholder vazio
+                if (selected_source_track_tex == 0) {
+                    static GLuint s_default_art_tex = 0;
+                    if (s_default_art_tex == 0) {
+                        auto trks_dir = KuroAudio::getTracksDirectory();
+                        std::error_code ec_find;
+                        for (const auto& entry : std::filesystem::directory_iterator(trks_dir, ec_find)) {
+                            if (entry.is_regular_file() && entry.path().extension() == ".rgba" && entry.file_size() >= 262144) {
+                                s_default_art_tex = KuroAudio::SpotifyDJService::UploadRGBATexture(entry.path().string());
                                 break;
+                            } else if (entry.is_directory()) {
+                                auto sub_art = entry.path() / "artwork.rgba";
+                                if (std::filesystem::exists(sub_art, ec_find) && std::filesystem::file_size(sub_art, ec_find) >= 262144) {
+                                    s_default_art_tex = KuroAudio::SpotifyDJService::UploadRGBATexture(sub_art.string());
+                                    break;
+                                }
                             }
                         }
+                    }
+                    if (s_default_art_tex > 0) {
+                        selected_source_track_tex = s_default_art_tex;
                     }
                 }
 
@@ -22702,7 +22841,7 @@ private:
                                                int score, ImVec4 border_col, bool is_solid_btn, ImVec4 btn_col, const char* btn_lbl,
                                                const std::string& url) {
                     float cw = ImGui::GetContentRegionAvail().x;
-                    float ch = KuroUI::UIScaleManager::Scale(114.0f);
+                    float ch = KuroUI::UIScaleManager::Scale(122.0f);
                     ImVec2 cp = ImGui::GetCursorScreenPos();
                     ImGui::Dummy(ImVec2(cw, ch));
 
@@ -22711,12 +22850,12 @@ private:
 
                     // Ícone oficial autêntico da plataforma (Vetor de Alta Fidelidade)
                     float ic_r = KuroUI::UIScaleManager::Scale(22.0f);
-                    float icx = cp.x + KuroUI::UIScaleManager::Scale(32.0f);
+                    float icx = cp.x + KuroUI::UIScaleManager::Scale(34.0f);
                     float icy = cp.y + ch * 0.5f;
                     drawPlatformBrandIcon(rdl, plat_type, ImVec2(icx, icy), ic_r);
 
                     // Bloco Direito: Ações e Pureza Espectral Agrupados Verticalmente (Sem Colisão)
-                    float right_cluster_w = KuroUI::UIScaleManager::Scale(185.0f);
+                    float right_cluster_w = KuroUI::UIScaleManager::Scale(190.0f);
                     float right_cluster_x = cp.x + cw - right_cluster_w - KuroUI::UIScaleManager::Scale(12.0f);
 
                     // 1. Topo Direito: Estrelas & Pureza Espectral
@@ -22807,17 +22946,17 @@ private:
                         rdl->PushClipRect(ImVec2(tx, cp.y), ImVec2(text_right_limit, cp.y + ch), true);
                     }
 
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(14.0f)));
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(12.0f)));
                     ImGui::PushStyleColor(ImGuiCol_Text, border_col);
                     ImGui::TextUnformatted(name);
                     ImGui::PopStyleColor();
 
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(42.0f)));
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(38.0f)));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.88f, 0.98f, 0.95f));
                     ImGui::TextUnformatted(sub1);
                     ImGui::PopStyleColor();
 
-                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(70.0f)));
+                    ImGui::SetCursorScreenPos(ImVec2(tx, cp.y + KuroUI::UIScaleManager::Scale(64.0f)));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.68f, 0.82f, 0.90f));
                     ImGui::TextUnformatted(sub2);
                     ImGui::PopStyleColor();
@@ -22826,9 +22965,9 @@ private:
                         rdl->PopClipRect();
                     }
 
-                    // RESTAURAÇÃO DO CURSOR IMGUI COM ESPAÇAMENTO SEGURO
-                    ImGui::SetCursorScreenPos(ImVec2(cp.x, cp.y + ch + KuroUI::UIScaleManager::Scale(10.0f)));
-                    ImGui::Dummy(ImVec2(cw, KuroUI::UIScaleManager::Scale(2.0f)));
+                    // RESTAURAÇÃO DO CURSOR IMGUI COM ESPAÇAMENTO SEGURO (Respiro Generoso anti-corte de linha)
+                    ImGui::SetCursorScreenPos(ImVec2(cp.x, cp.y + ch + KuroUI::UIScaleManager::Scale(12.0f)));
+                    ImGui::Dummy(ImVec2(cw, KuroUI::UIScaleManager::Scale(4.0f)));
                 };
 
                 // Obter matrizes dinâmicas do serviço

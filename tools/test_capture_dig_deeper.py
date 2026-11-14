@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from PIL import Image
 
-artifact_dir = r"C:\Users\o_vic\.gemini\antigravity\brain\b9e05024-c94b-463e-ab5e-730f4a59ba8d"
+artifact_dir = r"C:\Users\o_vic\.gemini\antigravity\brain\ba443eb8-9ab4-4d02-8cf4-6e0de14e6fd7"
 os.makedirs(artifact_dir, exist_ok=True)
 
 temp_dir = tempfile.gettempdir()

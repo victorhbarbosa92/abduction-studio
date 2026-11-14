@@ -328,7 +328,7 @@ def fetch_digdeeper_online(query, limit=25):
 # 4. MOTOR DE RECOMENDAÇÃO ACÚSTICA & APRENDIZADO POR REFORÇO
 # ═════════════════════════════════════════════════════════════════════════════
 
-def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None):
+def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None, ref_artist=None):
     """
     Executa busca reversa acústica a partir de uma faixa de referência,
     combinando consulta ao vivo à API do DigDeeper (digdeeper.fm),
@@ -340,9 +340,20 @@ def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None):
     
     # 0. Tenta enriquecer a base SQLite conectando diretamente na API do DigDeeper
     try:
-        fetch_digdeeper_online(query, limit=25)
-    except Exception:
-        pass
+        clean_q = re.sub(r'[\(\[\{][^\)\]\}]*[\)\]\}]', '', query).strip()
+        items = fetch_digdeeper_online(clean_q, limit=25)
+        if not items and ref_artist:
+            items = fetch_digdeeper_online(ref_artist, limit=25)
+        if not items:
+            for part in [clean_q, ref_artist]:
+                if not part: continue
+                for word in part.split():
+                    if len(word) >= 4 and word.lower() not in ['feat', 'with', 'from', 'live', 'edit']:
+                        items = fetch_digdeeper_online(word, limit=25)
+                        if items: break
+                if items: break
+    except Exception as e:
+        print(f"[DIG_DEEPER] fetch error: {e}")
     
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -375,7 +386,7 @@ def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None):
         c_num, c_let = parse_camelot(key_str)
         ref_track = {
             "id": f"ref_{int(time.time())}",
-            "title": query, "artist": "JUMPSTREET", "album": "Single",
+            "title": query, "artist": ref_artist if ref_artist else "JUMPSTREET", "album": "Single",
             "bpm": bpm, "key": key_str, "c_num": c_num, "c_let": c_let,
             "duration_str": "8:36", "year": "2022", "label": "Sangoma Records", "video_id": "",
             "energy": 0.95, "sub_bass": 0.94, "transients": 0.92
@@ -568,6 +579,7 @@ if __name__ == "__main__":
     p_dig.add_argument("--query", required=True, help="Nome da faixa de referência, ID ou URL")
     p_dig.add_argument("--bpm", type=float, default=None, help="BPM da referência")
     p_dig.add_argument("--key", default=None, help="Tom Camelot da referência (ex: 12A)")
+    p_dig.add_argument("--artist", default=None, help="Artista de referência opcional")
     p_dig.add_argument("--out", default=None, help="Caminho do arquivo JSON de saída")
     
     p_fb = subparsers.add_parser("feedback")
@@ -580,7 +592,7 @@ if __name__ == "__main__":
     
     if args.cmd == "dig":
         out_p = args.out or os.path.join(SCRATCH_DIR, "tracks", "dig_deeper_results.json")
-        res = run_dig_deeper(args.query, args.bpm, args.key, out_p)
+        res = run_dig_deeper(args.query, args.bpm, args.key, out_p, getattr(args, "artist", None))
         print(f"DIG_DEEPER_OK: {res['total_results']} faixas semelhantes ranqueadas.")
     elif args.cmd == "feedback":
         record_dj_feedback(args.ref, args.target, args.action, args.deck)

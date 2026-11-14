@@ -1984,6 +1984,7 @@ if __name__ == "__main__":
     # Comando dig_deeper (Crate Digger Acústico Auto-Evolutivo)
     p_dig = subparsers.add_parser("dig_deeper")
     p_dig.add_argument("--query", required=True, help="Nome da faixa de referência, ID ou URL")
+    p_dig.add_argument("--artist", default=None, help="Artista de referência opcional")
     p_dig.add_argument("--bpm", type=float, default=None, help="BPM da referência")
     p_dig.add_argument("--key", default=None, help="Tom Camelot da referência (ex: 12A)")
     p_dig.add_argument("--out_json", required=True, help="Caminho do arquivo JSON de saída")
@@ -2028,7 +2029,7 @@ if __name__ == "__main__":
         separate_stems_worker(args.wav, args.out_dir, args.track_id)
     elif args.action == "dig_deeper":
         from dig_deeper_engine import run_dig_deeper
-        run_dig_deeper(args.query, args.bpm, args.key, args.out_json)
+        run_dig_deeper(args.query, args.bpm, args.key, args.out_json, getattr(args, 'artist', None))
     elif args.action == "dig_feedback":
         from dig_deeper_engine import record_dj_feedback
         record_dj_feedback(args.ref, args.target, args.feedback_action, args.deck)
