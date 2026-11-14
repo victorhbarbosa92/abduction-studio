@@ -2021,7 +2021,7 @@ public:
         // Centro: 100% Big Library expandida ocupando o restante da tela.
         // Base: Barra Rekordbox 1:1.
         // =========================================================================
-        float mini_strip_h = KuroUI::UIScaleManager::Scale(102.0f);
+        float mini_strip_h = KuroUI::UIScaleManager::Scale(162.0f);
         renderMixxxMiniDecksStrip(engine, total_w, mini_strip_h);
 
         ImGui::Dummy(ImVec2(total_w, 2.0f));
@@ -6294,10 +6294,21 @@ private:
   // Waveform 3-Band RGB que acompanha 100% da LARGURA do deck!
   // Suporta Drag & Drop direto da biblioteca ou de arquivos externos.
   // =========================================================================
+  // =========================================================================
+  // REKORDBOX BROWSER DECKS STRIP (PADRÃO CDJ-3000 / REKORDBOX 7 HARMONIZADO)
+  // Faixa de topo quando a Big Library / Browser está ativa:
+  // Decks 1 & 2 perfeitamente distribuídos na tela, com controles de hardware:
+  // - Botões tácteis dedicados CUE (laranja) e PLAY/PAUSE (verde)
+  // - Jogwheel em alta resolução (60fps) com agulha giratória e arte do álbum
+  // - Badge de Tom Duplo (Camelot + Nota musical) e barra rápida de Loops (IN, OUT, 4, /2, 2X)
+  // - Display digital Pioneer de BPM, Pitch % com botões de nudge e relógios de tempo
+  // - Grade 2x2 Rekordbox com KEY SYNC, BEAT SYNC, MASTER, KEY SHIFT e MT (Key Lock)
+  // - Waveform 3-Band RGB ampla preenchendo 100% da altura restante sem espaços mortos
+  // =========================================================================
   void renderMixxxMiniDecksStrip(KuroAudio::DJEngine &engine, float total_w,
                                  float strip_h) {
-    float gap_px = 0.0f;
-    float single_deck_w = total_w * 0.5f;
+    float gap_px = KuroUI::UIScaleManager::Scale(4.0f);
+    float single_deck_w = (total_w - gap_px) * 0.5f;
 
     int left_deck_idx = ddj_hardware.getActiveLeftDeck();
     int right_deck_idx = ddj_hardware.getActiveRightDeck();
@@ -6313,14 +6324,14 @@ private:
                                     ImVec4 theme_col, const char *child_id) {
       auto &dk = engine.decks[deck_idx];
       auto &lib_mgr = KuroAudio::DJLibraryManager::getInstance();
+      auto &layout_metrics = KuroUI::DJLayoutMetrics::getInstance();
 
-      // Sleek, authentic Pioneer matte black deck surface with dark charcoal
-      // divider
+      // Superfície elegante Pioneer Matte Obsidian com bordas chanfradas
       ImGui::PushStyleColor(ImGuiCol_ChildBg,
-                            ImVec4(0.040f, 0.045f, 0.052f, 1.0f));
+                            ImVec4(0.038f, 0.044f, 0.052f, 1.0f));
       ImGui::PushStyleColor(ImGuiCol_Border,
-                            ImVec4(0.14f, 0.16f, 0.20f, 0.90f));
-      ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0.0f);
+                            ImVec4(0.16f, 0.20f, 0.26f, 0.90f));
+      ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 4.0f);
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
       ImGui::BeginChild(child_id, ImVec2(w, h), true,
                         ImGuiWindowFlags_NoScrollbar);
@@ -6329,8 +6340,13 @@ private:
       ImVec2 deck_p0 = ImGui::GetWindowPos();
       ImVec2 deck_p1 = ImVec2(deck_p0.x + w, deck_p0.y + h);
 
-      // Destaque visual e carregamento ao soltar faixa sobre qualquer parte do
-      // Deck
+      // Barra de destaque vertical na borda esquerda do Deck
+      dl->AddRectFilled(ImVec2(deck_p0.x, deck_p0.y),
+                        ImVec2(deck_p0.x + KuroUI::UIScaleManager::Scale(3.5f), deck_p1.y),
+                        ImGui::ColorConvertFloat4ToU32(theme_col), 4.0f,
+                        ImDrawFlags_RoundCornersLeft);
+
+      // Destaque visual e carregamento ao soltar faixa sobre qualquer parte do Deck
       if (const ImGuiPayload *cur_dnd = ImGui::GetDragDropPayload()) {
         if (cur_dnd->IsDataType("DND_DJ_TRACK_ID") ||
             cur_dnd->IsDataType("DND_SAMPLE_PATH") ||
@@ -6341,16 +6357,16 @@ private:
             dl->AddRectFilled(
                 deck_p0, deck_p1,
                 ImGui::ColorConvertFloat4ToU32(
-                    ImVec4(theme_col.x, theme_col.y, theme_col.z, 0.22f)),
-                0.0f);
+                    ImVec4(theme_col.x, theme_col.y, theme_col.z, 0.25f)),
+                4.0f);
             dl->AddRect(deck_p0, deck_p1,
-                        ImGui::ColorConvertFloat4ToU32(theme_col), 0.0f, 0,
+                        ImGui::ColorConvertFloat4ToU32(theme_col), 4.0f, 0,
                         2.0f);
             char drop_txt[64];
             snprintf(drop_txt, sizeof(drop_txt),
                      "SOLTE PARA CARREGAR NO DECK %d", deck_idx + 1);
-            ImVec2 t_sz = f_bld->CalcTextSizeA(14.0f, FLT_MAX, 0.0f, drop_txt);
-            dl->AddText(f_bld, 14.0f,
+            ImVec2 t_sz = f_bld->CalcTextSizeA(KuroUI::UIScaleManager::Scale(16.0f), FLT_MAX, 0.0f, drop_txt);
+            dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(16.0f),
                         ImVec2(deck_p0.x + (w - t_sz.x) * 0.5f,
                                deck_p0.y + (h - t_sz.y) * 0.5f),
                         IM_COL32(255, 255, 255, 255), drop_txt);
@@ -6396,59 +6412,150 @@ private:
       }
 
       // =====================================================================
-      // TIER 1: METADADOS, TEMPO, BPM E CONTROLES (PADRÃO 1:1 REKORDBOX
-      // SUPERIOR)
+      // TIER 1: PAINEL DE CONTROLE SUPERIOR (TRANSPORTE, JOG, DADOS, CLUSTER)
       // =====================================================================
-      auto &layout_metrics = KuroUI::DJLayoutMetrics::getInstance();
-      float cur_x = deck_p0.x + 8.0f;
-      float cur_y = deck_p0.y + 4.0f;
+      float pad_l = KuroUI::UIScaleManager::Scale(10.0f);
+      float top_y = deck_p0.y + KuroUI::UIScaleManager::Scale(6.0f);
 
-      // 1. Número do Deck ("1" ou "2" estilo Rekordbox)
-      char deck_num_str[8];
-      snprintf(deck_num_str, sizeof(deck_num_str), "%d", deck_idx + 1);
-      dl->AddText(f_sml, 11.5f, ImVec2(cur_x, cur_y + 1.0f),
-                  IM_COL32(235, 240, 250, 255), deck_num_str);
-      cur_x += 12.0f;
+      // ── 1. NÚMERO DO DECK (BADGE RETANGULAR LUMINOSO) ──
+      float b_sz = KuroUI::UIScaleManager::Scale(26.0f);
+      ImVec2 b_p0(deck_p0.x + pad_l, top_y);
+      ImVec2 b_p1(b_p0.x + b_sz, b_p0.y + b_sz);
+      dl->AddRectFilled(b_p0, b_p1, IM_COL32(18, 22, 28, 255), 3.0f);
+      dl->AddRect(b_p0, b_p1, ImGui::ColorConvertFloat4ToU32(theme_col), 3.0f, 0, 1.5f);
+      char dnum_str[8];
+      snprintf(dnum_str, sizeof(dnum_str), "%d", deck_idx + 1);
+      ImVec2 dn_sz = f_bld->CalcTextSizeA(KuroUI::UIScaleManager::Scale(14.0f), FLT_MAX, 0.0f, dnum_str);
+      dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(14.0f),
+                  ImVec2(b_p0.x + (b_sz - dn_sz.x) * 0.5f, b_p0.y + (b_sz - dn_sz.y) * 0.5f - 1.0f),
+                  ImGui::ColorConvertFloat4ToU32(theme_col), dnum_str);
 
-      // 2. Ícone de Vinil / Arte do Álbum estilo Rekordbox (26x26)
-      // Suporta clique esquerdo para Play/Pause e clique direito para Cue
-      float art_sz = 26.0f;
-      float art_x = cur_x;
-      float art_y = cur_y;
-      ImVec2 art_c(art_x + art_sz * 0.5f, art_y + art_sz * 0.5f);
+      // ── 2. BOTÕES TÁCTEIS DE HARDWARE: CUE & PLAY/PAUSE ──
+      float btn_w = KuroUI::UIScaleManager::Scale(36.0f);
+      float btn_h = KuroUI::UIScaleManager::Scale(26.0f);
+      bool blink_phase = ((int)(ImGui::GetTime() * 4.0) % 2 == 0);
+      bool at_cue = (dk.sample_rate > 1000.0 && std::abs(dk.current_frame - dk.cue_frame) <= dk.sample_rate * 0.04);
 
-      // Tray / Capa quadrada com cantos sutis
-      dl->AddRectFilled(ImVec2(art_x, art_y),
-                        ImVec2(art_x + art_sz, art_y + art_sz),
-                        IM_COL32(14, 15, 18, 255), 3.0f);
-      dl->AddCircleFilled(art_c, art_sz * 0.48f, IM_COL32(18, 20, 24, 255));
-      // Ranhuras concêntricas de vinil
-      dl->AddCircle(art_c, art_sz * 0.46f, IM_COL32(36, 40, 48, 255), 24, 1.0f);
-      dl->AddCircle(art_c, art_sz * 0.36f, IM_COL32(26, 30, 38, 220), 20, 1.0f);
-      dl->AddCircle(art_c, art_sz * 0.26f, IM_COL32(32, 36, 44, 200), 16, 1.0f);
-      dl->AddCircleFilled(art_c, 3.8f, IM_COL32(42, 46, 56, 255));
-      dl->AddCircleFilled(art_c, 1.5f,
-                          ImGui::ColorConvertFloat4ToU32(theme_col));
+      // Botão CUE (Laranja / Âmbar Pioneer)
+      float cue_y = top_y + b_sz + KuroUI::UIScaleManager::Scale(4.0f);
+      ImVec2 cue_p0(deck_p0.x + pad_l, cue_y);
+      ImVec2 cue_p1(cue_p0.x + btn_w, cue_p0.y + btn_h);
+      bool cue_lit = dk.cue_active || (!dk.is_playing && at_cue) || (!dk.is_playing && blink_phase);
+      ImU32 cue_bg = cue_lit ? IM_COL32(52, 28, 8, 255) : IM_COL32(18, 16, 14, 255);
+      ImU32 cue_border = cue_lit ? IM_COL32(255, 145, 0, 255) : IM_COL32(85, 52, 20, 200);
+      ImU32 cue_text = cue_lit ? IM_COL32(255, 200, 80, 255) : IM_COL32(160, 110, 60, 200);
+      dl->AddRectFilled(cue_p0, cue_p1, cue_bg, 3.0f);
+      dl->AddRect(cue_p0, cue_p1, cue_border, 3.0f, 0, 1.2f);
+      ImVec2 c_sz = f_bld->CalcTextSizeA(KuroUI::UIScaleManager::Scale(10.0f), FLT_MAX, 0.0f, "CUE");
+      dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(10.0f),
+                  ImVec2(cue_p0.x + (btn_w - c_sz.x) * 0.5f, cue_p0.y + (btn_h - c_sz.y) * 0.5f),
+                  cue_text, "CUE");
 
-      if (dk.is_playing.load()) {
-        float ang = (float)dk.jog_visual_angle;
-        dl->AddLine(art_c,
-                    ImVec2(art_c.x + cosf(ang) * (art_sz * 0.44f),
-                           art_c.y + sinf(ang) * (art_sz * 0.44f)),
-                    IM_COL32(255, 255, 255, 230), 1.2f);
-      }
-
-      // Botão invisível sobre o vinil para tocar/pausar e retornar ao CUE
-      ImGui::SetCursorScreenPos(ImVec2(art_x, art_y));
-      std::string v_btn_id = "##VinylJog" + std::to_string(deck_idx);
-      ImGui::InvisibleButton(v_btn_id.c_str(), ImVec2(art_sz, art_sz));
+      ImGui::SetCursorScreenPos(cue_p0);
+      std::string cue_btn_id = "##MiniCueBtn" + std::to_string(deck_idx);
+      ImGui::InvisibleButton(cue_btn_id.c_str(), ImVec2(btn_w, btn_h));
       if (ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-        dl->AddCircle(art_c, art_sz * 0.48f, IM_COL32(255, 255, 255, 120), 24,
-                      1.2f);
-        ImGui::SetTooltip("Deck %d | Vinil Interativo\n• Clique Esquerdo: "
-                          "Tocar / Pausar\n• Clique Direito: Retornar ao CUE",
-                          deck_idx + 1);
+        ImGui::SetTooltip("Deck %d | CUE\n• Clique para retornar ao ponto CUE\n• Segure para pré-escutar faixa", deck_idx + 1);
+      }
+      if (ImGui::IsItemActivated() || ImGui::IsItemClicked(0)) {
+        if (!dk.buffer_l.empty() && dk.duration_sec > 0.0) {
+          dk.pressCue();
+        }
+      }
+      if (ImGui::IsItemDeactivated()) {
+        if (!dk.buffer_l.empty() && dk.duration_sec > 0.0) {
+          dk.releaseCue();
+        }
+      }
+
+      // Botão PLAY/PAUSE (Verde Pioneer CDJ)
+      float play_y = cue_y + btn_h + KuroUI::UIScaleManager::Scale(4.0f);
+      ImVec2 play_p0(deck_p0.x + pad_l, play_y);
+      ImVec2 play_p1(play_p0.x + btn_w, play_p0.y + btn_h);
+      bool play_lit = (dk.is_playing && !dk.cue_active) || (!dk.is_playing && blink_phase);
+      ImU32 play_bg = dk.is_playing ? IM_COL32(8, 42, 18, 255) : IM_COL32(14, 20, 16, 255);
+      ImU32 play_border = play_lit ? IM_COL32(0, 240, 100, 255) : IM_COL32(0, 85, 35, 200);
+      ImU32 play_text = play_lit ? IM_COL32(160, 255, 180, 255) : IM_COL32(70, 170, 95, 200);
+      dl->AddRectFilled(play_p0, play_p1, play_bg, 3.0f);
+      dl->AddRect(play_p0, play_p1, play_border, 3.0f, 0, 1.2f);
+      const char *play_lbl = dk.is_playing ? ICON_FA_PAUSE : ICON_FA_PLAY;
+      ImVec2 play_sz = f_bld->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.0f), FLT_MAX, 0.0f, play_lbl);
+      dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(11.0f),
+                  ImVec2(play_p0.x + (btn_w - play_sz.x) * 0.5f, play_p0.y + (btn_h - play_sz.y) * 0.5f),
+                  play_text, play_lbl);
+
+      ImGui::SetCursorScreenPos(play_p0);
+      std::string play_btn_id = "##MiniPlayBtn" + std::to_string(deck_idx);
+      ImGui::InvisibleButton(play_btn_id.c_str(), ImVec2(btn_w, btn_h));
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        ImGui::SetTooltip("Deck %d | PLAY/PAUSE\n• Clique para reproduzir ou pausar", deck_idx + 1);
+      }
+      if (ImGui::IsItemClicked(0)) {
+        if (!dk.buffer_l.empty() && dk.duration_sec > 0.0) {
+          dk.togglePlay(&engine.decks[engine.getMasterDeckId()]);
+        }
+      }
+
+      // ── 3. JOGWHEEL CDJ EM ALTA DEFINIÇÃO COM AGULHA ROTATIVA ──
+      float jog_x = deck_p0.x + pad_l + btn_w + KuroUI::UIScaleManager::Scale(10.0f);
+      float jog_diam = KuroUI::UIScaleManager::Scale(82.0f);
+      float jog_r = jog_diam * 0.5f;
+      ImVec2 jog_c(jog_x + jog_r, top_y + KuroUI::UIScaleManager::Scale(43.0f));
+
+      // Moldura externa chanfrada com ranhuras de alumínio escovado
+      dl->AddCircleFilled(jog_c, jog_r, IM_COL32(10, 13, 17, 255));
+      dl->AddCircle(jog_c, jog_r, IM_COL32(38, 46, 58, 255), 36, KuroUI::UIScaleManager::Scale(1.5f));
+      // Ranhuras concêntricas de vinil antiderrapante
+      dl->AddCircle(jog_c, jog_r * 0.88f, IM_COL32(26, 32, 42, 255), 32, 1.0f);
+      dl->AddCircle(jog_c, jog_r * 0.74f, IM_COL32(20, 26, 34, 255), 28, 1.0f);
+
+      // Display LCD Central (Arte do álbum ou Disco com anel temático)
+      float hub_r = jog_r * 0.56f;
+      if (dk.has_cover_texture && dk.gl_cover_texture != 0) {
+        dl->AddImageRounded((ImTextureID)(intptr_t)dk.gl_cover_texture,
+                            ImVec2(jog_c.x - hub_r, jog_c.y - hub_r),
+                            ImVec2(jog_c.x + hub_r, jog_c.y + hub_r),
+                            ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
+                            IM_COL32(255, 255, 255, 255), hub_r);
+        dl->AddCircle(jog_c, hub_r, ImGui::ColorConvertFloat4ToU32(theme_col), 24, 1.5f);
+      } else {
+        dl->AddCircleFilled(jog_c, hub_r, IM_COL32(16, 20, 26, 255));
+        dl->AddCircle(jog_c, hub_r, ImGui::ColorConvertFloat4ToU32(theme_col), 24, 1.5f);
+        dl->AddCircleFilled(jog_c, KuroUI::UIScaleManager::Scale(4.5f), IM_COL32(40, 48, 62, 255));
+      }
+
+      // Agulha e Marcador Rotativo a 60fps
+      float ang = (float)dk.jog_visual_angle;
+      dl->AddLine(jog_c,
+                  ImVec2(jog_c.x + cosf(ang) * (jog_r - 2.0f),
+                         jog_c.y + sinf(ang) * (jog_r - 2.0f)),
+                  IM_COL32(255, 255, 255, 240), KuroUI::UIScaleManager::Scale(2.0f));
+      dl->AddCircleFilled(ImVec2(jog_c.x + cosf(ang) * (jog_r - 3.0f),
+                                 jog_c.y + sinf(ang) * (jog_r - 3.0f)),
+                          KuroUI::UIScaleManager::Scale(2.8f),
+                          ImGui::ColorConvertFloat4ToU32(theme_col));
+
+      // Botão invisível do Jogwheel para scratch/nudge e play/pause
+      ImGui::SetCursorScreenPos(ImVec2(jog_c.x - jog_r, jog_c.y - jog_r));
+      std::string jog_btn_id = "##MiniJogBtn" + std::to_string(deck_idx);
+      ImGui::InvisibleButton(jog_btn_id.c_str(), ImVec2(jog_diam, jog_diam));
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+        dl->AddCircle(jog_c, jog_r, IM_COL32(255, 255, 255, 140), 36, 1.5f);
+        ImGui::SetTooltip("Deck %d | Jogwheel CDJ\n• Arraste para Pitch Bend / Scratch\n• Clique Esquerdo: Tocar / Pausar\n• Clique Direito: Retornar ao CUE", deck_idx + 1);
+      }
+      if (ImGui::IsItemActive()) {
+        float dx = ImGui::GetIO().MouseDelta.x;
+        if (std::abs(dx) > 0.0f) {
+          dk.jog_touch = true;
+          dk.jog_pitch_bend = dx * 0.05f;
+          dk.jog_visual_angle += dx * 0.05f;
+        }
+      } else {
+        dk.jog_touch = false;
+        dk.jog_pitch_bend = 0.0f;
       }
       if (ImGui::IsItemClicked(0)) {
         if (!dk.buffer_l.empty() && dk.duration_sec > 0.0) {
@@ -6462,163 +6569,188 @@ private:
         }
       }
 
-      // 3. Cluster da Direita: Grade 2x2 Oficial Rekordbox
-      // Coluna 1: [ KEY SYNC ] em cima, < 6A ±0 > embaixo
-      // Coluna 2: [ BEAT / SYNC ] em cima, [ MASTER ] embaixo
-      float right_cluster_w = 108.0f;
-      float right_x = deck_p1.x - right_cluster_w - 12.0f;
+      // ── 4. CLUSTER DA DIREITA: REKORDBOX SYNC, MASTER & KEY SHIFT ──
+      float right_w = KuroUI::UIScaleManager::Scale(126.0f);
+      float right_x = deck_p1.x - right_w - KuroUI::UIScaleManager::Scale(10.0f);
+      float r_col1_w = KuroUI::UIScaleManager::Scale(58.0f);
+      float r_col2_x = right_x + r_col1_w + KuroUI::UIScaleManager::Scale(4.0f);
+      float r_col2_w = KuroUI::UIScaleManager::Scale(58.0f);
 
-      // --- COLUNA 1, LINHA 1: KEY SYNC ---
-      float col1_x = right_x;
-      float col1_w = 56.0f;
-      ImGui::SetCursorScreenPos(ImVec2(col1_x, cur_y));
+      // Coluna 1, Linha 1: KEY SYNC
+      ImGui::SetCursorScreenPos(ImVec2(right_x, top_y));
       bool key_s_active = dk.key_sync_active;
-      ImVec4 ksync_bg = key_s_active ? ImVec4(0.00f, 0.65f, 0.80f, 1.0f)
-                                     : ImVec4(0.12f, 0.14f, 0.17f, 1.0f);
+      ImVec4 ksync_bg = key_s_active ? ImVec4(0.00f, 0.70f, 0.88f, 1.0f)
+                                     : ImVec4(0.12f, 0.15f, 0.19f, 1.0f);
       ImVec4 ksync_txt = key_s_active ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-                                      : ImVec4(0.80f, 0.85f, 0.92f, 1.0f);
-      ImVec4 ksync_border = key_s_active ? ImVec4(0.00f, 0.85f, 1.00f, 1.0f)
-                                         : ImVec4(0.24f, 0.27f, 0.33f, 1.0f);
+                                      : ImVec4(0.85f, 0.90f, 0.98f, 1.0f);
+      ImVec4 ksync_border = key_s_active ? ImVec4(0.00f, 0.90f, 1.00f, 1.0f)
+                                         : ImVec4(0.24f, 0.28f, 0.36f, 1.0f);
       ImGui::PushStyleColor(ImGuiCol_Button, ksync_bg);
       ImGui::PushStyleColor(ImGuiCol_Text, ksync_txt);
       ImGui::PushStyleColor(ImGuiCol_Border, ksync_border);
       ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-      std::string ksync_id = "KEY SYNC##RbStrip" + std::to_string(deck_idx);
-      if (ImGui::Button(ksync_id.c_str(), ImVec2(col1_w, 16.0f))) {
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+      std::string ksync_id = "KEY SYNC##MiniStrip" + std::to_string(deck_idx);
+      if (ImGui::Button(ksync_id.c_str(), ImVec2(r_col1_w, KuroUI::UIScaleManager::Scale(24.0f)))) {
         engine.toggleKeySync(deck_idx);
       }
       if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("KEY SYNC (Harmonizar Tom Camelot)");
+        ImGui::SetTooltip("KEY SYNC: Harmonizar Tom Camelot com Deck Master");
       ImGui::PopStyleVar(2);
       ImGui::PopStyleColor(3);
 
-      // --- COLUNA 2, LINHA 1: BEAT SYNC (DUAS LINHAS EMPILHADAS REKORDBOX) ---
-      float col2_x = right_x + 60.0f;
-      float col2_w = 44.0f;
-      ImVec2 bsync_p0(col2_x, cur_y);
-      ImVec2 bsync_p1(col2_x + col2_w, cur_y + 17.0f);
+      // Coluna 2, Linha 1: BEAT SYNC (Empilhado BEAT / SYNC)
+      ImVec2 bsync_p0(r_col2_x, top_y);
+      ImVec2 bsync_p1(r_col2_x + r_col2_w, top_y + KuroUI::UIScaleManager::Scale(24.0f));
       bool beat_s_active = dk.sync_active;
-      ImU32 bsync_bg_col = beat_s_active ? IM_COL32(0, 105, 215, 255)
-                                         : IM_COL32(20, 22, 27, 255);
-      ImU32 bsync_border_col = beat_s_active ? IM_COL32(50, 150, 255, 255)
-                                             : IM_COL32(45, 50, 60, 255);
-      dl->AddRectFilled(bsync_p0, bsync_p1, bsync_bg_col, 2.0f);
-      dl->AddRect(bsync_p0, bsync_p1, bsync_border_col, 2.0f, 0, 1.0f);
-
-      // Texto BEAT em cima e SYNC em baixo
-      ImVec2 b_sz = f_sml->CalcTextSizeA(8.5f, FLT_MAX, 0.0f, "BEAT");
-      ImVec2 s_sz = f_sml->CalcTextSizeA(8.5f, FLT_MAX, 0.0f, "SYNC");
-      dl->AddText(
-          f_sml, 8.5f,
-          ImVec2(bsync_p0.x + (col2_w - b_sz.x) * 0.5f, bsync_p0.y + 1.0f),
-          IM_COL32(255, 255, 255, 255), "BEAT");
-      dl->AddText(
-          f_sml, 8.5f,
-          ImVec2(bsync_p0.x + (col2_w - s_sz.x) * 0.5f, bsync_p0.y + 8.5f),
-          IM_COL32(255, 255, 255, 255), "SYNC");
-
+      ImU32 bsync_bg = beat_s_active ? IM_COL32(0, 115, 230, 255) : IM_COL32(22, 26, 34, 255);
+      ImU32 bsync_border = beat_s_active ? IM_COL32(60, 160, 255, 255) : IM_COL32(42, 50, 64, 255);
+      dl->AddRectFilled(bsync_p0, bsync_p1, bsync_bg, 3.0f);
+      dl->AddRect(bsync_p0, bsync_p1, bsync_border, 3.0f, 0, 1.0f);
+      ImVec2 b_sz_txt = f_sml->CalcTextSizeA(KuroUI::UIScaleManager::Scale(9.0f), FLT_MAX, 0.0f, "BEAT");
+      ImVec2 s_sz_txt = f_sml->CalcTextSizeA(KuroUI::UIScaleManager::Scale(9.0f), FLT_MAX, 0.0f, "SYNC");
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(9.0f),
+                  ImVec2(bsync_p0.x + (r_col2_w - b_sz_txt.x) * 0.5f, bsync_p0.y + KuroUI::UIScaleManager::Scale(2.0f)),
+                  IM_COL32(255, 255, 255, 255), "BEAT");
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(9.0f),
+                  ImVec2(bsync_p0.x + (r_col2_w - s_sz_txt.x) * 0.5f, bsync_p0.y + KuroUI::UIScaleManager::Scale(12.0f)),
+                  IM_COL32(255, 255, 255, 255), "SYNC");
       ImGui::SetCursorScreenPos(bsync_p0);
-      std::string bsync_id = "##BeatSyncRb" + std::to_string(deck_idx);
-      ImGui::InvisibleButton(bsync_id.c_str(), ImVec2(col2_w, 17.0f));
+      std::string bsync_id = "##MiniBeatSync" + std::to_string(deck_idx);
+      ImGui::InvisibleButton(bsync_id.c_str(), ImVec2(r_col2_w, KuroUI::UIScaleManager::Scale(24.0f)));
       if (ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-        ImGui::SetTooltip("BEAT SYNC (Sincronizar batidas e BPM)");
+        ImGui::SetTooltip("BEAT SYNC: Sincronizar batidas e BPM automaticamente");
       }
       if (ImGui::IsItemClicked()) {
         engine.toggleSync(deck_idx);
       }
 
-      // --- COLUNA 1, LINHA 2: KEY SHIFT (< 6A ±0 >) ---
-      float row2_y = cur_y + 19.0f;
-      ImGui::SetCursorScreenPos(ImVec2(col1_x, row2_y));
+      // Coluna 1, Linha 2: KEY SHIFT (< 8A ±0 >)
+      float row2_y = top_y + KuroUI::UIScaleManager::Scale(28.0f);
+      ImGui::SetCursorScreenPos(ImVec2(right_x, row2_y));
       std::string eff_k = dk.getEffectiveKey();
       KuroAudio::CamelotKey ck = KuroAudio::DJHarmonicEngine::parseKey(eff_k);
       std::string k_code = ck.valid ? ck.getCamelotCode() : eff_k;
-      if (k_code.empty())
-        k_code = "8A";
+      if (k_code.empty()) k_code = "8A";
 
       char shift_str[16];
-      if (dk.key_shift_semitones == 0) {
-        snprintf(shift_str, sizeof(shift_str), "±0");
-      } else {
-        snprintf(shift_str, sizeof(shift_str), "%+d", dk.key_shift_semitones);
-      }
+      if (dk.key_shift_semitones == 0) snprintf(shift_str, sizeof(shift_str), "±0");
+      else snprintf(shift_str, sizeof(shift_str), "%+d", dk.key_shift_semitones);
 
       ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
       ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-      ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.25f, 0.30f, 1.0f));
-      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.11f, 0.14f, 1.0f));
-      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.75f, 0.85f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.24f, 0.28f, 0.36f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.14f, 0.18f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.80f, 0.90f, 1.0f));
 
-      std::string k_dn_id = "<##KShiftDn" + std::to_string(deck_idx);
-      if (ImGui::Button(k_dn_id.c_str(), ImVec2(13.0f, 15.0f))) {
+      float arr_w = KuroUI::UIScaleManager::Scale(14.0f);
+      float kh_h = KuroUI::UIScaleManager::Scale(22.0f);
+      std::string k_dn_id = "<##MiniKShiftDn" + std::to_string(deck_idx);
+      if (ImGui::Button(k_dn_id.c_str(), ImVec2(arr_w, kh_h))) {
         dk.shiftKey(-1);
       }
       ImGui::SameLine(0, 1.0f);
 
-      // Caixa central com tom e semitons
+      // Caixa Central com Código Camelot e Semitons
       ImVec2 kbox_p0 = ImGui::GetCursorScreenPos();
-      ImVec2 kbox_p1(kbox_p0.x + 28.0f, kbox_p0.y + 15.0f);
-      dl->AddRectFilled(kbox_p0, kbox_p1, IM_COL32(14, 16, 20, 255), 2.0f);
-      dl->AddRect(kbox_p0, kbox_p1, IM_COL32(36, 40, 50, 255), 2.0f, 0, 1.0f);
+      float kbox_w = r_col1_w - arr_w * 2.0f - 2.0f;
+      ImVec2 kbox_p1(kbox_p0.x + kbox_w, kbox_p0.y + kh_h);
+      dl->AddRectFilled(kbox_p0, kbox_p1, IM_COL32(14, 17, 22, 255), 2.0f);
+      dl->AddRect(kbox_p0, kbox_p1, IM_COL32(36, 42, 54, 255), 2.0f, 0, 1.0f);
 
       char k_combo[32];
       snprintf(k_combo, sizeof(k_combo), "%s %s", k_code.c_str(), shift_str);
-      ImVec2 kc_sz = f_sml->CalcTextSizeA(10.0f, FLT_MAX, 0.0f, k_combo);
+      ImVec2 kc_sz = f_sml->CalcTextSizeA(KuroUI::UIScaleManager::Scale(10.0f), FLT_MAX, 0.0f, k_combo);
       ImU32 k_txt_col = (dk.key_shift_semitones != 0)
                             ? IM_COL32(0, 220, 255, 255)
                             : IM_COL32(230, 235, 245, 255);
-      dl->AddText(
-          f_sml, 10.0f,
-          ImVec2(kbox_p0.x + (28.0f - kc_sz.x) * 0.5f, kbox_p0.y + 1.0f),
-          k_txt_col, k_combo);
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(10.0f),
+                  ImVec2(kbox_p0.x + (kbox_w - kc_sz.x) * 0.5f, kbox_p0.y + (kh_h - kc_sz.y) * 0.5f),
+                  k_txt_col, k_combo);
 
-      std::string k_mid_id = "##KShiftReset" + std::to_string(deck_idx);
+      std::string k_mid_id = "##MiniKShiftReset" + std::to_string(deck_idx);
       ImGui::SetCursorScreenPos(kbox_p0);
-      ImGui::InvisibleButton(k_mid_id.c_str(), ImVec2(28.0f, 15.0f));
+      ImGui::InvisibleButton(k_mid_id.c_str(), ImVec2(kbox_w, kh_h));
       if (ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-        ImGui::SetTooltip(
-            "Tom: %s (%s semitons)\nClique para redefinir para o tom original",
-            k_code.c_str(), shift_str);
+        ImGui::SetTooltip("Tom Camelot: %s (%s semitons)\nClique para redefinir para o tom original", k_code.c_str(), shift_str);
       }
       if (ImGui::IsItemClicked()) {
         dk.resetKey();
       }
 
       ImGui::SameLine(0, 1.0f);
-      std::string k_up_id = ">##KShiftUp" + std::to_string(deck_idx);
-      if (ImGui::Button(k_up_id.c_str(), ImVec2(13.0f, 15.0f))) {
+      std::string k_up_id = ">##MiniKShiftUp" + std::to_string(deck_idx);
+      if (ImGui::Button(k_up_id.c_str(), ImVec2(arr_w, kh_h))) {
         dk.shiftKey(+1);
       }
       ImGui::PopStyleColor(3);
       ImGui::PopStyleVar(2);
 
-      // --- COLUNA 2, LINHA 2: MASTER ---
-      ImGui::SetCursorScreenPos(ImVec2(col2_x, row2_y));
+      // Coluna 2, Linha 2: MASTER
+      ImGui::SetCursorScreenPos(ImVec2(r_col2_x, row2_y));
       bool is_mast = (engine.getMasterDeckId() == deck_idx);
       ImVec4 mast_bg = is_mast ? ImVec4(0.95f, 0.65f, 0.05f, 1.0f)
-                               : ImVec4(0.08f, 0.09f, 0.11f, 1.0f);
+                               : ImVec4(0.10f, 0.12f, 0.15f, 1.0f);
       ImVec4 mast_txt = is_mast ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-                                : ImVec4(0.55f, 0.60f, 0.68f, 1.0f);
-      ImVec4 mast_border = is_mast ? ImVec4(1.00f, 0.75f, 0.15f, 1.0f)
-                                   : ImVec4(0.24f, 0.27f, 0.33f, 1.0f);
+                                : ImVec4(0.60f, 0.65f, 0.74f, 1.0f);
+      ImVec4 mast_border = is_mast ? ImVec4(1.00f, 0.78f, 0.20f, 1.0f)
+                                   : ImVec4(0.25f, 0.29f, 0.36f, 1.0f);
       ImGui::PushStyleColor(ImGuiCol_Button, mast_bg);
       ImGui::PushStyleColor(ImGuiCol_Text, mast_txt);
       ImGui::PushStyleColor(ImGuiCol_Border, mast_border);
       ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-      std::string mast_id = "MASTER##RbStrip" + std::to_string(deck_idx);
-      if (ImGui::Button(mast_id.c_str(), ImVec2(col2_w, 16.0f))) {
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+      std::string mast_id = "MASTER##MiniStrip" + std::to_string(deck_idx);
+      if (ImGui::Button(mast_id.c_str(), ImVec2(r_col2_w, kh_h))) {
         engine.setMasterDeck(deck_idx);
       }
       if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("MASTER (Definir como Deck Principal de Tempo)");
+        ImGui::SetTooltip("MASTER: Definir este deck como guia de tempo");
       ImGui::PopStyleVar(2);
       ImGui::PopStyleColor(3);
 
-      // 4. Medição de Tempos decorrido e restante + BPM e Pitch %
+      // Linha 3: MASTER TEMPO (MT) & RANGE DE PITCH
+      float row3_y = row2_y + kh_h + KuroUI::UIScaleManager::Scale(4.0f);
+      ImGui::SetCursorScreenPos(ImVec2(right_x, row3_y));
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+
+      // Botão MT (Key Lock)
+      bool mt_act = dk.master_tempo;
+      ImGui::PushStyleColor(ImGuiCol_Button, mt_act ? ImVec4(0.00f, 0.45f, 0.75f, 1.0f) : ImVec4(0.10f, 0.12f, 0.16f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Text, mt_act ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.55f, 0.60f, 0.70f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Border, mt_act ? ImVec4(0.00f, 0.65f, 0.95f, 1.0f) : ImVec4(0.20f, 0.24f, 0.30f, 1.0f));
+      std::string mt_id = "MT##MiniMT" + std::to_string(deck_idx);
+      if (ImGui::Button(mt_id.c_str(), ImVec2(r_col1_w, KuroUI::UIScaleManager::Scale(20.0f)))) {
+        dk.master_tempo = !dk.master_tempo;
+      }
+      if (ImGui::IsItemHovered()) ImGui::SetTooltip("MASTER TEMPO (Key Lock): Preservar tom original ao alterar BPM");
+      ImGui::PopStyleColor(3);
+
+      // Botão Pitch Range (±8%, ±16%, ±50%, WIDE)
+      ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
+      char rng_str[24];
+      snprintf(rng_str, sizeof(rng_str), "±%.0f%%", dk.pitch_range);
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.12f, 0.16f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.85f, 0.92f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.26f, 0.32f, 1.0f));
+      std::string rng_id = std::string(rng_str) + "##MiniRng" + std::to_string(deck_idx);
+      if (ImGui::Button(rng_id.c_str(), ImVec2(r_col2_w, KuroUI::UIScaleManager::Scale(20.0f)))) {
+        if (dk.pitch_range <= 6.0f) dk.pitch_range = 10.0f;
+        else if (dk.pitch_range <= 10.0f) dk.pitch_range = 16.0f;
+        else if (dk.pitch_range <= 16.0f) dk.pitch_range = 50.0f;
+        else dk.pitch_range = 6.0f;
+      }
+      if (ImGui::IsItemHovered()) ImGui::SetTooltip("Escala de Pitch Fader: Clique para alternar ±6%%, ±10%%, ±16%%, ±50%%");
+      ImGui::PopStyleColor(3);
+      ImGui::PopStyleVar(2);
+
+      // ── 5. CLUSTER CENTRAL-DIREITO: BPM, PITCH %, RELÓGIOS DE TEMPO ──
+      float time_w = KuroUI::UIScaleManager::Scale(172.0f);
+      float time_x = right_x - time_w - KuroUI::UIScaleManager::Scale(12.0f);
+
       double cur_t = dk.getElapsedTimeSec();
       double tot_t = dk.duration_sec;
       double rem_t = (tot_t > cur_t) ? (tot_t - cur_t) : 0.0;
@@ -6630,104 +6762,211 @@ private:
       snprintf(elap_str, sizeof(elap_str), "%02d:%02d.%d", (int)cur_t / 60,
                (int)cur_t % 60, (int)(cur_t * 10) % 10);
 
-      // BPM e Pitch Percent (Ponto decimal autêntico Rekordbox)
       char bpm_val_str[24];
       snprintf(bpm_val_str, sizeof(bpm_val_str), "%.2f",
                dk.bpm > 20.0 ? dk.bpm : 128.0);
       char pitch_pct_str[24];
-      snprintf(pitch_pct_str, sizeof(pitch_pct_str), "%+.1f%%",
+      snprintf(pitch_pct_str, sizeof(pitch_pct_str), "%+.2f%%",
                dk.pitch_percent);
 
-      float time_block_w = 138.0f;
-      float time_block_x = right_x - time_block_w - 14.0f;
+      // Linha 1: BPM Digital Pioneer + Pitch % + Botões de Nudge
+      float t_row1_y = top_y + KuroUI::UIScaleManager::Scale(1.0f);
+      dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(18.0f) * layout_metrics.bpm_font_scale,
+                  ImVec2(time_x, t_row1_y), IM_COL32(255, 255, 255, 255), bpm_val_str);
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(10.0f),
+                  ImVec2(time_x + KuroUI::UIScaleManager::Scale(62.0f), t_row1_y + KuroUI::UIScaleManager::Scale(1.0f)),
+                  IM_COL32(130, 140, 155, 255), "BPM");
+      ImU32 pitch_col = (std::abs(dk.pitch_percent) > 0.01f) ? IM_COL32(0, 220, 255, 255) : IM_COL32(180, 190, 205, 255);
+      dl->AddText(f_reg, KuroUI::UIScaleManager::Scale(12.5f),
+                  ImVec2(time_x + KuroUI::UIScaleManager::Scale(86.0f), t_row1_y + KuroUI::UIScaleManager::Scale(4.0f)),
+                  pitch_col, pitch_pct_str);
 
-      // Linha 1: BPM em cinza suave e Pitch % em cinza claro
-      dl->AddText(f_reg, 13.0f * layout_metrics.bpm_font_scale,
-                  ImVec2(time_block_x, cur_y + 1.0f),
-                  IM_COL32(140, 148, 160, 255), bpm_val_str);
-      dl->AddText(f_sml, 11.5f, ImVec2(time_block_x + 48.0f, cur_y + 2.0f),
-                  IM_COL32(195, 202, 215, 255), pitch_pct_str);
+      // Micro-botões Nudge [-] e [+]
+      float nudge_x = time_x + KuroUI::UIScaleManager::Scale(138.0f);
+      ImGui::SetCursorScreenPos(ImVec2(nudge_x, t_row1_y + KuroUI::UIScaleManager::Scale(2.0f)));
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+      ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.26f, 0.32f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.12f, 0.15f, 1.0f));
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.75f, 0.85f, 1.0f));
+      std::string ndn_id = "-##MiniNudgeDn" + std::to_string(deck_idx);
+      if (ImGui::Button(ndn_id.c_str(), ImVec2(KuroUI::UIScaleManager::Scale(14.0f), KuroUI::UIScaleManager::Scale(18.0f)))) {
+        dk.pitch_percent = std::clamp(dk.pitch_percent - 0.1f, -dk.pitch_range, dk.pitch_range);
+      }
+      if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pitch Bend Nudge: Desacelerar -0.1%%");
+      ImGui::SameLine(0, 2.0f);
+      std::string nup_id = "+##MiniNudgeUp" + std::to_string(deck_idx);
+      if (ImGui::Button(nup_id.c_str(), ImVec2(KuroUI::UIScaleManager::Scale(14.0f), KuroUI::UIScaleManager::Scale(18.0f)))) {
+        dk.pitch_percent = std::clamp(dk.pitch_percent + 0.1f, -dk.pitch_range, dk.pitch_range);
+      }
+      if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pitch Bend Nudge: Acelerar +0.1%%");
+      ImGui::PopStyleColor(3);
+      ImGui::PopStyleVar(2);
 
-      // Linha 2: Grande Display de Tempo Restante (-08:13.2) em branco forte +
-      // Decorrido (00:00.0)
-      dl->AddText(f_lrg, 17.5f * layout_metrics.time_counter_font_scale,
-                  ImVec2(time_block_x, cur_y + 16.5f),
-                  IM_COL32(255, 255, 255, 255), rem_str);
-      dl->AddText(f_sml, 11.0f, ImVec2(time_block_x + 82.0f, cur_y + 20.5f),
-                  IM_COL32(130, 138, 150, 255), elap_str);
+      // Linha 2: Grande Display de Tempo Restante (-04:12.8) Pioneer
+      float t_row2_y = top_y + KuroUI::UIScaleManager::Scale(27.0f);
+      dl->AddText(f_lrg, KuroUI::UIScaleManager::Scale(21.0f) * layout_metrics.time_counter_font_scale,
+                  ImVec2(time_x, t_row2_y), IM_COL32(255, 255, 255, 255), rem_str);
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(9.5f),
+                  ImVec2(time_x + KuroUI::UIScaleManager::Scale(122.0f), t_row2_y + KuroUI::UIScaleManager::Scale(6.0f)),
+                  IM_COL32(130, 140, 155, 255), "REMAIN");
 
-      // 5. Título da Faixa e Artista (À esquerda do bloco de tempo)
-      float title_x = art_x + art_sz + 8.0f;
-      float title_max_w = time_block_x - title_x - 12.0f;
-      if (title_max_w > 40.0f) {
-        std::string raw_title =
-            dk.track_title.empty() ? "Nenhuma Faixa Carregada" : dk.track_title;
+      // Linha 3: Tempo Decorrido (02:15.3) em cinza metálico
+      float t_row3_y = top_y + KuroUI::UIScaleManager::Scale(54.0f);
+      dl->AddText(f_reg, KuroUI::UIScaleManager::Scale(13.5f),
+                  ImVec2(time_x, t_row3_y), IM_COL32(145, 155, 170, 255), elap_str);
+      dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(9.5f),
+                  ImVec2(time_x + KuroUI::UIScaleManager::Scale(78.0f), t_row3_y + KuroUI::UIScaleManager::Scale(1.0f)),
+                  IM_COL32(100, 110, 125, 255), "ELAPSED");
+
+      // ── 6. CLUSTER CENTRAL-ESQUERDO: METADADOS, TOM DUPLO & LOOPS RÁPIDOS ──
+      float meta_x = jog_x + jog_diam + KuroUI::UIScaleManager::Scale(12.0f);
+      float meta_w = time_x - meta_x - KuroUI::UIScaleManager::Scale(12.0f);
+
+      if (meta_w > 50.0f) {
+        // Linha 1: Título da Faixa (Fonte Grande Rekordbox Bold)
+        std::string raw_title = dk.track_title.empty() ? "Nenhuma Faixa Carregada" : dk.track_title;
         std::string disp_title = raw_title;
-        float t_font_sz = 15.5f * layout_metrics.track_title_font_scale;
-        ImVec2 t_sz =
-            f_bld->CalcTextSizeA(t_font_sz, FLT_MAX, 0.0f, disp_title.c_str());
-        if (t_sz.x > title_max_w) {
+        float t_font_sz = KuroUI::UIScaleManager::Scale(18.0f) * layout_metrics.track_title_font_scale;
+        ImVec2 t_sz = f_bld->CalcTextSizeA(t_font_sz, FLT_MAX, 0.0f, disp_title.c_str());
+        if (t_sz.x > meta_w) {
           while (disp_title.length() > 3 &&
-                 f_bld->CalcTextSizeA(t_font_sz, FLT_MAX, 0.0f,
-                                      (disp_title + "...").c_str())
-                         .x > title_max_w) {
+                 f_bld->CalcTextSizeA(t_font_sz, FLT_MAX, 0.0f, (disp_title + "...").c_str()).x > meta_w) {
             disp_title.pop_back();
           }
           disp_title += "...";
         }
-        dl->AddText(f_bld, t_font_sz, ImVec2(title_x, cur_y + 1.0f),
+        dl->AddText(f_bld, t_font_sz, ImVec2(meta_x, top_y + KuroUI::UIScaleManager::Scale(1.0f)),
                     IM_COL32(255, 255, 255, 255), disp_title.c_str());
 
-        std::string raw_artist =
-            dk.track_artist.empty()
-                ? "Arraste uma faixa ou busque na biblioteca"
-                : dk.track_artist;
-        char meta_sub[128];
-        if (!dk.track_title.empty()) {
-          snprintf(meta_sub, sizeof(meta_sub), "%s        %.2f  %s",
-                   raw_artist.c_str(), dk.bpm > 20.0 ? dk.bpm : 128.0,
-                   k_code.c_str());
-        } else {
-          snprintf(meta_sub, sizeof(meta_sub), "%s", raw_artist.c_str());
-        }
-        std::string disp_meta = meta_sub;
-        if (f_sml->CalcTextSizeA(11.5f, FLT_MAX, 0.0f, disp_meta.c_str()).x >
-            title_max_w) {
-          while (disp_meta.length() > 3 &&
-                 f_sml->CalcTextSizeA(11.5f, FLT_MAX, 0.0f,
-                                      (disp_meta + "...").c_str())
-                         .x > title_max_w) {
-            disp_meta.pop_back();
+        // Linha 2: Artista e Álbum
+        std::string raw_artist = dk.track_artist.empty() ? "Arraste uma faixa da biblioteca abaixo ou conecte o Spotify" : dk.track_artist;
+        std::string disp_artist = raw_artist;
+        float art_font_sz = KuroUI::UIScaleManager::Scale(13.0f);
+        if (f_reg->CalcTextSizeA(art_font_sz, FLT_MAX, 0.0f, disp_artist.c_str()).x > meta_w) {
+          while (disp_artist.length() > 3 &&
+                 f_reg->CalcTextSizeA(art_font_sz, FLT_MAX, 0.0f, (disp_artist + "...").c_str()).x > meta_w) {
+            disp_artist.pop_back();
           }
-          disp_meta += "...";
+          disp_artist += "...";
         }
-        dl->AddText(f_sml, 11.5f, ImVec2(title_x, cur_y + 19.0f),
-                    IM_COL32(135, 142, 155, 255), disp_meta.c_str());
+        dl->AddText(f_reg, art_font_sz, ImVec2(meta_x, top_y + KuroUI::UIScaleManager::Scale(26.0f)),
+                    IM_COL32(145, 155, 172, 255), disp_artist.c_str());
+
+        // Linha 3: Badge de Tom Duplo (Camelot + Nota) + Quick Loop Bar
+        float m_row3_y = top_y + KuroUI::UIScaleManager::Scale(50.0f);
+        ImGui::SetCursorScreenPos(ImVec2(meta_x, m_row3_y));
+
+        // Badge de Tom Duplo Harmônico (Ex: 8A · Am)
+        std::string k_note = ck.valid ? ck.musical_key : "";
+        std::string dual_key_str = ck.valid ? (ck.getCamelotCode() + " · " + k_note) : (eff_k.empty() ? "8A · Am" : eff_k);
+        ImU32 cam_wheel_col = ck.valid ? KuroAudio::DJHarmonicEngine::getCamelotWheelColor(ck.number)
+                                       : IM_COL32(0, 190, 220, 255);
+        ImVec2 dk_sz = f_bld->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.5f), FLT_MAX, 0.0f, dual_key_str.c_str());
+        float k_pill_w = dk_sz.x + KuroUI::UIScaleManager::Scale(14.0f);
+        float k_pill_h = KuroUI::UIScaleManager::Scale(22.0f);
+        ImVec2 k_p0(meta_x, m_row3_y);
+        ImVec2 k_p1(k_p0.x + k_pill_w, k_p0.y + k_pill_h);
+
+        dl->AddRectFilled(k_p0, k_p1, IM_COL32(16, 20, 28, 255), 3.0f);
+        dl->AddRect(k_p0, k_p1, cam_wheel_col, 3.0f, 0, 1.2f);
+        dl->AddText(f_bld, KuroUI::UIScaleManager::Scale(11.5f),
+                    ImVec2(k_p0.x + (k_pill_w - dk_sz.x) * 0.5f, k_p0.y + (k_pill_h - dk_sz.y) * 0.5f),
+                    cam_wheel_col, dual_key_str.c_str());
+
+        ImGui::SetCursorScreenPos(k_p0);
+        std::string kpill_btn_id = "##MiniKeyPill" + std::to_string(deck_idx);
+        ImGui::InvisibleButton(kpill_btn_id.c_str(), ImVec2(k_pill_w, k_pill_h));
+        if (ImGui::IsItemHovered()) {
+          ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+          ImGui::SetTooltip("Tom Musical & Código Camelot: %s\n• Clique para redefinir o tom para o original", dual_key_str.c_str());
+        }
+        if (ImGui::IsItemClicked()) {
+          dk.resetKey();
+        }
+
+        // Barra Rápida de Loops CDJ: [IN] [OUT] [ 4 ] [/2] [2X]
+        float loop_bar_x = meta_x + k_pill_w + KuroUI::UIScaleManager::Scale(8.0f);
+        ImGui::SetCursorScreenPos(ImVec2(loop_bar_x, m_row3_y));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.22f, 0.26f, 0.34f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.14f, 0.18f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.80f, 0.86f, 0.94f, 1.0f));
+
+        float l_btn_w = KuroUI::UIScaleManager::Scale(26.0f);
+        std::string lin_id = "IN##MiniLoopIn" + std::to_string(deck_idx);
+        if (ImGui::Button(lin_id.c_str(), ImVec2(l_btn_w, k_pill_h))) {
+          dk.setLoopIn();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir ponto Loop IN");
+        ImGui::SameLine(0, 2.0f);
+
+        std::string lout_id = "OUT##MiniLoopOut" + std::to_string(deck_idx);
+        if (ImGui::Button(lout_id.c_str(), ImVec2(l_btn_w, k_pill_h))) {
+          dk.setLoopOut();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir ponto Loop OUT");
+        ImGui::SameLine(0, 2.0f);
+
+        // Botão Auto Loop 4 Batidas (Iluminado em laranja quando ativo!)
+        bool l4_active = dk.loop_active;
+        ImVec4 l4_bg = l4_active ? ImVec4(0.95f, 0.55f, 0.05f, 1.0f) : ImVec4(0.12f, 0.14f, 0.18f, 1.0f);
+        ImVec4 l4_txt = l4_active ? ImVec4(0.0f, 0.0f, 0.0f, 1.0f) : ImVec4(0.90f, 0.95f, 1.0f, 1.0f);
+        ImVec4 l4_border = l4_active ? ImVec4(1.00f, 0.70f, 0.15f, 1.0f) : ImVec4(0.22f, 0.26f, 0.34f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, l4_bg);
+        ImGui::PushStyleColor(ImGuiCol_Text, l4_txt);
+        ImGui::PushStyleColor(ImGuiCol_Border, l4_border);
+        std::string l4_id = "4##MiniLoop4" + std::to_string(deck_idx);
+        if (ImGui::Button(l4_id.c_str(), ImVec2(l_btn_w, k_pill_h))) {
+          dk.toggleLoop(4.0);
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Auto Beat Loop 4 Compassos");
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, 2.0f);
+        std::string lh_id = "/2##MiniLoopH" + std::to_string(deck_idx);
+        if (ImGui::Button(lh_id.c_str(), ImVec2(l_btn_w, k_pill_h))) {
+          dk.loopHalve();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Dividir tamanho do Loop pela metade (1/2)");
+
+        ImGui::SameLine(0, 2.0f);
+        std::string ld_id = "2X##MiniLoopD" + std::to_string(deck_idx);
+        if (ImGui::Button(ld_id.c_str(), ImVec2(l_btn_w, k_pill_h))) {
+          dk.loopDouble();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Dobrar tamanho do Loop (2X)");
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(2);
       }
 
       // =====================================================================
-      // TIER 2: WAVEFORM OVERVIEW COM ESPAÇAMENTO GENEROSO (PADRÃO 1:1
-      // REKORDBOX) Espaçamento lateral ampliado (14px nas bordas), respiro
-      // superior e inferior, sem caixa pill envolvente e régua de marcação
-      // beatgrid na base.
+      // TIER 2: WAVEFORM OVERVIEW 3-BAND RGB (PREENCHE 100% DA ALTURA RESTANTE)
       // =====================================================================
-      float wf_x0 = deck_p0.x + 14.0f;
-      float wf_x1 = deck_p1.x - 14.0f;
+      float wf_x0 = deck_p0.x + KuroUI::UIScaleManager::Scale(8.0f);
+      float wf_x1 = deck_p1.x - KuroUI::UIScaleManager::Scale(8.0f);
       float wf_w = wf_x1 - wf_x0;
-      float wf_y0 = deck_p0.y + 43.0f;
-      float wf_h = (layout_metrics.overview_height > 10.0f)
-                       ? layout_metrics.overview_height
-                       : (deck_p1.y - 12.0f - wf_y0);
-      float base_y = wf_y0 + wf_h;
-      float max_amp = wf_h - 2.0f;
+      float wf_y0 = deck_p0.y + KuroUI::UIScaleManager::Scale(88.0f);
+      float base_y = deck_p1.y - KuroUI::UIScaleManager::Scale(8.0f);
+      float wf_h = base_y - wf_y0;
+      float max_amp = wf_h - KuroUI::UIScaleManager::Scale(3.0f);
 
       ImVec2 wf_p0(wf_x0, wf_y0);
       ImVec2 wf_p1(wf_x1, base_y);
 
+      // Trincheira da Waveform em vidro Obsidian com borda precisa
+      dl->AddRectFilled(wf_p0, wf_p1, IM_COL32(7, 9, 13, 255), 3.0f);
+      dl->AddRect(wf_p0, wf_p1, IM_COL32(26, 32, 44, 220), 3.0f, 0, 1.0f);
+
       // Slot de seek e scrub interativo em 100% da largura da waveform
       ImGui::SetCursorScreenPos(wf_p0);
-      std::string wf_btn_id = "##RbMiniWfSeek" + std::to_string(deck_idx);
+      std::string wf_btn_id = "##MiniWfSeek" + std::to_string(deck_idx);
       ImGui::InvisibleButton(wf_btn_id.c_str(), ImVec2(wf_w, wf_h));
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+      }
       if (ImGui::IsItemActive() && ImGui::IsMouseDown(0)) {
         float pct = (ImGui::GetIO().MousePos.x - wf_p0.x) / wf_w;
         float pct_clamped = std::clamp(pct, 0.0f, 1.0f);
@@ -6741,50 +6980,9 @@ private:
         }
       }
 
-      // Drag & Drop no Waveform interno também
-      if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_DJ_TRACK_ID")) {
-          std::string tid((const char *)payload->Data);
-          auto *trk = lib_mgr.getTrackById(tid);
-          if (trk) {
-            if (trk->is_downloaded)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-            else
-              spotify_service.downloadLibraryTrackAsync(*trk, deck_idx, engine);
-          }
-        }
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_SAMPLE_PATH")) {
-          std::string path_str((const char *)payload->Data);
-          if (spotify_service.importLocalTrack(path_str)) {
-            std::string tid =
-                "local_" + std::to_string(std::hash<std::string>{}(path_str));
-            auto *trk = lib_mgr.getTrackById(tid);
-            if (trk)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-          }
-        }
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_MULTI_SAMPLE_PATHS")) {
-          std::string p((const char *)payload->Data);
-          size_t nl = p.find('\n');
-          std::string first_f = (nl != std::string::npos) ? p.substr(0, nl) : p;
-          if (spotify_service.importLocalTrack(first_f)) {
-            std::string tid =
-                "local_" + std::to_string(std::hash<std::string>{}(first_f));
-            auto *trk = lib_mgr.getTrackById(tid);
-            if (trk)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-          }
-        }
-        ImGui::EndDragDropTarget();
-      }
-
-      // Linha de base da waveform estilo Rekordbox (sem contorno de pílula ao
-      // redor!)
+      // Linha de base da waveform estilo Rekordbox
       dl->AddLine(ImVec2(wf_x0, base_y), ImVec2(wf_x1, base_y),
-                  IM_COL32(38, 42, 52, 255), 1.0f);
+                  IM_COL32(38, 46, 60, 255), 1.0f);
 
       // Desenho da Waveform 3-Band RGB Rekordbox
       dk.generateDetailedWaveformIfNeeded();
@@ -6825,18 +7023,15 @@ private:
         }
       } else {
         // Estado sem faixa: linha guia sutil com instrução de drag & drop
-        dl->AddLine(ImVec2(wf_x0, base_y), ImVec2(wf_x1, base_y),
-                    IM_COL32(38, 44, 56, 180), 1.0f);
-        const char *empty_guide = "ARRASTE UMA FAIXA OU BUSQUE NA BIBLIOTECA";
-        ImVec2 eg_sz = f_sml->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, empty_guide);
-        dl->AddText(f_sml, 11.0f,
+        const char *empty_guide = "ARRASTE UMA MÚSICA DA BIBLIOTECA PARA O DECK";
+        ImVec2 eg_sz = f_sml->CalcTextSizeA(KuroUI::UIScaleManager::Scale(11.5f), FLT_MAX, 0.0f, empty_guide);
+        dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(11.5f),
                     ImVec2(wf_x0 + (wf_w - eg_sz.x) * 0.5f,
                            wf_y0 + (wf_h - eg_sz.y) * 0.5f - 1.0f),
-                    IM_COL32(85, 95, 112, 160), empty_guide);
+                    IM_COL32(95, 110, 130, 180), empty_guide);
       }
 
-      // Região de Loop Ativo Rekordbox no Overview do Mini Deck (Primeiro
-      // Plano)
+      // Região de Loop Ativo Rekordbox no Overview
       if (dk.loop_active && dk.loop_length_frames > 0 && tot_t > 0.0 &&
           dk.sample_rate > 0.0) {
         double l_start_sec = dk.loop_start_frame / dk.sample_rate;
@@ -6849,23 +7044,16 @@ private:
         if (lx2 - lx1 < 3.0f)
           lx2 = lx1 + 3.0f;
         dl->AddRectFilled(ImVec2(lx1, wf_y0), ImVec2(lx2, base_y),
-                          IM_COL32(255, 160, 0, 90));
+                          IM_COL32(255, 150, 0, 95));
         dl->AddLine(ImVec2(lx1, wf_y0), ImVec2(lx2, wf_y0),
                     IM_COL32(255, 210, 40, 255), 2.0f);
         dl->AddLine(ImVec2(lx1, wf_y0), ImVec2(lx1, base_y),
                     IM_COL32(255, 210, 40, 255), 2.0f);
         dl->AddLine(ImVec2(lx2, wf_y0), ImVec2(lx2, base_y),
                     IM_COL32(255, 210, 40, 255), 2.0f);
-        dl->AddTriangleFilled(ImVec2(lx1, wf_y0), ImVec2(lx1 + 4.5f, wf_y0),
-                              ImVec2(lx1, wf_y0 + 5.5f),
-                              IM_COL32(255, 180, 0, 255));
-        dl->AddTriangleFilled(ImVec2(lx2, wf_y0), ImVec2(lx2 - 4.5f, wf_y0),
-                              ImVec2(lx2, wf_y0 + 5.5f),
-                              IM_COL32(255, 180, 0, 255));
       }
 
-      // Linha de Grid Ticks abaixo da base (Pontos sutis estilo régua
-      // Rekordbox)
+      // Linha de Grid Ticks abaixo da base (Régua Rekordbox)
       if (dk.bpm > 20.0 && tot_t > 0.0) {
         double beat_sec = 60.0 / dk.bpm;
         double total_beats = tot_t / beat_sec;
@@ -6874,15 +7062,13 @@ private:
             float bx = wf_x0 + (float)((b * beat_sec) / tot_t) * wf_w;
             if (bx >= wf_x0 && bx <= wf_x1) {
               if (b % 4 == 0) {
-                // Compasso cheio (4 batidas): traço vertical sutil de 2.5px
                 dl->AddLine(ImVec2(bx, base_y + 1.0f),
-                            ImVec2(bx, base_y + 3.5f),
-                            IM_COL32(160, 170, 185, 140), 1.0f);
+                            ImVec2(bx, base_y + KuroUI::UIScaleManager::Scale(4.0f)),
+                            IM_COL32(165, 180, 200, 160), 1.0f);
               } else {
-                // Batida intermediária: ponto de 1px
                 dl->AddLine(ImVec2(bx, base_y + 1.0f),
-                            ImVec2(bx, base_y + 2.0f),
-                            IM_COL32(95, 105, 120, 95), 1.0f);
+                            ImVec2(bx, base_y + KuroUI::UIScaleManager::Scale(2.0f)),
+                            IM_COL32(95, 110, 130, 110), 1.0f);
               }
             }
           }
@@ -6890,8 +7076,6 @@ private:
       }
 
       // Hot Cues no Waveform 1:1 Rekordbox:
-      // Tag retangular compacta no topo + linha vertical + triângulo laranja na
-      // base da onda
       for (int h_idx = 0; h_idx < 8; h_idx++) {
         if (dk.hot_cues[h_idx].active && tot_t > 0.0) {
           double cue_sec = dk.hot_cues[h_idx].time_sec;
@@ -6899,113 +7083,57 @@ private:
               wf_x0 + (float)std::clamp(cue_sec / tot_t, 0.0, 1.0) * wf_w;
           char h_letter[2] = {(char)('A' + h_idx), '\0'};
           ImU32 badge_col = (h_idx == 0) ? IM_COL32(245, 35, 95, 255)
-                                         : // A: Pink
-                                (h_idx == 1) ? IM_COL32(0, 180, 235, 255)
-                                             : // B: Sky Blue
-                                (h_idx == 2) ? IM_COL32(255, 140, 0, 255)
-                                             : // C: Orange
-                                (h_idx == 3) ? IM_COL32(35, 205, 85, 255)
-                                             : // D: Green
-                                (h_idx == 4) ? IM_COL32(180, 70, 235, 255)
-                                             : // E: Purple
-                                (h_idx == 5) ? IM_COL32(255, 215, 0, 255)
-                                             : // F: Yellow
-                                (h_idx == 6) ? IM_COL32(0, 230, 195, 255)
-                                             :              // G: Teal
-                                IM_COL32(235, 45, 45, 255); // H: Red
+                                         : (h_idx == 1) ? IM_COL32(0, 180, 235, 255)
+                                         : (h_idx == 2) ? IM_COL32(255, 140, 0, 255)
+                                         : (h_idx == 3) ? IM_COL32(35, 205, 85, 255)
+                                         : (h_idx == 4) ? IM_COL32(180, 70, 235, 255)
+                                         : (h_idx == 5) ? IM_COL32(255, 215, 0, 255)
+                                         : (h_idx == 6) ? IM_COL32(0, 230, 195, 255)
+                                                        : IM_COL32(235, 45, 45, 255);
 
-          // Tag retangular compacta Rekordbox no topo
-          dl->AddRectFilled(ImVec2(hx - 4.5f, wf_y0 - 2.0f),
-                            ImVec2(hx + 4.5f, wf_y0 + 8.5f), badge_col, 1.0f);
-          ImVec2 l_sz = f_sml->CalcTextSizeA(8.5f, FLT_MAX, 0.0f, h_letter);
-          dl->AddText(f_sml, 8.5f, ImVec2(hx - l_sz.x * 0.5f, wf_y0 - 2.0f),
+          dl->AddRectFilled(ImVec2(hx - 5.0f, wf_y0 - 2.0f),
+                            ImVec2(hx + 5.0f, wf_y0 + 10.0f), badge_col, 1.5f);
+          ImVec2 l_sz = f_sml->CalcTextSizeA(KuroUI::UIScaleManager::Scale(9.0f), FLT_MAX, 0.0f, h_letter);
+          dl->AddText(f_sml, KuroUI::UIScaleManager::Scale(9.0f), ImVec2(hx - l_sz.x * 0.5f, wf_y0 - 2.0f),
                       IM_COL32(255, 255, 255, 255), h_letter);
-
-          // Linha vertical guia até a base
-          dl->AddLine(ImVec2(hx, wf_y0 + 8.5f), ImVec2(hx, base_y), badge_col,
-                      1.0f);
-
-          // Triângulo laranja apontando para cima na base (igual ao Rekordbox
-          // oficial)
+          dl->AddLine(ImVec2(hx, wf_y0 + 10.0f), ImVec2(hx, base_y), badge_col, 1.0f);
           dl->AddTriangleFilled(ImVec2(hx - 3.5f, base_y + 1.0f),
                                 ImVec2(hx + 3.5f, base_y + 1.0f),
-                                ImVec2(hx, base_y - 4.5f),
+                                ImVec2(hx, base_y - 5.0f),
                                 IM_COL32(255, 140, 0, 255));
         }
       }
 
-      // Marcador de CUE Principal (Triângulo laranja na base da onda com linha
-      // vertical)
+      // Marcador de CUE Principal
       if (dk.cue_frame > 0 && tot_t > 0.0) {
         double cue_sec =
             (dk.sample_rate > 0.0) ? (dk.cue_frame / dk.sample_rate) : 0.0;
         float cue_x =
             wf_x0 + (float)std::clamp(cue_sec / tot_t, 0.0, 1.0) * wf_w;
         dl->AddLine(ImVec2(cue_x, wf_y0), ImVec2(cue_x, base_y - 4.5f),
-                    IM_COL32(255, 130, 0, 200), 1.0f);
-        dl->AddTriangleFilled(ImVec2(cue_x - 3.5f, base_y + 1.0f),
-                              ImVec2(cue_x + 3.5f, base_y + 1.0f),
-                              ImVec2(cue_x, base_y - 5.5f),
-                              IM_COL32(255, 130, 0, 255));
+                    IM_COL32(255, 140, 0, 220), 1.2f);
+        dl->AddTriangleFilled(ImVec2(cue_x - 4.0f, base_y + 1.0f),
+                              ImVec2(cue_x + 4.0f, base_y + 1.0f),
+                              ImVec2(cue_x, base_y - 6.0f),
+                              IM_COL32(255, 145, 0, 255));
       }
 
-      // Agulha do Playhead (Linha branca brilhante com ponta de agulha
-      // superior)
+      // Agulha do Playhead (Linha branca brilhante com ponta de agulha e ponto de laser)
       float play_norm =
           (tot_t > 0.0) ? (float)std::clamp(cur_t / tot_t, 0.0, 1.0) : 0.0f;
       float play_x = wf_x0 + play_norm * wf_w;
       dl->AddLine(ImVec2(play_x, wf_y0 - 2.0f), ImVec2(play_x, base_y + 2.0f),
-                  IM_COL32(255, 255, 255, 255), 1.5f);
-      dl->AddTriangleFilled(ImVec2(play_x - 3.0f, wf_y0 - 2.0f),
-                            ImVec2(play_x + 3.0f, wf_y0 - 2.0f),
-                            ImVec2(play_x, wf_y0 + 2.5f),
+                  IM_COL32(255, 255, 255, 255), 1.8f);
+      dl->AddTriangleFilled(ImVec2(play_x - 3.5f, wf_y0 - 2.0f),
+                            ImVec2(play_x + 3.5f, wf_y0 - 2.0f),
+                            ImVec2(play_x, wf_y0 + 4.0f),
                             IM_COL32(255, 255, 255, 255));
-      dl->AddCircleFilled(ImVec2(play_x, base_y + 1.0f), 2.0f,
-                          IM_COL32(0, 220, 255, 255));
+      dl->AddCircleFilled(ImVec2(play_x, base_y + 1.0f), 2.5f,
+                          ImGui::ColorConvertFloat4ToU32(theme_col));
 
       ImGui::EndChild();
       ImGui::PopStyleVar(2);
       ImGui::PopStyleColor(2);
-
-      // Drag & Drop no Child inteiro (cobre 100% da caixa do Deck)
-      if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_DJ_TRACK_ID")) {
-          std::string tid((const char *)payload->Data);
-          auto *trk = lib_mgr.getTrackById(tid);
-          if (trk) {
-            if (trk->is_downloaded)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-            else
-              spotify_service.downloadLibraryTrackAsync(*trk, deck_idx, engine);
-          }
-        }
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_SAMPLE_PATH")) {
-          std::string path_str((const char *)payload->Data);
-          if (spotify_service.importLocalTrack(path_str)) {
-            std::string tid =
-                "local_" + std::to_string(std::hash<std::string>{}(path_str));
-            auto *trk = lib_mgr.getTrackById(tid);
-            if (trk)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-          }
-        }
-        if (const ImGuiPayload *payload =
-                ImGui::AcceptDragDropPayload("DND_MULTI_SAMPLE_PATHS")) {
-          std::string p((const char *)payload->Data);
-          size_t nl = p.find('\n');
-          std::string first_f = (nl != std::string::npos) ? p.substr(0, nl) : p;
-          if (spotify_service.importLocalTrack(first_f)) {
-            std::string tid =
-                "local_" + std::to_string(std::hash<std::string>{}(first_f));
-            auto *trk = lib_mgr.getTrackById(tid);
-            if (trk)
-              spotify_service.loadLibraryTrack(*trk, deck_idx, engine);
-          }
-        }
-        ImGui::EndDragDropTarget();
-      }
     };
 
     renderSingleMiniDeck(left_deck_idx, single_deck_w, strip_h, col_deck_1,
