@@ -82,15 +82,23 @@ namespace KuroAudio {
 
         void initDefaultFolders() {
             folders.clear();
+            // Fluxo & Descoberta Inteligente
             folders.push_back({ "all", "Todas as Músicas", "music", true, 0 });
-            folders.push_back({ "first_kuru", "📁 FIRST KURU (Importadas)", "folder", true, 0 });
-            folders.push_back({ "prog_psy", "⚡ Prog Psytrance", "fire", true, 0 });
-            folders.push_back({ "farofa", "🇧🇷 Farofa & Brazilian Bass", "sun", true, 0 });
-            folders.push_back({ "fullon_night", "🌙 Full-On Night & Twilight", "moon", true, 0 });
-            folders.push_back({ "psy_fullon", "🔮 Full-On Morning", "bolt", true, 0 });
-            folders.push_back({ "tech_house", "🎧 Tech House & Grooves", "compact-disc", true, 0 });
-            folders.push_back({ "acid_techno", "🧪 Acid 303 & Techno", "atom", true, 0 });
-            folders.push_back({ "melodic_techno", "🌊 Melodic & Deep", "water", true, 0 });
+            folders.push_back({ "recent_downloaded", "Recém Baixadas / Novas", "bolt", true, 0 });
+            folders.push_back({ "favorites", "Favoritas (Top Rated)", "star", true, 0 });
+            folders.push_back({ "history", "Tocadas no Set", "clock", true, 0 });
+
+            // Pastas & Crates Locais
+            folders.push_back({ "first_kuru", "FIRST KURU (Importadas)", "folder", true, 0 });
+
+            // Gêneros & Vertentes Musicais
+            folders.push_back({ "prog_psy", "Prog Psytrance", "fire", true, 0 });
+            folders.push_back({ "fullon_night", "Full-On Night & Twilight", "moon", true, 0 });
+            folders.push_back({ "psy_fullon", "Full-On Morning", "bolt", true, 0 });
+            folders.push_back({ "tech_house", "Tech House & Grooves", "compact-disc", true, 0 });
+            folders.push_back({ "farofa", "Farofa & Brazilian Bass", "sun", true, 0 });
+            folders.push_back({ "acid_techno", "Acid 303 & Techno", "atom", true, 0 });
+            folders.push_back({ "melodic_techno", "Melodic & Deep", "water", true, 0 });
         }
 
         void clearAllDownloadedTracks() {
@@ -1574,6 +1582,18 @@ namespace KuroAudio {
             for (auto& f : folders) {
                 if (f.id == "all") {
                     f.track_count = (int)tracks.size();
+                } else if (f.id == "recent_downloaded") {
+                    f.track_count = (int)std::count_if(tracks.begin(), tracks.end(), [](const DJLibraryTrack& t) {
+                        return t.is_downloaded || !t.local_wav_path.empty();
+                    });
+                } else if (f.id == "favorites") {
+                    f.track_count = (int)std::count_if(tracks.begin(), tracks.end(), [](const DJLibraryTrack& t) {
+                        return t.rating >= 4;
+                    });
+                } else if (f.id == "history") {
+                    f.track_count = (int)std::count_if(tracks.begin(), tracks.end(), [](const DJLibraryTrack& t) {
+                        return t.has_played || t.play_count > 0;
+                    });
                 } else if (f.id == "first_kuru") {
                     f.track_count = (int)std::count_if(tracks.begin(), tracks.end(), [](const DJLibraryTrack& t) {
                         return t.folder_id == "first_kuru" || t.local_wav_path.find("FIRST KURU") != std::string::npos;
@@ -1593,6 +1613,18 @@ namespace KuroAudio {
             for (const auto& t : tracks) {
                 if (folder_id == "all") {
                     res.push_back(t);
+                } else if (folder_id == "recent_downloaded") {
+                    if (t.is_downloaded || !t.local_wav_path.empty()) {
+                        res.push_back(t);
+                    }
+                } else if (folder_id == "favorites") {
+                    if (t.rating >= 4) {
+                        res.push_back(t);
+                    }
+                } else if (folder_id == "history") {
+                    if (t.has_played || t.play_count > 0) {
+                        res.push_back(t);
+                    }
                 } else if (folder_id == "first_kuru") {
                     if (t.folder_id == "first_kuru" || t.local_wav_path.find("FIRST KURU") != std::string::npos) {
                         res.push_back(t);

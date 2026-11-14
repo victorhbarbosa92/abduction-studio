@@ -16,6 +16,8 @@ namespace KuroAudio {
         std::string path;
         std::string label;
         bool is_removable = true;
+        double free_gb = 0.0;
+        double total_gb = 0.0;
     };
 
     class DJExportService {
@@ -36,9 +38,27 @@ namespace KuroAudio {
                         USBDeviceDrive d;
                         d.path = root;
                         std::string vol = volumeName;
-                        d.label = root + " " + (vol.empty() ? (type == DRIVE_REMOVABLE ? "[Pen Drive USB]" : "[Disco Local]") : "[" + vol + "]");
                         d.is_removable = (type == DRIVE_REMOVABLE);
-                        result.push_back(d);
+
+                        ULARGE_INTEGER freeBytes, totalBytes, totalFree;
+                        if (GetDiskFreeSpaceExA(root.c_str(), &freeBytes, &totalBytes, &totalFree)) {
+                            d.free_gb = (double)freeBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);
+                            d.total_gb = (double)totalBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);
+                        }
+
+                        char free_str[48] = { 0 };
+                        if (d.free_gb > 0.0) {
+                            snprintf(free_str, sizeof(free_str), " (%.1f GB livres)", d.free_gb);
+                        }
+
+                        std::string base_label = vol.empty() ? (type == DRIVE_REMOVABLE ? "Pen Drive USB" : "Disco Local") : vol;
+                        d.label = root + " [" + base_label + "]" + free_str;
+
+                        if (d.is_removable) {
+                            result.insert(result.begin(), d);
+                        } else {
+                            result.push_back(d);
+                        }
                     }
                 }
             }

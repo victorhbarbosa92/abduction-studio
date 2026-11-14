@@ -488,6 +488,8 @@ public:
       false; // Modal expandido de alta fidelidade para busca e crates
   float library_height =
       380.0f; // Altura equilibrada e espaçosa da Biblioteca (300px / 380px / 480px)
+  float library_sidebar_width =
+      260.0f; // Largura redimensionável via Gizmo do painel esquerdo de Crates/Pastas
 
   // -------------------------------------------------------------
   // MODOS DE VISUALIZAÇÃO DA BIBLIOTECA (Atalho SPACE: 0 ➔ 1 ➔ 2 ➔ 0)
@@ -7023,6 +7025,37 @@ private:
     float avail_w = ImGui::GetContentRegionAvail().x;
     static std::string camelot_filter_key = "";
 
+    // ── GIZMO SPLITTER VERTICAL (ALTURA DA BIBLIOTECA) ──
+    if (!is_big_library) {
+      float gizmo_h = KuroUI::UIScaleManager::Scale(8.0f);
+      ImVec2 gizmo_pos = ImGui::GetCursorScreenPos();
+      ImGui::InvisibleButton("##LibHeightGizmoSplitter", ImVec2(avail_w, gizmo_h));
+      bool is_gizmo_hov = ImGui::IsItemHovered();
+      bool is_gizmo_act = ImGui::IsItemActive();
+      if (is_gizmo_hov || is_gizmo_act) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+      }
+      if (is_gizmo_act) {
+        float mouse_dy = ImGui::GetIO().MouseDelta.y;
+        library_height -= (mouse_dy / KuroUI::UIScaleManager::getScale());
+        library_height = std::clamp(library_height, 220.0f, 750.0f);
+      }
+      ImDrawList *dl_g = ImGui::GetWindowDrawList();
+      ImU32 g_line_col = is_gizmo_act ? IM_COL32(0, 240, 255, 255)
+                                      : (is_gizmo_hov ? IM_COL32(0, 200, 230, 220)
+                                                      : IM_COL32(28, 42, 60, 180));
+      float mid_y = gizmo_pos.y + gizmo_h * 0.5f;
+      dl_g->AddLine(ImVec2(gizmo_pos.x, mid_y), ImVec2(gizmo_pos.x + avail_w, mid_y),
+                    g_line_col, is_gizmo_act ? KuroUI::UIScaleManager::Scale(2.5f) : (is_gizmo_hov ? KuroUI::UIScaleManager::Scale(2.0f) : KuroUI::UIScaleManager::Scale(1.0f)));
+      float grip_w = KuroUI::UIScaleManager::Scale(56.0f);
+      float grip_h = KuroUI::UIScaleManager::Scale(4.0f);
+      float cx = gizmo_pos.x + avail_w * 0.5f;
+      dl_g->AddRectFilled(ImVec2(cx - grip_w * 0.5f, mid_y - grip_h * 0.5f),
+                          ImVec2(cx + grip_w * 0.5f, mid_y + grip_h * 0.5f),
+                          is_gizmo_act ? IM_COL32(0, 255, 255, 255) : (is_gizmo_hov ? IM_COL32(0, 220, 250, 240) : IM_COL32(50, 80, 115, 200)),
+                          KuroUI::UIScaleManager::Scale(2.0f));
+    }
+
     ImGui::PushStyleColor(ImGuiCol_ChildBg,
                           ImVec4(0.035f, 0.045f, 0.07f, 0.98f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.12f, 0.18f, 0.28f, 0.85f));
@@ -7158,12 +7191,13 @@ private:
                           : 138.0));
 
     bool wide_screen = (avail_w >= KuroUI::UIScaleManager::Scale(1100.0f));
-    float left_w = KuroUI::UIScaleManager::Scale(is_big_library ? 280.0f : (wide_screen ? 260.0f : 230.0f));
+    float left_w = KuroUI::UIScaleManager::Scale(library_sidebar_width);
     float right_w_camelot =
         wide_screen ? KuroUI::UIScaleManager::Scale(is_big_library ? 380.0f : 350.0f) : 0.0f;
+    float splitter_w = KuroUI::UIScaleManager::Scale(8.0f);
     float center_w =
-        avail_w - left_w -
-        (right_w_camelot > 0.0f ? (right_w_camelot + KuroUI::UIScaleManager::Scale(12.0f)) : 0.0f) - KuroUI::UIScaleManager::Scale(12.0f);
+        avail_w - left_w - splitter_w -
+        (right_w_camelot > 0.0f ? (right_w_camelot + KuroUI::UIScaleManager::Scale(12.0f)) : 0.0f) - KuroUI::UIScaleManager::Scale(6.0f);
     float pane_h = drawer_h - KuroUI::UIScaleManager::Scale(48.0f);
     if (pane_h < KuroUI::UIScaleManager::Scale(180.0f))
       pane_h = KuroUI::UIScaleManager::Scale(180.0f);
@@ -7652,46 +7686,216 @@ private:
     // =========================================================================
     // 2. PAINEL ESQUERDO: EXPLORER DE CRATES, PASTAS & DISPOSITIVOS USB
     // =========================================================================
+    static std::string quick_usb_export_status = "";
+    static float quick_usb_status_timer = 0.0f;
+    if (quick_usb_status_timer > 0.0f) {
+      quick_usb_status_timer -= ImGui::GetIO().DeltaTime;
+      if (quick_usb_status_timer <= 0.0f) quick_usb_export_status = "";
+    }
+
     ImGui::PushStyleColor(ImGuiCol_ChildBg,
                           ImVec4(0.022f, 0.030f, 0.05f, 0.95f));
     ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.09f, 0.14f, 0.22f, 0.70f));
     ImGui::BeginChild("##CratesLeftPane", ImVec2(left_w, pane_h), true);
 
-    // Sub-painel com rolagem para Pastas & Crates
-    float folders_h = wide_screen ? (pane_h - KuroUI::UIScaleManager::Scale(14.0f))
-                                  : std::clamp(pane_h * 0.44f, KuroUI::UIScaleManager::Scale(70.0f), KuroUI::UIScaleManager::Scale(160.0f));
-    ImGui::BeginChild("##CratesFolderListScroll", ImVec2(0, folders_h), false);
-    ImGui::TextColored(ImVec4(0.00f, 0.85f, 0.75f, 1.0f),
-                       ICON_FA_FOLDER_TREE " PASTAS & GÊNEROS");
+    // ── 2A. AÇÕES RÁPIDAS NO TOPO DA LATERAL (IMPORTAR / NOVA PLAYLIST) ──
+    float top_btn_w = (left_w - KuroUI::UIScaleManager::Scale(24.0f)) * 0.5f;
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.08f, 0.32f, 0.44f, 0.85f));
+    if (ImGui::Button(ICON_FA_FOLDER_PLUS " Importar", ImVec2(top_btn_w, KuroUI::UIScaleManager::Scale(24.0f)))) {
+      ImGui::OpenPopup("QuickImportPopup");
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Importar músicas locais ou pasta de áudio do computador");
+    ImGui::PopStyleColor();
+
+    if (ImGui::BeginPopup("QuickImportPopup")) {
+      if (ImGui::MenuItem(ICON_FA_MUSIC " Arquivo de Áudio...")) {
+        std::string p = KuroUI::FileDialog::OpenFile("Audio (*.wav;*.mp3;*.flac;*.aiff)\0*.wav;*.mp3;*.flac;*.aiff\0Todos (*.*)\0*.*\0");
+        if (!p.empty()) {
+          spotify_service.importLocalTrack(p);
+        }
+      }
+      if (ImGui::MenuItem(ICON_FA_FOLDER " Pasta Inteira do PC...")) {
+        std::string fp = KuroUI::FileDialog::SelectFolder("Selecionar Pasta de Músicas");
+        if (!fp.empty()) {
+          try {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(fp)) {
+              if (entry.is_regular_file()) {
+                auto ext = entry.path().extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                if (ext == ".wav" || ext == ".mp3" || ext == ".flac" || ext == ".aiff") {
+                  spotify_service.importLocalTrack(entry.path().string());
+                }
+              }
+            }
+          } catch (...) {}
+        }
+      }
+      ImGui::EndPopup();
+    }
+
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.44f, 0.38f, 0.85f));
+    if (ImGui::Button(ICON_FA_PLUS " Playlist", ImVec2(top_btn_w, KuroUI::UIScaleManager::Scale(24.0f)))) {
+      show_new_folder_dialog = true;
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Criar uma nova Playlist / Crate personalizada");
+    ImGui::PopStyleColor();
+
+    ImGui::Spacing();
     ImGui::Separator();
 
-    // Navegador de dispositivos / Pen drives USB
+    // ── 2B. LISTAGEM ESTRUTURADA DE PASTAS & DISPOSITIVOS ──
+    float folders_h = wide_screen ? (pane_h - KuroUI::UIScaleManager::Scale(46.0f))
+                                  : std::clamp(pane_h * 0.44f, KuroUI::UIScaleManager::Scale(70.0f), KuroUI::UIScaleManager::Scale(160.0f));
+    ImGui::BeginChild("##CratesFolderListScroll", ImVec2(0, folders_h), false);
+
+    // Varredura periódica de pen drives USB
     usb_scan_timer += ImGui::GetIO().DeltaTime;
     if (cached_usb_drives.empty() || usb_scan_timer > 3.5f) {
       usb_scan_timer = 0.0f;
       cached_usb_drives = KuroAudio::DJExportService::scanDrives();
     }
 
-    ImGui::TextColored(ImVec4(0.20f, 0.85f, 1.00f, 1.0f),
-                       ICON_FA_USB " DISPOSITIVOS");
+    auto to_spotify_tracks = [](const std::vector<KuroAudio::DJLibraryTrack> &ltrks) {
+      std::vector<KuroAudio::SpotifyDJTrack> s_trks;
+      s_trks.reserve(ltrks.size());
+      for (const auto &lt : ltrks) {
+        KuroAudio::SpotifyDJTrack st;
+        st.id = lt.id;
+        st.title = lt.title;
+        st.artist = lt.artist;
+        st.album = lt.album;
+        st.bpm = lt.bpm;
+        st.key = lt.key;
+        st.duration_sec = lt.duration_sec;
+        st.local_wav_path = lt.local_wav_path;
+        s_trks.push_back(st);
+      }
+      return s_trks;
+    };
+
+    // Lambda para renderizar cada item de pasta / playlist com drag & drop
+    auto render_crate_row = [&](const KuroAudio::DJCrateFolder &f, const char *icon, ImVec4 col, const char *badge = nullptr) {
+      bool is_active = (selected_usb_drive.empty() && f.id == active_fid);
+      char label[128];
+      snprintf(label, sizeof(label), "%s  %s##fid_%s", icon, f.name.c_str(), f.id.c_str());
+
+      if (is_active) {
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.00f, 0.38f, 0.45f, 0.75f));
+        ImGui::PushStyleColor(ImGuiCol_Text, col);
+      } else {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.72f, 0.78f, 0.86f, 1.0f));
+      }
+
+      if (ImGui::Selectable(label, is_active, ImGuiSelectableFlags_SpanAllColumns)) {
+        selected_usb_drive = "";
+        KuroAudio::DJLibraryManager::getInstance().setActiveFolderId(f.id);
+      }
+
+      // Drag & Drop: Soltar música sobre a playlist
+      if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload *payload = ImGui::AcceptDragDropPayload("DND_DJ_TRACK_ID")) {
+          const char *drop_tid = (const char *)payload->Data;
+          if (drop_tid) {
+            lib_mgr.moveTrackToFolder(drop_tid, f.id);
+          }
+        }
+        ImGui::EndDragDropTarget();
+      }
+
+      if (is_active) {
+        ImVec2 item_min = ImGui::GetItemRectMin();
+        ImVec2 item_max = ImGui::GetItemRectMax();
+        ImGui::GetWindowDrawList()->AddRectFilled(
+            item_min, ImVec2(item_min.x + KuroUI::UIScaleManager::Scale(3.0f), item_max.y),
+            IM_COL32(0, 220, 255, 255));
+      }
+
+      if (badge) {
+        ImGui::SameLine(left_w - KuroUI::UIScaleManager::Scale(82.0f));
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.65f, 1.0f), "[%s]", badge);
+      }
+
+      ImGui::SameLine(left_w - KuroUI::UIScaleManager::Scale(38.0f));
+      ImGui::TextColored(ImVec4(0.42f, 0.52f, 0.65f, 0.9f), "%d", f.track_count);
+
+      if (!f.is_system && ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem(ICON_FA_TRASH_CAN " Excluir Playlist")) {
+          KuroAudio::DJLibraryManager::getInstance().deleteFolder(f.id);
+        }
+        if (ImGui::MenuItem(ICON_FA_DOWNLOAD " Exportar para Pen Drive")) {
+          if (!cached_usb_drives.empty()) {
+            std::string target_drive = !selected_usb_drive.empty() ? selected_usb_drive : cached_usb_drives[0].path;
+            auto pl_tracks = to_spotify_tracks(lib_mgr.getTracksForFolder(f.id));
+            std::string exp_st;
+            KuroAudio::DJExportService::exportRekordboxPackage(target_drive, pl_tracks, engine.decks, exp_st);
+            KuroAudio::DJExportService::exportUniversalPackage(target_drive, pl_tracks, engine.decks, exp_st);
+            quick_usb_export_status = "✓ Playlist exportada!";
+            quick_usb_status_timer = 5.0f;
+          }
+        }
+        ImGui::EndPopup();
+      }
+
+      if (is_active) ImGui::PopStyleColor(2);
+      else ImGui::PopStyleColor(1);
+    };
+
+    // ── SEÇÃO 1: FLUXO & DESCOBERTA (SMART CRATES) ──
+    ImGui::TextColored(ImVec4(0.00f, 0.85f, 0.75f, 1.0f), ICON_FA_BOLT " FLUXO & DESCOBERTA");
+    ImGui::Separator();
+    for (const auto &f : folders) {
+      if (f.id == "all") render_crate_row(f, ICON_FA_MUSIC, ImVec4(0.35f, 0.90f, 1.00f, 1.0f));
+      else if (f.id == "recent_downloaded") render_crate_row(f, ICON_FA_BOLT, ImVec4(0.0f, 1.0f, 0.65f, 1.0f), "NOVO");
+      else if (f.id == "favorites") render_crate_row(f, ICON_FA_STAR, ImVec4(1.0f, 0.85f, 0.20f, 1.0f));
+      else if (f.id == "history") render_crate_row(f, ICON_FA_CLOCK, ImVec4(0.75f, 0.55f, 1.0f, 1.0f));
+    }
+
+    // ── SEÇÃO 2: MINHAS PLAYLISTS & CRATES ──
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.20f, 1.0f), ICON_FA_FOLDER_OPEN " MINHAS PLAYLISTS");
+    ImGui::Separator();
+    for (const auto &f : folders) {
+      if (f.id == "first_kuru" || (!f.is_system && f.id != "all" && f.id != "recent_downloaded" && f.id != "favorites" && f.id != "history")) {
+        render_crate_row(f, ICON_FA_FOLDER, ImVec4(0.60f, 0.80f, 0.95f, 1.0f));
+      }
+    }
+
+    // ── SEÇÃO 3: GÊNEROS & VERTENTES ──
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.00f, 0.96f, 0.83f, 1.0f), ICON_FA_COMPACT_DISC " GÊNEROS & VERTENTES");
+    ImGui::Separator();
+    for (const auto &f : folders) {
+      if (f.id == "prog_psy") render_crate_row(f, ICON_FA_FIRE, ImVec4(0.00f, 0.96f, 0.83f, 1.0f));
+      else if (f.id == "fullon_night") render_crate_row(f, ICON_FA_MOON, ImVec4(0.70f, 0.40f, 1.00f, 1.0f));
+      else if (f.id == "psy_fullon") render_crate_row(f, ICON_FA_BOLT, ImVec4(0.85f, 0.40f, 1.00f, 1.0f));
+      else if (f.id == "tech_house") render_crate_row(f, ICON_FA_COMPACT_DISC, ImVec4(1.00f, 0.75f, 0.20f, 1.0f));
+      else if (f.id == "farofa") render_crate_row(f, ICON_FA_SUN, ImVec4(1.00f, 0.80f, 0.15f, 1.0f));
+      else if (f.id == "acid_techno") render_crate_row(f, ICON_FA_ATOM, ImVec4(0.25f, 1.00f, 0.45f, 1.0f));
+      else if (f.id == "melodic_techno") render_crate_row(f, ICON_FA_WATER, ImVec4(0.40f, 0.75f, 1.00f, 1.0f));
+    }
+
+    // ── SEÇÃO 4: DISPOSITIVOS & PENDRIVE USB ──
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.20f, 0.85f, 1.00f, 1.0f), ICON_FA_HARD_DRIVE " PEN DRIVE & CDJ");
+    ImGui::Separator();
 
     if (cached_usb_drives.empty()) {
       ImGui::TextDisabled(" Nenhum pen drive detectado");
       if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip(
-            "Dica: Conecte um pen drive formatado em FAT32 ou exFAT.");
+        ImGui::SetTooltip("Dica: Conecte um pen drive formatado em FAT32 ou exFAT.");
       }
     } else {
       for (const auto &usb_dev : cached_usb_drives) {
         bool is_usb_selected = (selected_usb_drive == usb_dev.path);
-        std::string usb_lbl = std::string(ICON_FA_USB " ") + usb_dev.label;
+        const char *u_ic = usb_dev.is_removable ? ICON_FA_SD_CARD : ICON_FA_HARD_DRIVE;
+        std::string usb_lbl = std::string(u_ic) + " " + usb_dev.label;
         if (is_usb_selected) {
-          ImGui::PushStyleColor(ImGuiCol_Header,
-                                ImVec4(0.00f, 0.45f, 0.65f, 0.85f));
+          ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.00f, 0.45f, 0.65f, 0.85f));
           ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.9f, 1.0f));
         }
-        if (ImGui::Selectable(usb_lbl.c_str(), is_usb_selected,
-                              ImGuiSelectableFlags_SpanAllColumns)) {
+        if (ImGui::Selectable(usb_lbl.c_str(), is_usb_selected, ImGuiSelectableFlags_SpanAllColumns)) {
           selected_usb_drive = usb_dev.path;
           scanUSBTracks(usb_dev.path);
         }
@@ -7699,92 +7903,44 @@ private:
           ImGui::PopStyleColor(2);
         }
         if (ImGui::IsItemHovered()) {
-          ImGui::SetTooltip(
-              "Unidade: %s\nClique para navegar pelas músicas deste pen drive",
-              usb_dev.path.c_str());
+          ImGui::SetTooltip("Unidade: %s\nClique para navegar pelas músicas deste dispositivo", usb_dev.path.c_str());
         }
       }
-    }
-    ImGui::Separator();
 
-    for (const auto &f : folders) {
-      bool is_active = (selected_usb_drive.empty() && f.id == active_fid);
-      const char *icon = ICON_FA_FOLDER;
-      ImVec4 f_col = ImVec4(0.80f, 0.85f, 0.92f, 1.0f);
-
-      if (f.id == "all") {
-        icon = ICON_FA_MUSIC;
-        f_col = ImVec4(0.35f, 0.90f, 1.00f, 1.0f);
-      } else if (f.id == "first_kuru") {
-        icon = ICON_FA_FOLDER;
-        f_col = ImVec4(0.60f, 0.75f, 0.90f, 1.0f);
-      } else if (f.id == "prog_psy") {
-        icon = ICON_FA_FIRE;
-        f_col = ImVec4(0.00f, 0.96f, 0.83f, 1.0f);
-      } else if (f.id == "fullon_night") {
-        icon = ICON_FA_MOON;
-        f_col = ImVec4(0.70f, 0.40f, 1.00f, 1.0f);
-      } else if (f.id == "farofa") {
-        icon = ICON_FA_SUN;
-        f_col = ImVec4(1.00f, 0.80f, 0.15f, 1.0f);
-      } else if (f.id == "psy_fullon") {
-        icon = ICON_FA_BOLT;
-        f_col = ImVec4(0.85f, 0.40f, 1.00f, 1.0f);
-      } else if (f.id == "tech_house") {
-        icon = ICON_FA_COMPACT_DISC;
-        f_col = ImVec4(1.00f, 0.75f, 0.20f, 1.0f);
-      } else if (f.id == "acid_techno") {
-        icon = ICON_FA_ATOM;
-        f_col = ImVec4(0.25f, 1.00f, 0.45f, 1.0f);
-      } else if (f.id == "melodic_techno") {
-        icon = ICON_FA_WATER;
-        f_col = ImVec4(0.40f, 0.75f, 1.00f, 1.0f);
-      } else if (f.id == "cloud") {
-        icon = ICON_FA_CLOUD_ARROW_DOWN;
-        f_col = ImVec4(0.95f, 0.65f, 1.00f, 1.0f);
-      }
-
-      char label[128];
-      snprintf(label, sizeof(label), "%s %s##%s", icon, f.name.c_str(),
-               f.id.c_str());
-
-      if (is_active) {
-        ImGui::PushStyleColor(ImGuiCol_Header,
-                              ImVec4(0.00f, 0.38f, 0.45f, 0.75f));
-        ImGui::PushStyleColor(ImGuiCol_Text, f_col);
-      } else {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.76f, 0.84f, 1.0f));
-      }
-
-      if (ImGui::Selectable(label, is_active,
-                            ImGuiSelectableFlags_SpanAllColumns)) {
-        KuroAudio::DJLibraryManager::getInstance().setActiveFolderId(f.id);
-      }
-
-      if (is_active) {
-        ImVec2 item_min = ImGui::GetItemRectMin();
-        ImVec2 item_max = ImGui::GetItemRectMax();
-        ImGui::GetWindowDrawList()->AddRectFilled(
-            item_min, ImVec2(item_min.x + 3.0f, item_max.y),
-            IM_COL32(0, 220, 255, 255));
-      }
-
-      ImGui::SameLine(left_w - KuroUI::UIScaleManager::Scale(46.0f));
-      ImGui::TextColored(ImVec4(0.42f, 0.52f, 0.65f, 0.9f), "%d",
-                         f.track_count);
-
-      if (!f.is_system && ImGui::BeginPopupContextItem()) {
-        if (ImGui::MenuItem(ICON_FA_TRASH_CAN " Excluir Pasta")) {
-          KuroAudio::DJLibraryManager::getInstance().deleteFolder(f.id);
+      // Botão Integrado de Exportação Direta para Pen Drive
+      ImGui::Spacing();
+      ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.00f, 0.50f, 0.42f, 0.90f));
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+      if (ImGui::Button(ICON_FA_DOWNLOAD " EXPORTAR PARA PENDRIVE",
+                        ImVec2(left_w - KuroUI::UIScaleManager::Scale(24.0f), KuroUI::UIScaleManager::Scale(26.0f)))) {
+        std::string target_drive = !selected_usb_drive.empty() ? selected_usb_drive : cached_usb_drives[0].path;
+        auto lib_tracks = lib_mgr.getTracksForFolder(active_fid);
+        std::vector<KuroAudio::SpotifyDJTrack> export_tracks;
+        if (!lib_tracks.empty()) {
+          export_tracks = to_spotify_tracks(lib_tracks);
+        } else {
+          export_tracks = spotify_service.getTracks();
         }
-        ImGui::EndPopup();
+        std::string st_rb, st_u;
+        bool ok1 = KuroAudio::DJExportService::exportRekordboxPackage(target_drive, export_tracks, engine.decks, st_rb);
+        bool ok2 = KuroAudio::DJExportService::exportUniversalPackage(target_drive, export_tracks, engine.decks, st_u);
+        if (ok1 && ok2) {
+          quick_usb_export_status = "✓ Sincronizado no Pen Drive " + target_drive;
+        } else {
+          quick_usb_export_status = "Exportado para " + target_drive;
+        }
+        quick_usb_status_timer = 6.0f;
       }
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Exporta a playlist atual no formato Rekordbox XML e Universal M3U8 para a unidade USB selecionada");
+      }
+      ImGui::PopStyleColor(2);
 
-      if (is_active)
-        ImGui::PopStyleColor(2);
-      else
-        ImGui::PopStyleColor(1);
+      if (quick_usb_status_timer > 0.0f && !quick_usb_export_status.empty()) {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.6f, 1.0f), "%s", quick_usb_export_status.c_str());
+      }
     }
+
     ImGui::EndChild();
 
     // Se tela estreita, desenha a Roda Camelot no rodapé do painel esquerdo
@@ -7796,7 +7952,36 @@ private:
     ImGui::EndChild();
     ImGui::PopStyleColor(2);
 
-    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(6.0f));
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(2.0f));
+
+    // ── GIZMO SPLITTER HORIZONTAL (LARGURA DO PAINEL LATERAL) ──
+    ImVec2 h_gizmo_pos = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton("##SidebarWidthGizmoSplitter", ImVec2(splitter_w, pane_h));
+    bool is_h_hov = ImGui::IsItemHovered();
+    bool is_h_act = ImGui::IsItemActive();
+    if (is_h_hov || is_h_act) {
+      ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+    }
+    if (is_h_act) {
+      float mouse_dx = ImGui::GetIO().MouseDelta.x;
+      library_sidebar_width += (mouse_dx / KuroUI::UIScaleManager::getScale());
+      library_sidebar_width = std::clamp(library_sidebar_width, 180.0f, 480.0f);
+    }
+    ImDrawList *dl_hg = ImGui::GetWindowDrawList();
+    ImU32 hg_line_col = is_h_act ? IM_COL32(0, 240, 255, 255)
+                                 : (is_h_hov ? IM_COL32(0, 200, 230, 220)
+                                             : IM_COL32(20, 32, 50, 180));
+    float hg_cx = h_gizmo_pos.x + splitter_w * 0.5f;
+    dl_hg->AddLine(ImVec2(hg_cx, h_gizmo_pos.y), ImVec2(hg_cx, h_gizmo_pos.y + pane_h),
+                   hg_line_col, is_h_act ? KuroUI::UIScaleManager::Scale(2.5f) : (is_h_hov ? KuroUI::UIScaleManager::Scale(2.0f) : KuroUI::UIScaleManager::Scale(1.0f)));
+    float hg_cy = h_gizmo_pos.y + pane_h * 0.5f;
+    float dot_r = KuroUI::UIScaleManager::Scale(1.8f);
+    ImU32 dot_col = is_h_act ? IM_COL32(0, 255, 255, 255) : (is_h_hov ? IM_COL32(0, 210, 245, 230) : IM_COL32(50, 75, 105, 190));
+    dl_hg->AddCircleFilled(ImVec2(hg_cx, hg_cy - KuroUI::UIScaleManager::Scale(8.0f)), dot_r, dot_col);
+    dl_hg->AddCircleFilled(ImVec2(hg_cx, hg_cy), dot_r, dot_col);
+    dl_hg->AddCircleFilled(ImVec2(hg_cx, hg_cy + KuroUI::UIScaleManager::Scale(8.0f)), dot_r, dot_col);
+
+    ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(2.0f));
 
     // =========================================================================
     // 3. PAINEL CENTRAL: BARRA DE BUSCA, CHIPS DE VERTENTES & TABELA REKORDBOX
@@ -8515,8 +8700,8 @@ private:
                                 KuroUI::UIScaleManager::Scale(140.0f));
         ImGui::TableSetupColumn("Vertente", ImGuiTableColumnFlags_WidthFixed,
                                 KuroUI::UIScaleManager::Scale(125.0f));
-        ImGui::TableSetupColumn("Tom", ImGuiTableColumnFlags_WidthFixed,
-                                KuroUI::UIScaleManager::Scale(64.0f));
+        ImGui::TableSetupColumn("Tom & Nota", ImGuiTableColumnFlags_WidthFixed,
+                                KuroUI::UIScaleManager::Scale(86.0f));
         ImGui::TableSetupColumn(ICON_FA_LOCK "##ColKeyLock",
                                 ImGuiTableColumnFlags_WidthFixed,
                                 KuroUI::UIScaleManager::Scale(26.0f));
@@ -9067,15 +9252,15 @@ private:
           }
           ImGui::PopID();
 
-          // Coluna 5: Tom (Toggle Notação Musical ⇄ Camelot)
+          // Coluna 5: Tom & Nota Musical (Exibe Camelot e Nota Musical simultaneamente)
           ImGui::TableSetColumnIndex(5);
           KuroAudio::CamelotKey trk_ck =
               KuroAudio::DJHarmonicEngine::parseKey(t.key);
           unsigned int w_col =
               KuroAudio::DJHarmonicEngine::getCamelotWheelColor(trk_ck.number);
-          std::string disp_key =
-              KuroAudio::DJHarmonicEngine::formatKeyForDisplay(
-                  t.key, library_use_camelot_key);
+          std::string cam_code = trk_ck.valid ? trk_ck.getCamelotCode() : "-";
+          std::string mus_note = trk_ck.valid ? KuroAudio::DJHarmonicEngine::getRekordboxMusicalNotation(trk_ck.number, trk_ck.letter) : "-";
+          std::string disp_key = trk_ck.valid ? (cam_code + " · " + mus_note) : "-";
 
           ImGui::PushStyleColor(ImGuiCol_Text, (ImU32)w_col);
           ImGui::Text("%s", disp_key.c_str());
