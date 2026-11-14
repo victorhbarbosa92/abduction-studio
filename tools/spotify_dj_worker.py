@@ -1714,61 +1714,85 @@ def search_sources(query, out_json_path):
         f.flush()
     print(f"OK: {len(results)} fontes inspecionadas e ranqueadas por pureza para '{query}'.")
 
-def preview_source(source_url, out_wav_path):
+def preview_source(source_url, out_wav_path, query=""):
     os.makedirs(os.path.dirname(os.path.abspath(out_wav_path)), exist_ok=True)
     if not yt_dlp:
         return False
-    try:
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'no_warnings': True,
-            'noplaylist': True,
-            'ffmpeg_location': FFMPEG_EXE
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(source_url, download=False)
-            stream_url = info.get('url')
-            if stream_url:
-                # 1. Tenta ffmpeg passando stream_url com seek DEPOIS do input (funciona em streams HLS m3u8 do SoundCloud e YouTube)
-                conv = subprocess.run([FFMPEG_EXE, "-y", "-i", stream_url, "-ss", "30", "-t", "30", "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
-                if conv.returncode == 0 and os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
-                    print(f"PREVIEW_OK: {out_wav_path}")
-                    return True
-                # 2. Tenta do início caso a faixa tenha menos de 30s ou falhe o seek
-                conv = subprocess.run([FFMPEG_EXE, "-y", "-i", stream_url, "-t", "30", "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
-                if conv.returncode == 0 and os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
-                    print(f"PREVIEW_OK: {out_wav_path}")
-                    return True
-            
-            # 3. Fallback: Baixa direto com yt-dlp se ffmpeg na URL direta da stream não funcionar
-            outtmpl = out_wav_path + ".tmp.%(ext)s"
-            ydl_prev_opts = {
+    
+    candidates = []
+    # 1. Se URL for direta do YouTube ou SoundCloud, use-a
+    if source_url and any(k in source_url for k in ["youtube.com", "youtu.be", "soundcloud.com"]):
+        candidates.append(source_url.strip())
+    
+    # 2. Se query foi fornecida (ex: "Convert-X Morning Glory"), busca no YouTube
+    if query and query.strip():
+        q_clean = query.strip()
+        candidates.append(f"ytsearch1:{q_clean}")
+        candidates.append(f"ytsearch1:{q_clean} audio")
+    elif source_url:
+        # Extrai slug do título se for link de Bandcamp/Beatport
+        slug = source_url.rstrip("/").split("/")[-1].replace("-", " ")
+        if slug:
+            candidates.append(f"ytsearch1:{slug}")
+        candidates.append(source_url.strip())
+
+    for target in candidates:
+        try:
+            ydl_opts = {
                 'format': 'bestaudio/best',
-                'outtmpl': outtmpl,
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'wav',
-                }],
-                'postprocessor_args': ['-ss', '30', '-t', '30'],
-                'ffmpeg_location': FFMPEG_EXE,
                 'quiet': True,
                 'no_warnings': True,
                 'noplaylist': True,
+                'ffmpeg_location': FFMPEG_EXE
             }
-            with yt_dlp.YoutubeDL(ydl_prev_opts) as ydl_prev:
-                ydl_prev.download([source_url])
-            for ext in [".wav", ".tmp.wav", ".mp3", ".m4a"]:
-                c = out_wav_path + ".tmp" + ext
-                if os.path.exists(c) and os.path.getsize(c) > 10000:
-                    subprocess.run([FFMPEG_EXE, "-y", "-i", c, "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
-                    try: os.remove(c)
-                    except: pass
-                    if os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(target, download=False)
+                if not info:
+                    continue
+                if 'entries' in info and info['entries']:
+                    info = info['entries'][0]
+                stream_url = info.get('url') if info else None
+                if stream_url:
+                    # 1. Tenta ffmpeg passando stream_url com seek DEPOIS do input (funciona em streams HLS m3u8 do SoundCloud e YouTube)
+                    conv = subprocess.run([FFMPEG_EXE, "-y", "-i", stream_url, "-ss", "30", "-t", "30", "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
+                    if conv.returncode == 0 and os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
                         print(f"PREVIEW_OK: {out_wav_path}")
                         return True
-    except Exception as e:
-        print(f"Preview source error: {e}", file=sys.stderr)
+                    # 2. Tenta do início caso a faixa tenha menos de 30s ou falhe o seek
+                    conv = subprocess.run([FFMPEG_EXE, "-y", "-i", stream_url, "-t", "30", "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
+                    if conv.returncode == 0 and os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
+                        print(f"PREVIEW_OK: {out_wav_path}")
+                        return True
+                
+                # 3. Fallback: Baixa direto com yt-dlp se ffmpeg na URL direta da stream não funcionar
+                outtmpl = out_wav_path + ".tmp.%(ext)s"
+                ydl_prev_opts = {
+                    'format': 'bestaudio/best',
+                    'outtmpl': outtmpl,
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'wav',
+                    }],
+                    'postprocessor_args': ['-ss', '30', '-t', '30'],
+                    'ffmpeg_location': FFMPEG_EXE,
+                    'quiet': True,
+                    'no_warnings': True,
+                    'noplaylist': True,
+                }
+                with yt_dlp.YoutubeDL(ydl_prev_opts) as ydl_prev:
+                    ydl_prev.download([target])
+                for ext in [".wav", ".tmp.wav", ".mp3", ".m4a"]:
+                    c = out_wav_path + ".tmp" + ext
+                    if os.path.exists(c) and os.path.getsize(c) > 10000:
+                        subprocess.run([FFMPEG_EXE, "-y", "-i", c, "-ar", "44100", "-ac", "2", out_wav_path], capture_output=True)
+                        try: os.remove(c)
+                        except: pass
+                        if os.path.exists(out_wav_path) and os.path.getsize(out_wav_path) > 10000:
+                            print(f"PREVIEW_OK: {out_wav_path}")
+                            return True
+        except Exception as e:
+            print(f"Preview candidate '{target}' error: {e}", file=sys.stderr)
+            continue
     return False
 
 def separate_stems_worker(wav_path, out_dir, track_id=None):
@@ -1969,7 +1993,8 @@ if __name__ == "__main__":
 
     # Comando preview_source
     p_prev = subparsers.add_parser("preview_source")
-    p_prev.add_argument("--url", required=True, help="URL da fonte no YouTube")
+    p_prev.add_argument("--url", default="", help="URL da fonte no YouTube")
+    p_prev.add_argument("--query", default="", help="Query opcional de busca no YouTube")
     p_prev.add_argument("--out_wav", required=True, help="Arquivo WAV de preview gerado")
 
     # Comando analyze (Rekordbox ML v2)
@@ -2019,7 +2044,7 @@ if __name__ == "__main__":
     elif args.action == "search_sources":
         search_sources(args.query, args.out_json)
     elif args.action == "preview_source":
-        preview_source(args.url, args.out_wav)
+        preview_source(getattr(args, 'url', ''), args.out_wav, getattr(args, 'query', ''))
     elif args.action == "analyze":
         from rekordbox_audio_analyzer import analyze_track_rekordbox
         res = analyze_track_rekordbox(args.wav)

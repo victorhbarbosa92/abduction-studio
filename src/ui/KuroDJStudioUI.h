@@ -21341,11 +21341,29 @@ private:
                 }
             };
 
+            // Estado persistente da sessão DigDeeper
+            static std::string dd_last_queried = "";
+            static bool dd_autoplay = true;
+            static float dd_tempo_slider = 148.0f;
+            static bool dd_already_heard_filter = false;
+            static int dd_active_tab = 0; // 0 = SIMILAR, 1 = ARTIST
+            static bool dd_start_at_25 = true;
+            static bool dd_show_pill = true;
+            static std::string dd_hero_title = "Toasted";
+            static std::string dd_hero_artist = "JUMPSTREET";
+            static std::string dd_hero_label = "Sangoma Records";
+            static std::string dd_hero_dur = "7:05";
+            static std::string dd_hero_year = "2024";
+            static double dd_hero_bpm = 148.0;
+            static std::string dd_hero_key = "12A";
+            static std::string dd_hero_url = "";
+            static bool dd_liked = false;
+            static bool dd_bookmarked = false;
+
             if (spotify_service.show_dig_deeper_view) {
                 // ════════════════════════════════════════════════════════════════════
                 // DIGDEEPER 1:1 STUDIO EXPERIENCE (HARMONIZADO COM ABDUCTION STUDIO)
                 // ════════════════════════════════════════════════════════════════════
-                static std::string dd_last_queried = "";
 
                 // ── 1. HEADER DO DIGDEEPER COM BARRA DE BUSCA INTEGRADA ─────────────
                 float dd_header_h = KuroUI::UIScaleManager::Scale(38.0f);
@@ -21372,8 +21390,12 @@ private:
                 if (ImGui::InputTextWithHint("##DigDeeperSearchInput", "Garimpar nova faixa ou artista no DigDeeper (ex: Jumpstreet, Rugrats)...",
                     online_search_query_buf, sizeof(online_search_query_buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
                     if (strlen(online_search_query_buf) > 0) {
-                        dd_last_queried = "";
-                        spotify_service.digDeeperAsync(online_search_query_buf, "", "", 0.0);
+                        std::string new_q = online_search_query_buf;
+                        selected_source_track_title = new_q;
+                        selected_source_track_artist = "";
+                        dd_last_queried = new_q + "|";
+                        dd_hero_title = new_q;
+                        spotify_service.digDeeperAsync(new_q, "", "", 0.0);
                     }
                 }
                 ImGui::PopItemWidth();
@@ -21388,10 +21410,14 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(6.0f));
                 if (ImGui::Button(ICON_FA_ROTATE " REMINERAR", ImVec2(dig_btn_w, KuroUI::UIScaleManager::Scale(34.0f)))) {
-                    std::string q = strlen(online_search_query_buf) > 0 ? online_search_query_buf : spotify_service.getDigDeeperRefTitle();
-                    if (q.empty()) q = selected_source_track_title.empty() ? "Jumpstreet" : selected_source_track_title;
-                    dd_last_queried = "";
-                    spotify_service.digDeeperAsync(q, spotify_service.getDigDeeperRefArtist(), spotify_service.getDigDeeperRefKey(), spotify_service.getDigDeeperRefBpm());
+                    std::string q = strlen(online_search_query_buf) > 0 ? online_search_query_buf : dd_hero_title;
+                    if (q.empty()) q = spotify_service.getDigDeeperRefTitle();
+                    if (q.empty()) q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
+                    std::string a = (q == dd_hero_title) ? dd_hero_artist : spotify_service.getDigDeeperRefArtist();
+                    selected_source_track_title = q;
+                    selected_source_track_artist = a;
+                    dd_last_queried = q + "|" + a;
+                    spotify_service.digDeeperAsync(q, a, dd_hero_key, dd_hero_bpm > 20.0 ? dd_hero_bpm : 150.0);
                 }
                 ImGui::PopStyleVar();
                 ImGui::PopStyleColor(3);
@@ -21426,40 +21452,28 @@ private:
                     dig_matches = spotify_service.getDigDeeperResults();
                 }
 
-                if (!spotify_service.isDiggingDeeper()) {
+                // Auto-inicialização apenas na primeira abertura do app se nenhuma referência existir
+                if (dd_last_queried.empty() && spotify_service.getDigDeeperRefTitle().empty() && !spotify_service.isDiggingDeeper()) {
                     std::string ref_q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
                     std::string ref_a = selected_source_track_artist.empty() ? "JUMPSTREET" : selected_source_track_artist;
                     std::string ref_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
                     double ref_b = selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 150.0;
-                    std::string q_key = ref_q + "|" + ref_a;
-                    if (dd_last_queried != q_key) {
-                        dd_last_queried = q_key;
-                        spotify_service.digDeeperAsync(ref_q, ref_a, ref_k, ref_b);
-                    }
+                    dd_last_queried = ref_q + "|" + ref_a;
+                    selected_source_track_title = ref_q;
+                    selected_source_track_artist = ref_a;
+                    selected_source_track_key = ref_k;
+                    selected_source_track_bpm = ref_b;
+                    spotify_service.digDeeperAsync(ref_q, ref_a, ref_k, ref_b);
                 }
 
-                // Estado persistente da sessão DigDeeper
-                static bool dd_autoplay = true;
-                static float dd_tempo_slider = 148.0f;
-                static bool dd_already_heard_filter = false;
-                static int dd_active_tab = 0; // 0 = SIMILAR, 1 = ARTIST
-                static bool dd_start_at_25 = true;
-                static bool dd_show_pill = true;
-                static std::string dd_hero_title = "Unknown Tomorrow";
-                static std::string dd_hero_artist = "RUGRATS & AXIAL TILT";
-                static std::string dd_hero_label = "RUGRATS";
-                static std::string dd_hero_dur = "7:05";
-                static std::string dd_hero_year = "2024";
-                static double dd_hero_bpm = 148.0;
-                static std::string dd_hero_key = "12A";
-                static std::string dd_hero_url = "";
-                static bool dd_liked = false;
-                static bool dd_bookmarked = false;
-
                 if (preview_player.isPlaying()) {
-                    dd_hero_title = preview_player.getCurrentTitle();
-                    dd_hero_artist = preview_player.getCurrentArtist();
-                } else if (!dig_matches.empty() && dd_hero_title == "Unknown Tomorrow" && !selected_source_track_title.empty()) {
+                    if (!preview_player.getCurrentTitle().empty()) {
+                        dd_hero_title = preview_player.getCurrentTitle();
+                    }
+                    if (!preview_player.getCurrentArtist().empty()) {
+                        dd_hero_artist = preview_player.getCurrentArtist();
+                    }
+                } else if (!dig_matches.empty() && dd_hero_title.empty()) {
                     dd_hero_title = dig_matches[0].title;
                     dd_hero_artist = dig_matches[0].artist;
                     dd_hero_label = dig_matches[0].label;
@@ -21467,6 +21481,7 @@ private:
                     dd_hero_key = dig_matches[0].camelot_code;
                     dd_hero_dur = dig_matches[0].duration_str;
                     dd_hero_year = dig_matches[0].year;
+                    dd_hero_url = dig_matches[0].url;
                 }
 
                 // ────────────────────────────────────────────────────────────────
@@ -21622,6 +21637,27 @@ private:
 
                     ImGui::Spacing();
 
+                    // Botão 1-Clique: Garimpar esta faixa atual no DigDeeper
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.88f, 0.32f, 0.18f, 0.92f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.42f, 0.25f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
+                    if (ImGui::Button(ICON_FA_WAND_MAGIC_SPARKLES " GARIMPAR ESTA FAIXA NO DIGDEEPER", ImVec2(lw, KuroUI::UIScaleManager::Scale(26.0f)))) {
+                        selected_source_track_title = dd_hero_title;
+                        selected_source_track_artist = dd_hero_artist;
+                        selected_source_track_key = dd_hero_key;
+                        selected_source_track_bpm = dd_hero_bpm;
+                        dd_last_queried = dd_hero_title + "|" + dd_hero_artist;
+                        spotify_service.digDeeperAsync(dd_hero_title, dd_hero_artist, dd_hero_key, dd_hero_bpm);
+                        toast_message = "Minerando almas gêmeas de '" + dd_hero_title + "'...";
+                        toast_timer = 3.0f;
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Definir '%s' como referência ativa no painel direito!", dd_hero_title.c_str());
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::Spacing();
+
                     // 4. BARRA DE TRANSPORTE
                     float trans_btn_sz = KuroUI::UIScaleManager::Scale(28.0f);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.04f, 0.08f, 0.14f, 0.85f));
@@ -21632,14 +21668,52 @@ private:
 
                     if (ImGui::Button(ICON_FA_SHUFFLE "##DDShuf", ImVec2(trans_btn_sz, trans_btn_sz))) {}
                     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
-                    if (ImGui::Button(ICON_FA_BACKWARD_STEP "##DDPrev", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    if (ImGui::Button(ICON_FA_BACKWARD_STEP "##DDPrev", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        for (size_t di = 0; di < dig_matches.size(); di++) {
+                            if (dig_matches[di].title == dd_hero_title && di > 0) {
+                                const auto& pm = dig_matches[di - 1];
+                                dd_hero_title = pm.title;
+                                dd_hero_artist = pm.artist;
+                                dd_hero_label = pm.label;
+                                dd_hero_bpm = pm.bpm;
+                                dd_hero_key = pm.camelot_code;
+                                dd_hero_dur = pm.duration_str;
+                                dd_hero_year = pm.year;
+                                dd_hero_url = pm.url;
+                                dd_tempo_slider = (float)pm.bpm;
+                                preview_player.play(pm.url, pm.id, pm.title, pm.artist);
+                                break;
+                            }
+                        }
+                    }
                     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
 
                     if (ImGui::Button(is_prv_playing ? ICON_FA_PAUSE "##DDTrPP" : ICON_FA_PLAY "##DDTrPP", ImVec2(trans_btn_sz, trans_btn_sz))) {
-                        preview_player.togglePlayPause();
+                        if (is_prv_playing) {
+                            preview_player.togglePlayPause();
+                        } else {
+                            preview_player.play(dd_hero_url, "hero_" + dd_hero_title, dd_hero_title, dd_hero_artist);
+                        }
                     }
                     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(3.0f));
-                    if (ImGui::Button(ICON_FA_FORWARD_STEP "##DDNext", ImVec2(trans_btn_sz, trans_btn_sz))) {}
+                    if (ImGui::Button(ICON_FA_FORWARD_STEP "##DDNext", ImVec2(trans_btn_sz, trans_btn_sz))) {
+                        for (size_t di = 0; di < dig_matches.size(); di++) {
+                            if (dig_matches[di].title == dd_hero_title && di + 1 < dig_matches.size()) {
+                                const auto& nm = dig_matches[di + 1];
+                                dd_hero_title = nm.title;
+                                dd_hero_artist = nm.artist;
+                                dd_hero_label = nm.label;
+                                dd_hero_bpm = nm.bpm;
+                                dd_hero_key = nm.camelot_code;
+                                dd_hero_dur = nm.duration_str;
+                                dd_hero_year = nm.year;
+                                dd_hero_url = nm.url;
+                                dd_tempo_slider = (float)nm.bpm;
+                                preview_player.play(nm.url, nm.id, nm.title, nm.artist);
+                                break;
+                            }
+                        }
+                    }
                     ImGui::SameLine(0, KuroUI::UIScaleManager::Scale(4.0f));
 
                     // Botão + SAVE na Biblioteca
@@ -21911,9 +21985,13 @@ private:
                             ImGui::TextColored(ImVec4(0.55f, 0.65f, 0.80f, 0.90f), "Nenhuma faixa similar encontrada. Clique em REMINERAR para pesquisar.");
                             ImGui::Spacing();
                             if (ImGui::Button(ICON_FA_ROTATE " REMINERAR AGORA", ImVec2(KuroUI::UIScaleManager::Scale(160.0f), KuroUI::UIScaleManager::Scale(32.0f)))) {
-                                dd_last_queried = "";
-                                std::string q = spotify_service.getDigDeeperRefTitle().empty() ? "Quantum Resonator" : spotify_service.getDigDeeperRefTitle();
-                                spotify_service.digDeeperAsync(q, spotify_service.getDigDeeperRefArtist(), spotify_service.getDigDeeperRefKey(), spotify_service.getDigDeeperRefBpm());
+                                std::string q = spotify_service.getDigDeeperRefTitle().empty() ? dd_hero_title : spotify_service.getDigDeeperRefTitle();
+                                if (q.empty()) q = selected_source_track_title.empty() ? "Toasted" : selected_source_track_title;
+                                std::string a = (q == dd_hero_title) ? dd_hero_artist : spotify_service.getDigDeeperRefArtist();
+                                selected_source_track_title = q;
+                                selected_source_track_artist = a;
+                                dd_last_queried = q + "|" + a;
+                                spotify_service.digDeeperAsync(q, a, dd_hero_key, dd_hero_bpm > 20.0 ? dd_hero_bpm : 150.0);
                             }
                         } else {
                             for (size_t di = 0; di < dig_matches.size(); di++) {
@@ -21923,7 +22001,7 @@ private:
                                 float row_h = KuroUI::UIScaleManager::Scale(64.0f);
                                 ImVec2 row_p = ImGui::GetCursorScreenPos();
 
-                                bool is_playing_this = (preview_player.isPlaying() && preview_player.getCurrentTitle() == m.title);
+                                bool is_playing_this = (preview_player.isPlaying() && (preview_player.getCurrentTrackId() == m.id || preview_player.getCurrentTitle() == m.title));
                                 bool is_hero_sel = (dd_hero_title == m.title);
 
                                 // Fundo do Card
@@ -21948,9 +22026,9 @@ private:
                                     dd_hero_key = m.camelot_code;
                                     dd_hero_dur = m.duration_str;
                                     dd_hero_year = m.year;
+                                    dd_hero_url = m.url;
                                     dd_tempo_slider = (float)m.bpm;
-                                    std::string p_src = m.url.empty() ? "scratch/test_astrix.wav" : m.url;
-                                    preview_player.play(p_src, m.id, m.title, m.artist);
+                                    preview_player.play(m.url, m.id, m.title, m.artist);
                                 }
                                 const char* r_ic = is_playing_this ? ICON_FA_PAUSE : ICON_FA_PLAY;
                                 ImVec2 ric_sz = ImGui::CalcTextSize(r_ic);
@@ -22043,7 +22121,11 @@ private:
                                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, KuroUI::UIScaleManager::Scale(4.0f));
                                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
                                 if (ImGui::Button("DIG >", ImVec2(KuroUI::UIScaleManager::Scale(62.0f), KuroUI::UIScaleManager::Scale(28.0f)))) {
-                                    spotify_service.digDeeperAsync(m.title, m.artist, m.camelot_code, m.bpm);
+                                    selected_source_track_title = m.title;
+                                    selected_source_track_artist = m.artist;
+                                    selected_source_track_key = m.camelot_code;
+                                    selected_source_track_bpm = m.bpm;
+                                    dd_last_queried = m.title + "|" + m.artist;
                                     dd_hero_title = m.title;
                                     dd_hero_artist = m.artist;
                                     dd_hero_label = m.label;
@@ -22051,7 +22133,9 @@ private:
                                     dd_hero_key = m.camelot_code;
                                     dd_hero_dur = m.duration_str;
                                     dd_hero_year = m.year;
+                                    dd_hero_url = m.url;
                                     dd_tempo_slider = (float)m.bpm;
+                                    spotify_service.digDeeperAsync(m.title, m.artist, m.camelot_code, m.bpm);
                                     toast_message = "Garimpando a partir de '" + m.title + "'...";
                                     toast_timer = 3.0f;
                                 }
@@ -22206,6 +22290,8 @@ private:
             if (ImGui::Button(ICON_FA_COMPACT_DISC " DIG DEEPER", ImVec2(omni_dig_w, KuroUI::UIScaleManager::Scale(36.0f)))) {
                 std::string q = online_search_query_buf;
                 if (q.empty()) q = selected_source_track_title.empty() ? "Spirit Overflow" : selected_source_track_title;
+                selected_source_track_title = q;
+                dd_last_queried = q + "|" + selected_source_track_artist;
                 spotify_service.digDeeperAsync(q, selected_source_track_artist, selected_source_track_key, selected_source_track_bpm);
                 spotify_service.show_dig_deeper_view = true;
             }
@@ -22558,6 +22644,7 @@ private:
                                     selected_source_track_bpm = sr.bpm;
                                     selected_source_track_key = sr.key;
                                     selected_source_track_subgenre = sr.subgenre;
+                                    dd_last_queried = sr.title + "|" + sr.artist;
                                     spotify_service.digDeeperAsync(sr.title, sr.artist, sr.key, sr.bpm);
                                     spotify_service.show_dig_deeper_view = true;
                                 }
@@ -22652,6 +22739,9 @@ private:
                         std::string h_t = selected_source_track_title.empty() ? "Spirit Overflow" : selected_source_track_title;
                         std::string h_a = selected_source_track_artist.empty() ? "Jumpstreet" : selected_source_track_artist;
                         std::string h_k = selected_source_track_key.empty() ? "12A" : selected_source_track_key;
+                        selected_source_track_title = h_t;
+                        selected_source_track_artist = h_a;
+                        dd_last_queried = h_t + "|" + h_a;
                         spotify_service.digDeeperAsync(h_t, h_a, h_k, selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 145.0);
                     }
                 }
@@ -22841,6 +22931,10 @@ private:
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
                 if (ImGui::SmallButton(ICON_FA_WAND_MAGIC_SPARKLES " DIG DEEPER")) {
+                    selected_source_track_title = hero_title;
+                    selected_source_track_artist = hero_art;
+                    selected_source_track_key = k_str;
+                    dd_last_queried = hero_title + "|" + hero_art;
                     spotify_service.digDeeperAsync(hero_title, hero_art, k_str, selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 145.0);
                     spotify_service.show_dig_deeper_view = true;
                 }
@@ -23117,6 +23211,10 @@ private:
                         ImGui::TextColored(ImVec4(0.60f, 0.70f, 0.85f, 0.90f), "Nenhuma alma gêmea acústica gerada para esta faixa ainda.");
                         ImGui::Spacing();
                         if (ImGui::Button(ICON_FA_BOLT " DISPARAR MINERAÇÃO ACÚSTICA AGORA")) {
+                            selected_source_track_title = hero_title;
+                            selected_source_track_artist = hero_art;
+                            selected_source_track_key = k_str;
+                            dd_last_queried = hero_title + "|" + hero_art;
                             spotify_service.digDeeperAsync(hero_title, hero_art, k_str, selected_source_track_bpm > 20.0 ? selected_source_track_bpm : 145.0);
                         }
                     } else {

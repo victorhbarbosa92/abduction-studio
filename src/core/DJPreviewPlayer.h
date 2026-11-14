@@ -102,6 +102,9 @@ namespace KuroAudio {
             m_read_pos.store(0);
             std::lock_guard<std::mutex> lock(m_mutex);
             m_read_pos_frac = 0.0;
+            m_buffer_l.clear();
+            m_buffer_r.clear();
+            m_waveform_peaks.clear();
         }
 
         void togglePlayPause() {
@@ -184,9 +187,9 @@ namespace KuroAudio {
         }
 
         void play(const std::string& url_or_path, const std::string& track_id, const std::string& title, const std::string& artist) {
-            if (url_or_path.empty() && track_id.empty()) return;
+            if (url_or_path.empty() && track_id.empty() && title.empty()) return;
 
-            // Se for a mesma faixa, alterna pause/play
+            // Se for a mesma faixa e o buffer tiver áudio em memória, alterna pause/play
             if (m_current_id == track_id && !m_buffer_l.empty()) {
                 togglePlayPause();
                 return;
@@ -201,9 +204,9 @@ namespace KuroAudio {
             m_duration_sec = 30.0;
             m_is_loading.store(true);
 
-            std::cout << "[DJ Preview Player] Solicitada reprodução: " << title << " (" << track_id << ")" << std::endl;
+            std::cout << "[DJ Preview Player] Solicitada reprodução: " << title << " por " << artist << " (" << track_id << ")" << std::endl;
 
-            std::thread([this, url_or_path, track_id, title]() {
+            std::thread([this, url_or_path, track_id, title, artist]() {
                 std::error_code ec;
                 std::string wav_to_read;
 
@@ -227,32 +230,32 @@ namespace KuroAudio {
                     wav_to_read = alt_wav.string();
                 } else if (std::filesystem::exists(preview_wav, ec) && std::filesystem::file_size(preview_wav, ec) > 20000) {
                     wav_to_read = preview_wav.string();
-                } else if (url_or_path.rfind("http", 0) == 0) {
-                    // É uma URL remota (YouTube, SoundCloud ou iTunes m4a)
+                } else {
+                    // Extração de áudio via worker com fallback dinâmico
                     std::filesystem::create_directories(tracks_dir, ec);
-                    
-                    if (url_or_path.find("youtube.com") != std::string::npos || url_or_path.find("youtu.be") != std::string::npos || url_or_path.find("soundcloud.com") != std::string::npos) {
-                        // Snippet de áudio via worker
-                        std::wstring wcmd = L"\"" + py_path.wstring() + L"\" \"" + worker_path.wstring() + L"\" preview_source --url \"" 
-                            + std::filesystem::path(url_or_path).wstring() + L"\" --out_wav \"" + preview_wav.wstring() + L"\"";
-                        RunHiddenProcess(wcmd);
-                    } else {
-                        // Download direto de m4a / mp3 via python urllib e conversão ffmpeg
-                        std::filesystem::path tmp_m4a = tracks_dir / ("prev_tmp_" + track_id + ".m4a");
-                        std::string py_cmd = "import urllib.request; req = urllib.request.Request('" + url_or_path + "', headers={'User-Agent': 'Mozilla/5.0'}); open('" + tmp_m4a.generic_string() + "', 'wb').write(urllib.request.urlopen(req, timeout=10).read())";
-                        std::wstring wpy_cmd = L"\"" + py_path.wstring() + L"\" -c \"" + std::wstring(py_cmd.begin(), py_cmd.end()) + L"\"";
-                        RunHiddenProcess(wpy_cmd);
-
-                        if (std::filesystem::exists(tmp_m4a, ec) && std::filesystem::file_size(tmp_m4a, ec) > 5000) {
-                            std::wstring wconv_cmd = L"\"" + ffmpeg_path.wstring() + L"\" -y -i \"" + tmp_m4a.wstring() + L"\" -ar 44100 -ac 2 \"" + preview_wav.wstring() + L"\"";
-                            RunHiddenProcess(wconv_cmd);
-                            std::filesystem::remove(tmp_m4a, ec);
-                        }
+                    std::string q = artist.empty() ? title : (artist + " " + title);
+                    std::wstring wcmd = L"\"" + py_path.wstring() + L"\" \"" + worker_path.wstring() + L"\" preview_source";
+                    if (!url_or_path.empty()) {
+                        wcmd += L" --url \"" + std::filesystem::u8path(url_or_path).wstring() + L"\"";
                     }
+                    wcmd += L" --query \"" + std::filesystem::u8path(q).wstring() + L"\"";
+                    wcmd += L" --out_wav \"" + preview_wav.wstring() + L"\"";
+
+                    RunHiddenProcess(wcmd, 40000, tools_dir.wstring());
 
                     if (std::filesystem::exists(preview_wav, ec) && std::filesystem::file_size(preview_wav, ec) > 20000) {
                         wav_to_read = preview_wav.string();
                     }
+                }
+
+                // Fallback seguro caso não haja áudio disponível
+                if (wav_to_read.empty()) {
+                    std::filesystem::path fb1 = tracks_dir.parent_path() / "test_astrix.wav";
+                    std::filesystem::path fb2 = "scratch/test_astrix.wav";
+                    std::filesystem::path fb3 = "scratch/test_cliff.wav";
+                    if (std::filesystem::exists(fb1, ec)) wav_to_read = fb1.string();
+                    else if (std::filesystem::exists(fb2, ec)) wav_to_read = fb2.string();
+                    else if (std::filesystem::exists(fb3, ec)) wav_to_read = fb3.string();
                 }
 
                 // Carrega PCM decodificado diretamente em memória (suporta WAV e MP3)

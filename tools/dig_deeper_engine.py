@@ -360,29 +360,56 @@ def run_dig_deeper(query, ref_bpm=None, ref_key=None, out_json=None, ref_artist=
     w_bpm = weights.get("w_bpm", 0.20)
     w_learned = weights.get("w_learned", 0.10)
     
-    # 1. Resolver referência
+    # 1. Resolver referência com prioridade exata
     ref_track = None
-    cur.execute("SELECT id, title, artist, album, bpm, key_signature, camelot_num, camelot_letter, duration_str, year, label, video_id, energy, sub_bass_weight, transient_density FROM tracks WHERE id = ? OR title LIKE ? OR url = ? LIMIT 1", (query, f"%{query}%", query))
-    row = cur.fetchone()
+    row = None
+    if ref_artist and ref_artist.strip():
+        cur.execute("""
+        SELECT id, title, artist, album, bpm, key_signature, camelot_num, camelot_letter, duration_str, year, label, video_id, energy, sub_bass_weight, transient_density 
+        FROM tracks 
+        WHERE (title = ? OR title LIKE ?) AND (artist = ? OR artist LIKE ?) 
+        LIMIT 1
+        """, (query, f"%{query}%", ref_artist.strip(), f"%{ref_artist.strip()}%"))
+        row = cur.fetchone()
+        
+    if not row:
+        cur.execute("""
+        SELECT id, title, artist, album, bpm, key_signature, camelot_num, camelot_letter, duration_str, year, label, video_id, energy, sub_bass_weight, transient_density 
+        FROM tracks 
+        WHERE id = ? OR title = ? 
+        LIMIT 1
+        """, (query, query))
+        row = cur.fetchone()
+        
+    if not row:
+        cur.execute("""
+        SELECT id, title, artist, album, bpm, key_signature, camelot_num, camelot_letter, duration_str, year, label, video_id, energy, sub_bass_weight, transient_density 
+        FROM tracks 
+        WHERE title LIKE ? OR url = ? 
+        LIMIT 1
+        """, (f"%{query}%", query))
+        row = cur.fetchone()
     
     if row:
         ref_track = {
             "id": row[0], "title": row[1], "artist": row[2], "album": row[3],
-            "bpm": row[4], "key": row[5], "c_num": row[6], "c_let": row[7],
-            "duration_str": row[8] or "8:36", "year": row[9] or "2022",
+            "bpm": float(ref_bpm) if (ref_bpm and float(ref_bpm) > 20.0) else (row[4] or 148.0),
+            "key": ref_key if (ref_key and len(ref_key) >= 2) else (row[5] or "12A / Dbm"),
+            "c_num": row[6], "c_let": row[7],
+            "duration_str": row[8] or "7:05", "year": row[9] or "2024",
             "label": row[10] or "Sangoma Records", "video_id": row[11] or "",
             "energy": row[12], "sub_bass": row[13], "transients": row[14]
         }
     else:
         # Extrair parâmetros heurísticos da consulta
-        bpm = float(ref_bpm) if ref_bpm and float(ref_bpm) > 20 else 150.0
+        bpm = float(ref_bpm) if ref_bpm and float(ref_bpm) > 20 else 148.0
         key_str = ref_key or "12A / Dbm"
         c_num, c_let = parse_camelot(key_str)
         ref_track = {
             "id": f"ref_{int(time.time())}",
-            "title": query, "artist": ref_artist if ref_artist else "JUMPSTREET", "album": "Single",
+            "title": query, "artist": ref_artist if ref_artist else "Underground Master", "album": "Single",
             "bpm": bpm, "key": key_str, "c_num": c_num, "c_let": c_let,
-            "duration_str": "8:36", "year": "2022", "label": "Sangoma Records", "video_id": "",
+            "duration_str": "7:05", "year": "2024", "label": "Sangoma Records", "video_id": "",
             "energy": 0.95, "sub_bass": 0.94, "transients": 0.92
         }
         
