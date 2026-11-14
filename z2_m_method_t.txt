@@ -1,0 +1,123 @@
+      name          : 't'
+      type          : '()V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 9
+      ins           : 1
+      outs          : 4
+      insns size    : 225 16-bit code units
+1a4ddc:                                        |[1a4ddc] z2.m.t:()V
+1a4dec: 1210                                   |0000: const/4 v0, #int 1 // #1
+1a4dee: 0101                                   |0001: move v1, v0
+1a4df0: 5482 3122                              |0002: iget-object v2, v8, Lz2/m;.k:[F // field@2231
+1a4df4: 2123                                   |0004: array-length v3, v2
+1a4df6: 3531 1100                              |0005: if-ge v1, v3, 0016 // +0011
+1a4dfa: 6e10 1e13 0800                         |0007: invoke-virtual {v8}, Landroid/view/View;.getContext:()Landroid/content/Context; // method@131e
+1a4e00: 0c03                                   |000a: move-result-object v3
+1a4e02: 1504 803f                              |000b: const/high16 v4, #int 1065353216 // #3f80
+1a4e06: 7130 b63d 1304                         |000d: invoke-static {v3, v1, v4}, Lw2/B;.h:(Landroid/content/Context;IF)F // method@3db6
+1a4e0c: 0a03                                   |0010: move-result v3
+1a4e0e: 4b03 0201                              |0011: aput v3, v2, v1
+1a4e12: d801 0101                              |0013: add-int/lit8 v1, v1, #int 1 // #01
+1a4e16: 28ed                                   |0015: goto 0002 // -0013
+1a4e18: 6e10 c23f 0800                         |0016: invoke-virtual {v8}, Lz2/m;.getWaveHeight:()F // method@3fc2
+1a4e1e: 6e10 be3f 0800                         |0019: invoke-virtual {v8}, Lz2/m;.getBeatInset:()F // method@3fbe
+1a4e24: 0a01                                   |001c: move-result v1
+1a4e26: 5981 3322                              |001d: iput v1, v8, Lz2/m;.l:F // field@2233
+1a4e2a: 6e10 bf3f 0800                         |001f: invoke-virtual {v8}, Lz2/m;.getBeatMarkInset:()F // method@3fbf
+1a4e30: 0a01                                   |0022: move-result v1
+1a4e32: 5981 3522                              |0023: iput v1, v8, Lz2/m;.m:F // field@2235
+1a4e36: 6e10 c13f 0800                         |0025: invoke-virtual {v8}, Lz2/m;.getPlayBarInset:()F // method@3fc1
+1a4e3c: 0a01                                   |0028: move-result v1
+1a4e3e: 5981 3622                              |0029: iput v1, v8, Lz2/m;.n:F // field@2236
+1a4e42: 1201                                   |002b: const/4 v1, #int 0 // #0
+1a4e44: 6e20 d23f 1800                         |002c: invoke-virtual {v8, v1}, Lz2/m;.setZoomColor:(I)V // method@3fd2
+1a4e4a: 6e20 d23f 0800                         |002f: invoke-virtual {v8, v0}, Lz2/m;.setZoomColor:(I)V // method@3fd2
+1a4e50: 6e20 d33f 1800                         |0032: invoke-virtual {v8, v1}, Lz2/m;.setZoomCue:(I)V // method@3fd3
+1a4e56: 6e20 d33f 0800                         |0035: invoke-virtual {v8, v0}, Lz2/m;.setZoomCue:(I)V // method@3fd3
+1a4e5c: 6003 b720                              |0038: sget v3, Lw2/l;.c:I // field@20b7
+1a4e60: 6e20 5733 3800                         |003a: invoke-virtual {v8, v3}, Lk2/c;.setBackgroundColor:(I)V // method@3357
+1a4e66: 2203 8709                              |003d: new-instance v3, Lk2/a; // type@0987
+1a4e6a: 7020 3e33 0300                         |003f: invoke-direct {v3, v0}, Lk2/a;.<init>:(I)V // method@333e
+1a4e70: 5484 1519                              |0042: iget-object v4, v8, Lk2/c;.h:Ljava/util/ArrayList; // field@1915
+1a4e74: 6e20 ce30 3400                         |0044: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4e7a: 6e10 e030 0400                         |0047: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4e80: 0a03                                   |004a: move-result v3
+1a4e82: b103                                   |004b: sub-int/2addr v3, v0
+1a4e84: 6e20 d530 3400                         |004c: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4e8a: 0c05                                   |004f: move-result-object v5
+1a4e8c: 1f05 8809                              |0050: check-cast v5, Lk2/b; // type@0988
+1a4e90: 1306 0040                              |0052: const/16 v6, #int 16384 // #4000
+1a4e94: 6e20 4a33 6500                         |0054: invoke-virtual {v5, v6}, Lk2/b;.f:(I)V // method@334a
+1a4e9a: 5983 1d22                              |0057: iput v3, v8, Lz2/m;.N:I // field@221d
+1a4e9e: 2203 8709                              |0059: new-instance v3, Lk2/a; // type@0987
+1a4ea2: 1245                                   |005b: const/4 v5, #int 4 // #4
+1a4ea4: 7020 3e33 5300                         |005c: invoke-direct {v3, v5}, Lk2/a;.<init>:(I)V // method@333e
+1a4eaa: 6e20 ce30 3400                         |005f: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4eb0: 6e10 e030 0400                         |0062: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4eb6: 0a03                                   |0065: move-result v3
+1a4eb8: b103                                   |0066: sub-int/2addr v3, v0
+1a4eba: 6e20 d530 3400                         |0067: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4ec0: 0c06                                   |006a: move-result-object v6
+1a4ec2: 1f06 8809                              |006b: check-cast v6, Lk2/b; // type@0988
+1a4ec6: 1307 0008                              |006d: const/16 v7, #int 2048 // #800
+1a4eca: 6e20 4a33 7600                         |006f: invoke-virtual {v6, v7}, Lk2/b;.f:(I)V // method@334a
+1a4ed0: 5983 1e22                              |0072: iput v3, v8, Lz2/m;.O:I // field@221e
+1a4ed4: 7100 6133 0000                         |0074: invoke-static {}, Lk2/f;.h:()Lk2/f; // method@3361
+1a4eda: 0c03                                   |0077: move-result-object v3
+1a4edc: 6e20 ce30 3400                         |0078: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4ee2: 6e10 e030 0400                         |007b: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4ee8: 0a03                                   |007e: move-result v3
+1a4eea: b103                                   |007f: sub-int/2addr v3, v0
+1a4eec: 6e20 d530 3400                         |0080: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4ef2: 0c06                                   |0083: move-result-object v6
+1a4ef4: 1f06 8809                              |0084: check-cast v6, Lk2/b; // type@0988
+1a4ef8: 1307 0800                              |0086: const/16 v7, #int 8 // #8
+1a4efc: 6e20 4a33 7600                         |0088: invoke-virtual {v6, v7}, Lk2/b;.f:(I)V // method@334a
+1a4f02: 5983 1f22                              |008b: iput v3, v8, Lz2/m;.P:I // field@221f
+1a4f06: 2203 8709                              |008d: new-instance v3, Lk2/a; // type@0987
+1a4f0a: 7020 3e33 5300                         |008f: invoke-direct {v3, v5}, Lk2/a;.<init>:(I)V // method@333e
+1a4f10: 6e20 ce30 3400                         |0092: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4f16: 6e10 e030 0400                         |0095: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4f1c: 0a03                                   |0098: move-result v3
+1a4f1e: b103                                   |0099: sub-int/2addr v3, v0
+1a4f20: 6e20 d530 3400                         |009a: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4f26: 0c00                                   |009d: move-result-object v0
+1a4f28: 1f00 8809                              |009e: check-cast v0, Lk2/b; // type@0988
+1a4f2c: 1304 1000                              |00a0: const/16 v4, #int 16 // #10
+1a4f30: 6e20 4a33 4000                         |00a2: invoke-virtual {v0, v4}, Lk2/b;.f:(I)V // method@334a
+1a4f36: 5983 2022                              |00a5: iput v3, v8, Lz2/m;.Q:I // field@2220
+1a4f3a: 1a00 ee02                              |00a7: const-string v0, "A" // string@02ee
+1a4f3e: 6e20 eb2f 1000                         |00a9: invoke-virtual {v0, v1}, Ljava/lang/String;.codePointAt:(I)I // method@2feb
+1a4f44: 0a00                                   |00ac: move-result v0
+1a4f46: 3551 2d00                              |00ad: if-ge v1, v5, 00da // +002d
+1a4f4a: 9003 0001                              |00af: add-int v3, v0, v1
+1a4f4e: 7110 3e2f 0300                         |00b1: invoke-static {v3}, Ljava/lang/Character;.toChars:(I)[C // method@2f3e
+1a4f54: 0c03                                   |00b4: move-result-object v3
+1a4f56: 7110 1730 0300                         |00b5: invoke-static {v3}, Ljava/lang/String;.valueOf:([C)Ljava/lang/String; // method@3017
+1a4f5c: 0c03                                   |00b8: move-result-object v3
+1a4f5e: 6204 e808                              |00b9: sget-object v4, Landroid/graphics/Typeface;.DEFAULT_BOLD:Landroid/graphics/Typeface; // field@08e8
+1a4f62: 1304 1200                              |00bb: const/16 v4, #int 18 // #12
+1a4f66: 4406 0204                              |00bd: aget v6, v2, v4
+1a4f6a: 5487 1022                              |00bf: iget-object v7, v8, Lz2/m;.A:[I // field@2210
+1a4f6e: 4407 0701                              |00c1: aget v7, v7, v1
+1a4f72: 6e40 4e33 3876                         |00c3: invoke-virtual {v8, v3, v6, v7}, Lk2/c;.c:(Ljava/lang/String;FI)I // method@334e
+1a4f78: 0a06                                   |00c6: move-result v6
+1a4f7a: 5487 2122                              |00c7: iget-object v7, v8, Lz2/m;.R:[I // field@2221
+1a4f7e: 4b06 0701                              |00c9: aput v6, v7, v1
+1a4f82: 4404 0204                              |00cb: aget v4, v2, v4
+1a4f86: 5286 1122                              |00cd: iget v6, v8, Lz2/m;.B:I // field@2211
+1a4f8a: 6e40 4e33 3864                         |00cf: invoke-virtual {v8, v3, v4, v6}, Lk2/c;.c:(Ljava/lang/String;FI)I // method@334e
+1a4f90: 0a03                                   |00d2: move-result v3
+1a4f92: 5484 2222                              |00d3: iget-object v4, v8, Lz2/m;.S:[I // field@2222
+1a4f96: 4b03 0401                              |00d5: aput v3, v4, v1
+1a4f9a: d801 0101                              |00d7: add-int/lit8 v1, v1, #int 1 // #01
+1a4f9e: 28d4                                   |00d9: goto 00ad // -002c
+1a4fa0: 6e10 4c33 0800                         |00da: invoke-virtual {v8}, Lk2/c;.a:()V // method@334c
+1a4fa6: 6e10 5633 0800                         |00dd: invoke-virtual {v8}, Lk2/c;.requestRender:()V // method@3356
+1a4fac: 0e00                                   |00e0: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #22              : (in Lz2/m;)

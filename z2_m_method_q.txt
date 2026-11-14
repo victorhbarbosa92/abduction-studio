@@ -1,0 +1,259 @@
+      name          : 'q'
+      type          : '(IIII[I)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 26
+      ins           : 6
+      outs          : 4
+      insns size    : 407 16-bit code units
+1a4a9c:                                        |[1a4a9c] z2.m.q:(IIII[I)V
+1a4aac: 0800 1400                              |0000: move-object/from16 v0, v20
+1a4ab0: 0201 1600                              |0002: move/from16 v1, v22
+1a4ab4: 0202 1700                              |0004: move/from16 v2, v23
+1a4ab8: 0203 1800                              |0006: move/from16 v3, v24
+1a4abc: 5404 2522                              |0008: iget-object v4, v0, Lz2/m;.V:[I // field@2225
+1a4ac0: 4404 0415                              |000a: aget v4, v4, v21
+1a4ac4: 1305 ff00                              |000c: const/16 v5, #int 255 // #ff
+1a4ac8: 1206                                   |000e: const/4 v6, #int 0 // #0
+1a4aca: 1507 7f43                              |000f: const/high16 v7, #int 1132396544 // #437f
+1a4ace: 1508 003f                              |0011: const/high16 v8, #int 1056964608 // #3f00
+1a4ad2: 5409 2722                              |0013: iget-object v9, v0, Lz2/m;.a0:[Lz2/l; // field@2227
+1a4ad6: 122a                                   |0015: const/4 v10, #int 2 // #2
+1a4ad8: 121b                                   |0016: const/4 v11, #int 1 // #1
+1a4ada: 120c                                   |0017: const/4 v12, #int 0 // #0
+1a4adc: 12fd                                   |0018: const/4 v13, #int -1 // #ff
+1a4ade: 3904 6c00                              |0019: if-nez v4, 0085 // +006c
+1a4ae2: 4600 0915                              |001b: aget-object v0, v9, v21
+1a4ae6: 6e10 d22f 0000                         |001d: invoke-virtual {v0}, Ljava/lang/Object;.getClass:()Ljava/lang/Class; // method@2fd2
+1a4aec: 8210                                   |0020: int-to-float v0, v1
+1a4aee: 2e01 0600                              |0021: cmpg-float v1, v6, v0
+1a4af2: 3b01 0400                              |0023: if-gez v1, 0027 // +0004
+1a4af6: 0101                                   |0025: move v1, v0
+1a4af8: 2802                                   |0026: goto 0028 // +0002
+1a4afa: 0161                                   |0027: move v1, v6
+1a4afc: 8222                                   |0028: int-to-float v2, v2
+1a4afe: 2e04 0102                              |0029: cmpg-float v4, v1, v2
+1a4b02: 3b04 0300                              |002b: if-gez v4, 002e // +0003
+1a4b06: 0121                                   |002d: move v1, v2
+1a4b08: 8233                                   |002e: int-to-float v3, v3
+1a4b0a: 2e04 0103                              |002f: cmpg-float v4, v1, v3
+1a4b0e: 3b04 0300                              |0031: if-gez v4, 0034 // +0003
+1a4b12: 0131                                   |0033: move v1, v3
+1a4b14: 2d04 0106                              |0034: cmpl-float v4, v1, v6
+1a4b18: 3d04 4700                              |0036: if-lez v4, 007d // +0047
+1a4b1c: c910                                   |0038: div-float/2addr v0, v1
+1a4b1e: c912                                   |0039: div-float/2addr v2, v1
+1a4b20: c913                                   |003a: div-float/2addr v3, v1
+1a4b22: 7120 b32f 3000                         |003b: invoke-static {v0, v3}, Ljava/lang/Math;.max:(FF)F // method@2fb3
+1a4b28: 0a01                                   |003e: move-result v1
+1a4b2a: 2d04 0108                              |003f: cmpl-float v4, v1, v8
+1a4b2e: 3d04 0300                              |0041: if-lez v4, 0044 // +0003
+1a4b32: 2802                                   |0043: goto 0045 // +0002
+1a4b34: 0118                                   |0044: move v8, v1
+1a4b36: 1401 9a99 993e                         |0045: const v1, #float 0.3 // #3e99999a
+1a4b3c: c818                                   |0048: mul-float/2addr v8, v1
+1a4b3e: 1501 803f                              |0049: const/high16 v1, #int 1065353216 // #3f80
+1a4b42: a704 0108                              |004b: sub-float v4, v1, v8
+1a4b46: c824                                   |004d: mul-float/2addr v4, v2
+1a4b48: 1402 6666 a63f                         |004e: const v2, #float 1.3 // #3fa66666
+1a4b4e: c823                                   |0051: mul-float/2addr v3, v2
+1a4b50: 2e02 0006                              |0052: cmpg-float v2, v0, v6
+1a4b54: 3b02 0300                              |0054: if-gez v2, 0057 // +0003
+1a4b58: 0160                                   |0056: move v0, v6
+1a4b5a: 2d02 0001                              |0057: cmpl-float v2, v0, v1
+1a4b5e: 3d02 0300                              |0059: if-lez v2, 005c // +0003
+1a4b62: 0110                                   |005b: move v0, v1
+1a4b64: 2e02 0406                              |005c: cmpg-float v2, v4, v6
+1a4b68: 3b02 0300                              |005e: if-gez v2, 0061 // +0003
+1a4b6c: 0164                                   |0060: move v4, v6
+1a4b6e: 2d02 0401                              |0061: cmpl-float v2, v4, v1
+1a4b72: 3d02 0300                              |0063: if-lez v2, 0066 // +0003
+1a4b76: 0114                                   |0065: move v4, v1
+1a4b78: 2e02 0306                              |0066: cmpg-float v2, v3, v6
+1a4b7c: 3b02 0300                              |0068: if-gez v2, 006b // +0003
+1a4b80: 2802                                   |006a: goto 006c // +0002
+1a4b82: 0136                                   |006b: move v6, v3
+1a4b84: 2d02 0601                              |006c: cmpl-float v2, v6, v1
+1a4b88: 3d02 0300                              |006e: if-lez v2, 0071 // +0003
+1a4b8c: 2802                                   |0070: goto 0072 // +0002
+1a4b8e: 0161                                   |0071: move v1, v6
+1a4b90: c870                                   |0072: mul-float/2addr v0, v7
+1a4b92: 8700                                   |0073: float-to-int v0, v0
+1a4b94: c874                                   |0074: mul-float/2addr v4, v7
+1a4b96: 8742                                   |0075: float-to-int v2, v4
+1a4b98: c871                                   |0076: mul-float/2addr v1, v7
+1a4b9a: 8711                                   |0077: float-to-int v1, v1
+1a4b9c: 7140 c00d 0512                         |0078: invoke-static {v5, v0, v2, v1}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4ba2: 0a00                                   |007b: move-result v0
+1a4ba4: 2802                                   |007c: goto 007e // +0002
+1a4ba6: 01d0                                   |007d: move v0, v13
+1a4ba8: 4b00 190c                              |007e: aput v0, v25, v12
+1a4bac: 4b0d 190b                              |0080: aput v13, v25, v11
+1a4bb0: 4b0d 190a                              |0082: aput v13, v25, v10
+1a4bb4: 0e00                                   |0084: return-void
+1a4bb6: 33b4 0101                              |0085: if-ne v4, v11, 0186 // +0101
+1a4bba: 4600 0915                              |0087: aget-object v0, v9, v21
+1a4bbe: 5404 0122                              |0089: iget-object v4, v0, Lz2/l;.a:[F // field@2201
+1a4bc2: 5400 0222                              |008b: iget-object v0, v0, Lz2/l;.b:[F // field@2202
+1a4bc6: 8229                                   |008d: int-to-float v9, v2
+1a4bc8: 821d                                   |008e: int-to-float v13, v1
+1a4bca: 8233                                   |008f: int-to-float v3, v3
+1a4bcc: 150e 0034                              |0090: const/high16 v14, #int 872415232 // #3400
+1a4bd0: 2d0f 090e                              |0092: cmpl-float v15, v9, v14
+1a4bd4: 1910 3440                              |0094: const-wide/high16 v16, #long 4626322717216342016 // #4034
+1a4bd8: 3d0f 1100                              |0096: if-lez v15, 00a7 // +0011
+1a4bdc: a90f 0d09                              |0098: div-float v15, v13, v9
+1a4be0: 0212 0600                              |009a: move/from16 v18, v6
+1a4be4: 0213 0700                              |009c: move/from16 v19, v7
+1a4be8: 89f6                                   |009e: float-to-double v6, v15
+1a4bea: 7120 b02f 7600                         |009f: invoke-static {v6, v7}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4bf0: 0b06                                   |00a2: move-result-wide v6
+1a4bf2: ad06 0610                              |00a3: mul-double v6, v6, v16
+1a4bf6: 8c66                                   |00a5: double-to-float v6, v6
+1a4bf8: 2805                                   |00a6: goto 00ab // +0005
+1a4bfa: 0212 0600                              |00a7: move/from16 v18, v6
+1a4bfe: 0213 0700                              |00a9: move/from16 v19, v7
+1a4c02: 1307 3c00                              |00ab: const/16 v7, #int 60 // #3c
+1a4c06: 3721 1c00                              |00ad: if-le v1, v2, 00c9 // +001c
+1a4c0a: 8761                                   |00af: float-to-int v1, v6
+1a4c0c: 3771 0300                              |00b0: if-le v1, v7, 00b3 // +0003
+1a4c10: 0171                                   |00b2: move v1, v7
+1a4c12: 3b01 0300                              |00b3: if-gez v1, 00b6 // +0003
+1a4c16: 01c1                                   |00b5: move v1, v12
+1a4c18: 6202 0422                              |00b6: sget-object v2, Lz2/l;.d:[F // field@2204
+1a4c1c: 4402 0201                              |00b8: aget v2, v2, v1
+1a4c20: 4b02 040c                              |00ba: aput v2, v4, v12
+1a4c24: 6202 0522                              |00bc: sget-object v2, Lz2/l;.e:[F // field@2205
+1a4c28: 4402 0201                              |00be: aget v2, v2, v1
+1a4c2c: 4b02 040b                              |00c0: aput v2, v4, v11
+1a4c30: 6202 0622                              |00c2: sget-object v2, Lz2/l;.f:[F // field@2206
+1a4c34: 4401 0201                              |00c4: aget v1, v2, v1
+1a4c38: 4b01 040a                              |00c6: aput v1, v4, v10
+1a4c3c: 2824                                   |00c8: goto 00ec // +0024
+1a4c3e: a901 090d                              |00c9: div-float v1, v9, v13
+1a4c42: 8911                                   |00cb: float-to-double v1, v1
+1a4c44: 7120 b02f 2100                         |00cc: invoke-static {v1, v2}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4c4a: 0b01                                   |00cf: move-result-wide v1
+1a4c4c: ad01 0110                              |00d0: mul-double v1, v1, v16
+1a4c50: 8c11                                   |00d2: double-to-float v1, v1
+1a4c52: 8711                                   |00d3: float-to-int v1, v1
+1a4c54: 3771 0300                              |00d4: if-le v1, v7, 00d7 // +0003
+1a4c58: 0171                                   |00d6: move v1, v7
+1a4c5a: 3b01 0300                              |00d7: if-gez v1, 00da // +0003
+1a4c5e: 01c1                                   |00d9: move v1, v12
+1a4c60: 6202 0a22                              |00da: sget-object v2, Lz2/l;.j:[F // field@220a
+1a4c64: 4402 0201                              |00dc: aget v2, v2, v1
+1a4c68: 4b02 040c                              |00de: aput v2, v4, v12
+1a4c6c: 6202 0b22                              |00e0: sget-object v2, Lz2/l;.k:[F // field@220b
+1a4c70: 4402 0201                              |00e2: aget v2, v2, v1
+1a4c74: 4b02 040b                              |00e4: aput v2, v4, v11
+1a4c78: 6202 0c22                              |00e6: sget-object v2, Lz2/l;.l:[F // field@220c
+1a4c7c: 4401 0201                              |00e8: aget v1, v2, v1
+1a4c80: 4b01 040a                              |00ea: aput v1, v4, v10
+1a4c84: c939                                   |00ec: div-float/2addr v9, v3
+1a4c86: 8991                                   |00ed: float-to-double v1, v9
+1a4c88: 7120 b02f 2100                         |00ee: invoke-static {v1, v2}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4c8e: 0b01                                   |00f1: move-result-wide v1
+1a4c90: 190f 34c0                              |00f2: const-wide/high16 v15, #long -4597049319638433792 // #c034
+1a4c94: cdf1                                   |00f4: mul-double/2addr v1, v15
+1a4c96: 8c11                                   |00f5: double-to-float v1, v1
+1a4c98: 2d02 010e                              |00f6: cmpl-float v2, v1, v14
+1a4c9c: 1503 70c2                              |00f8: const/high16 v3, #int -1032847360 // #c270
+1a4ca0: 3d02 0700                              |00fa: if-lez v2, 0101 // +0007
+1a4ca4: 4b13 000b                              |00fc: aput v19, v0, v11
+1a4ca8: 4b13 000a                              |00fe: aput v19, v0, v10
+1a4cac: 2825                                   |0100: goto 0125 // +0025
+1a4cae: 2e02 0103                              |0101: cmpg-float v2, v1, v3
+1a4cb2: 6206 0f22                              |0103: sget-object v6, Lz2/l;.o:[F // field@220f
+1a4cb6: 6209 0e22                              |0105: sget-object v9, Lz2/l;.n:[F // field@220e
+1a4cba: 3b02 0b00                              |0107: if-gez v2, 0112 // +000b
+1a4cbe: 4402 0907                              |0109: aget v2, v9, v7
+1a4cc2: 4b02 000b                              |010b: aput v2, v0, v11
+1a4cc6: 4402 0607                              |010d: aget v2, v6, v7
+1a4cca: 4b02 000a                              |010f: aput v2, v0, v10
+1a4cce: 2814                                   |0111: goto 0125 // +0014
+1a4cd0: 8712                                   |0112: float-to-int v2, v1
+1a4cd2: 7110 a32f 0200                         |0113: invoke-static {v2}, Ljava/lang/Math;.abs:(I)I // method@2fa3
+1a4cd8: 0a02                                   |0116: move-result v2
+1a4cda: 3772 0300                              |0117: if-le v2, v7, 011a // +0003
+1a4cde: 0172                                   |0119: move v2, v7
+1a4ce0: 3b02 0300                              |011a: if-gez v2, 011d // +0003
+1a4ce4: 01c2                                   |011c: move v2, v12
+1a4ce6: 4409 0902                              |011d: aget v9, v9, v2
+1a4cea: 4b09 000b                              |011f: aput v9, v0, v11
+1a4cee: 4402 0602                              |0121: aget v2, v6, v2
+1a4cf2: 4b02 000a                              |0123: aput v2, v0, v10
+1a4cf6: 1502 a040                              |0125: const/high16 v2, #int 1084227584 // #40a0
+1a4cfa: c721                                   |0127: sub-float/2addr v1, v2
+1a4cfc: 2d02 0112                              |0128: cmpl-float v2, v1, v18
+1a4d00: 3d02 0500                              |012a: if-lez v2, 012f // +0005
+1a4d04: 4b13 000c                              |012c: aput v19, v0, v12
+1a4d08: 281e                                   |012e: goto 014c // +001e
+1a4d0a: 2e02 0103                              |012f: cmpg-float v2, v1, v3
+1a4d0e: 6203 0d22                              |0131: sget-object v3, Lz2/l;.m:[F // field@220d
+1a4d12: 3b02 0900                              |0133: if-gez v2, 013c // +0009
+1a4d16: 1301 4600                              |0135: const/16 v1, #int 70 // #46
+1a4d1a: 4401 0301                              |0137: aget v1, v3, v1
+1a4d1e: 4b01 000c                              |0139: aput v1, v0, v12
+1a4d22: 2811                                   |013b: goto 014c // +0011
+1a4d24: 8711                                   |013c: float-to-int v1, v1
+1a4d26: 7110 a32f 0100                         |013d: invoke-static {v1}, Ljava/lang/Math;.abs:(I)I // method@2fa3
+1a4d2c: 0a01                                   |0140: move-result v1
+1a4d2e: 3771 0300                              |0141: if-le v1, v7, 0144 // +0003
+1a4d32: 2802                                   |0143: goto 0145 // +0002
+1a4d34: 0117                                   |0144: move v7, v1
+1a4d36: 3b07 0300                              |0145: if-gez v7, 0148 // +0003
+1a4d3a: 01c7                                   |0147: move v7, v12
+1a4d3c: 4401 0307                              |0148: aget v1, v3, v7
+1a4d40: 4b01 000c                              |014a: aput v1, v0, v12
+1a4d44: 4401 040c                              |014c: aget v1, v4, v12
+1a4d48: 8711                                   |014e: float-to-int v1, v1
+1a4d4a: 4402 040b                              |014f: aget v2, v4, v11
+1a4d4e: 8722                                   |0151: float-to-int v2, v2
+1a4d50: 4403 040a                              |0152: aget v3, v4, v10
+1a4d54: 8733                                   |0154: float-to-int v3, v3
+1a4d56: 7140 c00d 1532                         |0155: invoke-static {v5, v1, v2, v3}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4d5c: 0a01                                   |0158: move-result v1
+1a4d5e: 4b01 190c                              |0159: aput v1, v25, v12
+1a4d62: 4401 000c                              |015b: aget v1, v0, v12
+1a4d66: 4402 040c                              |015d: aget v2, v4, v12
+1a4d6a: c621                                   |015f: add-float/2addr v1, v2
+1a4d6c: c881                                   |0160: mul-float/2addr v1, v8
+1a4d6e: 8711                                   |0161: float-to-int v1, v1
+1a4d70: 4402 000b                              |0162: aget v2, v0, v11
+1a4d74: 4403 040b                              |0164: aget v3, v4, v11
+1a4d78: c632                                   |0166: add-float/2addr v2, v3
+1a4d7a: c882                                   |0167: mul-float/2addr v2, v8
+1a4d7c: 8722                                   |0168: float-to-int v2, v2
+1a4d7e: 4403 000a                              |0169: aget v3, v0, v10
+1a4d82: 4404 040a                              |016b: aget v4, v4, v10
+1a4d86: c643                                   |016d: add-float/2addr v3, v4
+1a4d88: c883                                   |016e: mul-float/2addr v3, v8
+1a4d8a: 8733                                   |016f: float-to-int v3, v3
+1a4d8c: 7140 c00d 1532                         |0170: invoke-static {v5, v1, v2, v3}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4d92: 0a01                                   |0173: move-result v1
+1a4d94: 4b01 190b                              |0174: aput v1, v25, v11
+1a4d98: 4401 000c                              |0176: aget v1, v0, v12
+1a4d9c: 8711                                   |0178: float-to-int v1, v1
+1a4d9e: 4402 000b                              |0179: aget v2, v0, v11
+1a4da2: 8722                                   |017b: float-to-int v2, v2
+1a4da4: 4400 000a                              |017c: aget v0, v0, v10
+1a4da8: 8700                                   |017e: float-to-int v0, v0
+1a4daa: 7140 c00d 1502                         |017f: invoke-static {v5, v1, v2, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4db0: 0a00                                   |0182: move-result v0
+1a4db2: 4b00 190a                              |0183: aput v0, v25, v10
+1a4db6: 0e00                                   |0185: return-void
+1a4db8: 7402 d53f 1400                         |0186: invoke-virtual/range {v20, v21}, Lz2/m;.u:(I)Z // method@3fd5
+1a4dbe: 0a01                                   |0189: move-result v1
+1a4dc0: 3801 0c00                              |018a: if-eqz v1, 0196 // +000c
+1a4dc4: 5400 2622                              |018c: iget-object v0, v0, Lz2/m;.W:[I // field@2226
+1a4dc8: 4400 0015                              |018e: aget v0, v0, v21
+1a4dcc: 4b00 190c                              |0190: aput v0, v25, v12
+1a4dd0: 4b0d 190b                              |0192: aput v13, v25, v11
+1a4dd4: 4b0d 190a                              |0194: aput v13, v25, v10
+1a4dd8: 0e00                                   |0196: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #17              : (in Lz2/m;)

@@ -1,0 +1,164 @@
+import wave
+import numpy as np
+from scipy import signal
+from PIL import Image, ImageDraw
+
+# Load audio
+wav_path = 'scratch/test_cliff.wav'
+with wave.open(wav_path, 'rb') as wf:
+    sr = wf.getframerate()
+    n_ch = wf.getnchannels()
+    n_frames = wf.getnframes()
+    skip = int(sr * 4.2)
+    wf.setpos(skip)
+    count = int(sr * 6.0) # ~6 seconds (about 3-4 bars)
+    data = wf.readframes(count)
+    audio = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
+    if n_ch == 2:
+        audio = audio.reshape(-1, 2)
+        mono = (audio[:, 0] + audio[:, 1]) * 0.5
+    else:
+        mono = audio
+
+# Linkwitz-Riley crossover
+b_l, a_l = signal.butter(2, 250.0 / (sr * 0.5), btype='low')
+low = signal.lfilter(b_l, a_l, signal.lfilter(b_l, a_l, mono))
+
+b_h, a_h = signal.butter(2, 2500.0 / (sr * 0.5), btype='high')
+high = signal.lfilter(b_h, a_h, signal.lfilter(b_h, a_h, mono))
+
+mid = mono - low - high
+
+STEP = 128
+num_bins = len(mono) // STEP
+
+lows  = np.zeros(num_bins, dtype=np.float32)
+mids  = np.zeros(num_bins, dtype=np.float32)
+highs = np.zeros(num_bins, dtype=np.float32)
+
+for b in range(num_bins):
+    s = b * STEP
+    e = s + STEP
+    lows[b]  = np.max(np.abs(low[s:e]))
+    mids[b]  = np.max(np.abs(mid[s:e]))
+    highs[b] = np.max(np.abs(high[s:e]))
+
+# Normalization
+max_l = max(np.max(lows), 0.001)
+max_m = max(np.max(mids), 0.001)
+max_h_val = max(np.max(highs), 0.001)
+
+lows  = np.clip(lows  / max_l, 0.0, 1.0)
+mids  = np.clip(mids  / max_m, 0.0, 1.0)
+highs = np.clip(highs / max_h_val, 0.0, 1.0)
+
+img_w = 600
+img_h = 240
+im = Image.new('RGB', (img_w, img_h), (0, 0, 0))
+draw = ImageDraw.Draw(im)
+
+bar_w = 2
+bar_gap = 1
+bar_step = 3
+num_bars = (img_w - 40) // bar_step
+bin_indices = np.linspace(0, num_bins - 1, num_bars).astype(int)
+
+max_h = 45
+mid_y = 65
+
+# 1. New Dynamic Additive Stack (RGB Mode)
+draw.text((20, 5), "REKORDBOX RGB - STACKING ADITIVO DINAMICO POR ENERGIA", fill=(200, 200, 200))
+for i, b_idx in enumerate(bin_indices):
+    x0 = 20 + i * bar_step
+    x1 = x0 + bar_w
+    l, m, h = lows[b_idx], mids[b_idx], highs[b_idx]
+    
+    # Independent segment heights from actual energy
+    # Green core: 2px to 14px based on high frequency
+    hg = float(np.round((h ** 0.85) * (max_h * 0.32)))
+    # Cyan mid: 2px to 20px based on mid frequency
+    hc = float(np.round((m ** 0.85) * (max_h * 0.42)))
+    # Pink low: 0px to 32px based on bass! Notice threshold: below 0.08, hp = 0!
+    if l > 0.08:
+        hp = float(np.round(((l - 0.08) / 0.92) ** 0.80 * (max_h * 0.60)))
+    else:
+        hp = 0.0
+        
+    tot = hg + hc + hp
+    if tot > max_h:
+        scale = max_h / tot
+        hg = float(np.round(hg * scale))
+        hc = float(np.round(hc * scale))
+        hp = float(max_h - hg - hc)
+    if tot < 1.0:
+        hg = 1.0
+        
+    # Draw top half
+    # High: Green
+    if hg > 0:
+        draw.rectangle([x0, mid_y - hg, x1 - 1, mid_y], fill=(57, 255, 20))
+    # Mid: Cyan
+    if hc > 0:
+        draw.rectangle([x0, mid_y - hg - hc, x1 - 1, mid_y - hg], fill=(0, 229, 255))
+    # Low: Pink (ONLY IF BASS IS PRESENT!)
+    if hp > 0:
+        draw.rectangle([x0, mid_y - hg - hc - hp, x1 - 1, mid_y - hg - hc], fill=(255, 0, 128))
+        
+    # Draw bottom half
+    if hg > 0:
+        draw.rectangle([x0, mid_y, x1 - 1, mid_y + hg], fill=(57, 255, 20))
+    if hc > 0:
+        draw.rectangle([x0, mid_y + hg, x1 - 1, mid_y + hg + hc], fill=(0, 229, 255))
+    if hp > 0:
+        draw.rectangle([x0, mid_y + hg + hc, x1 - 1, mid_y + hg + hc + hp], fill=(255, 0, 128))
+        
+    # 1px white centerline
+    draw.line([x0, mid_y, x1 - 1, mid_y], fill=(225, 255, 225))
+
+# 2. New Dynamic Additive Stack (3Band Mode: Blue, Amber, White)
+draw.text((20, 125), "REKORDBOX 3BAND (CDJ-3000) - STACKING ADITIVO DINAMICO", fill=(220, 220, 220))
+mid_y2 = 185
+for i, b_idx in enumerate(bin_indices):
+    x0 = 20 + i * bar_step
+    x1 = x0 + bar_w
+    l, m, h = lows[b_idx], mids[b_idx], highs[b_idx]
+    
+    # White core (highs)
+    hw = float(np.round((h ** 0.85) * (max_h * 0.32)))
+    # Amber middle (mids)
+    ha = float(np.round((m ** 0.85) * (max_h * 0.42)))
+    # Blue outer (lows)
+    if l > 0.08:
+        hb = float(np.round(((l - 0.08) / 0.92) ** 0.80 * (max_h * 0.60)))
+    else:
+        hb = 0.0
+        
+    tot = hw + ha + hb
+    if tot > max_h:
+        scale = max_h / tot
+        hw = float(np.round(hw * scale))
+        ha = float(np.round(ha * scale))
+        hb = float(max_h - hw - ha)
+    if tot < 1.0:
+        hw = 1.0
+        
+    # Draw top half
+    if hw > 0:
+        draw.rectangle([x0, mid_y2 - hw, x1 - 1, mid_y2], fill=(255, 255, 255))
+    if ha > 0:
+        draw.rectangle([x0, mid_y2 - hw - ha, x1 - 1, mid_y2 - hw], fill=(255, 144, 0))
+    if hb > 0:
+        draw.rectangle([x0, mid_y2 - hw - ha - hb, x1 - 1, mid_y2 - hw - ha], fill=(0, 115, 255))
+        
+    # Draw bottom half
+    if hw > 0:
+        draw.rectangle([x0, mid_y2, x1 - 1, mid_y2 + hw], fill=(255, 255, 255))
+    if ha > 0:
+        draw.rectangle([x0, mid_y2 + hw, x1 - 1, mid_y2 + hw + ha], fill=(255, 144, 0))
+    if hb > 0:
+        draw.rectangle([x0, mid_y2 + hw + ha, x1 - 1, mid_y2 + hw + ha + hb], fill=(0, 115, 255))
+        
+    draw.line([x0, mid_y2, x1 - 1, mid_y2], fill=(255, 255, 255))
+
+im.save('rekordbox_dynamic_additive.png')
+print("Saved rekordbox_dynamic_additive.png!")

@@ -1,0 +1,554 @@
+  Class descriptor  : 'Lz2/l;'
+  Access flags      : 0x0011 (PUBLIC FINAL)
+  Superclass        : 'Ljava/lang/Object;'
+  Interfaces        -
+  Static fields     -
+    #0              : (in Lz2/l;)
+      name          : 'c'
+      type          : 'Z'
+      access        : 0x0009 (PUBLIC STATIC)
+      value         : false
+    #1              : (in Lz2/l;)
+      name          : 'd'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #2              : (in Lz2/l;)
+      name          : 'e'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #3              : (in Lz2/l;)
+      name          : 'f'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #4              : (in Lz2/l;)
+      name          : 'g'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #5              : (in Lz2/l;)
+      name          : 'h'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #6              : (in Lz2/l;)
+      name          : 'i'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #7              : (in Lz2/l;)
+      name          : 'j'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #8              : (in Lz2/l;)
+      name          : 'k'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #9              : (in Lz2/l;)
+      name          : 'l'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #10              : (in Lz2/l;)
+      name          : 'm'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #11              : (in Lz2/l;)
+      name          : 'n'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+    #12              : (in Lz2/l;)
+      name          : 'o'
+      type          : '[F'
+      access        : 0x0019 (PUBLIC STATIC FINAL)
+  Instance fields   -
+    #0              : (in Lz2/l;)
+      name          : 'a'
+      type          : '[F'
+      access        : 0x0011 (PUBLIC FINAL)
+    #1              : (in Lz2/l;)
+      name          : 'b'
+      type          : '[F'
+      access        : 0x0011 (PUBLIC FINAL)
+  Direct methods    -
+    #0              : (in Lz2/l;)
+      name          : '<clinit>'
+      type          : '()V'
+      access        : 0x10008 (STATIC CONSTRUCTOR)
+      code          -
+      registers     : 2
+      ins           : 0
+      outs          : 0
+      insns size    : 53 16-bit code units
+1a3e78:                                        |[1a3e78] z2.l.<clinit>:()V
+1a3e88: 1300 3e00                              |0000: const/16 v0, #int 62 // #3e
+1a3e8c: 2301 0a0c                              |0002: new-array v1, v0, [F // type@0c0a
+1a3e90: 6901 0422                              |0004: sput-object v1, Lz2/l;.d:[F // field@2204
+1a3e94: 2301 0a0c                              |0006: new-array v1, v0, [F // type@0c0a
+1a3e98: 6901 0522                              |0008: sput-object v1, Lz2/l;.e:[F // field@2205
+1a3e9c: 2301 0a0c                              |000a: new-array v1, v0, [F // type@0c0a
+1a3ea0: 6901 0622                              |000c: sput-object v1, Lz2/l;.f:[F // field@2206
+1a3ea4: 2301 0a0c                              |000e: new-array v1, v0, [F // type@0c0a
+1a3ea8: 6901 0722                              |0010: sput-object v1, Lz2/l;.g:[F // field@2207
+1a3eac: 2301 0a0c                              |0012: new-array v1, v0, [F // type@0c0a
+1a3eb0: 6901 0822                              |0014: sput-object v1, Lz2/l;.h:[F // field@2208
+1a3eb4: 2301 0a0c                              |0016: new-array v1, v0, [F // type@0c0a
+1a3eb8: 6901 0922                              |0018: sput-object v1, Lz2/l;.i:[F // field@2209
+1a3ebc: 2301 0a0c                              |001a: new-array v1, v0, [F // type@0c0a
+1a3ec0: 6901 0a22                              |001c: sput-object v1, Lz2/l;.j:[F // field@220a
+1a3ec4: 2301 0a0c                              |001e: new-array v1, v0, [F // type@0c0a
+1a3ec8: 6901 0b22                              |0020: sput-object v1, Lz2/l;.k:[F // field@220b
+1a3ecc: 2301 0a0c                              |0022: new-array v1, v0, [F // type@0c0a
+1a3ed0: 6901 0c22                              |0024: sput-object v1, Lz2/l;.l:[F // field@220c
+1a3ed4: 1301 4800                              |0026: const/16 v1, #int 72 // #48
+1a3ed8: 2311 0a0c                              |0028: new-array v1, v1, [F // type@0c0a
+1a3edc: 6901 0d22                              |002a: sput-object v1, Lz2/l;.m:[F // field@220d
+1a3ee0: 2301 0a0c                              |002c: new-array v1, v0, [F // type@0c0a
+1a3ee4: 6901 0e22                              |002e: sput-object v1, Lz2/l;.n:[F // field@220e
+1a3ee8: 2300 0a0c                              |0030: new-array v0, v0, [F // type@0c0a
+1a3eec: 6900 0f22                              |0032: sput-object v0, Lz2/l;.o:[F // field@220f
+1a3ef0: 0e00                                   |0034: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #1              : (in Lz2/l;)
+      name          : '<init>'
+      type          : '()V'
+      access        : 0x10001 (PUBLIC CONSTRUCTOR)
+      code          -
+      registers     : 22
+      ins           : 1
+      outs          : 1
+      insns size    : 756 16-bit code units
+1a3ef4:                                        |[1a3ef4] z2.l.<init>:()V
+1a3f04: 0800 1500                              |0000: move-object/from16 v0, v21
+1a3f08: 7010 ce2f 0000                         |0002: invoke-direct {v0}, Ljava/lang/Object;.<init>:()V // method@2fce
+1a3f0e: 1231                                   |0005: const/4 v1, #int 3 // #3
+1a3f10: 2312 0a0c                              |0006: new-array v2, v1, [F // type@0c0a
+1a3f14: 2602 d802 0000                         |0008: fill-array-data v2, 000002e0 // +000002d8
+1a3f1a: 5b02 0122                              |000b: iput-object v2, v0, Lz2/l;.a:[F // field@2201
+1a3f1e: 2311 0a0c                              |000d: new-array v1, v1, [F // type@0c0a
+1a3f22: 2601 db02 0000                         |000f: fill-array-data v1, 000002ea // +000002db
+1a3f28: 5b01 0222                              |0012: iput-object v1, v0, Lz2/l;.b:[F // field@2202
+1a3f2c: 6300 0322                              |0014: sget-boolean v0, Lz2/l;.c:Z // field@2203
+1a3f30: 3800 0400                              |0016: if-eqz v0, 001a // +0004
+1a3f34: 2900 c702                              |0018: goto/16 02df // +02c7
+1a3f38: 1210                                   |001a: const/4 v0, #int 1 // #1
+1a3f3a: 6a00 0322                              |001b: sput-boolean v0, Lz2/l;.c:Z // field@2203
+1a3f3e: 1202                                   |001d: const/4 v2, #int 0 // #0
+1a3f40: 1503 4c42                              |001e: const/high16 v3, #int 1112276992 // #424c
+1a3f44: 6204 0422                              |0020: sget-object v4, Lz2/l;.d:[F // field@2204
+1a3f48: 1305 0900                              |0022: const/16 v5, #int 9 // #9
+1a3f4c: 3652 0b00                              |0024: if-gt v2, v5, 002f // +000b
+1a3f50: 4b03 0402                              |0026: aput v3, v4, v2
+1a3f54: 1404 6666 66bf                         |0028: const v4, #float -0.9 // #bf666666
+1a3f5a: c743                                   |002b: sub-float/2addr v3, v4
+1a3f5c: d802 0201                              |002c: add-int/lit8 v2, v2, #int 1 // #01
+1a3f60: 28f2                                   |002e: goto 0020 // -000e
+1a3f62: 1302 0a00                              |002f: const/16 v2, #int 10 // #a
+1a3f66: 0126                                   |0031: move v6, v2
+1a3f68: 1407 3333 33bf                         |0032: const v7, #float -0.7 // #bf333333
+1a3f6e: 1308 1300                              |0035: const/16 v8, #int 19 // #13
+1a3f72: 3686 0800                              |0037: if-gt v6, v8, 003f // +0008
+1a3f76: 4b03 0406                              |0039: aput v3, v4, v6
+1a3f7a: c773                                   |003b: sub-float/2addr v3, v7
+1a3f7c: d806 0601                              |003c: add-int/lit8 v6, v6, #int 1 // #01
+1a3f80: 28f4                                   |003e: goto 0032 // -000c
+1a3f82: 1306 1400                              |003f: const/16 v6, #int 20 // #14
+1a3f86: 0169                                   |0041: move v9, v6
+1a3f88: 140a 9a99 99be                         |0042: const v10, #float -0.3 // #be99999a
+1a3f8e: 130b 1d00                              |0045: const/16 v11, #int 29 // #1d
+1a3f92: 36b9 0800                              |0047: if-gt v9, v11, 004f // +0008
+1a3f96: 4b03 0409                              |0049: aput v3, v4, v9
+1a3f9a: c7a3                                   |004b: sub-float/2addr v3, v10
+1a3f9c: d809 0901                              |004c: add-int/lit8 v9, v9, #int 1 // #01
+1a3fa0: 28f4                                   |004e: goto 0042 // -000c
+1a3fa2: 1309 1e00                              |004f: const/16 v9, #int 30 // #1e
+1a3fa6: 019c                                   |0051: move v12, v9
+1a3fa8: 130d 2700                              |0052: const/16 v13, #int 39 // #27
+1a3fac: 36dc 0a00                              |0054: if-gt v12, v13, 005e // +000a
+1a3fb0: 4b03 040c                              |0056: aput v3, v4, v12
+1a3fb4: 150d 80bf                              |0058: const/high16 v13, #int -1082130432 // #bf80
+1a3fb8: c7d3                                   |005a: sub-float/2addr v3, v13
+1a3fba: d80c 0c01                              |005b: add-int/lit8 v12, v12, #int 1 // #01
+1a3fbe: 28f5                                   |005d: goto 0052 // -000b
+1a3fc0: 130c 2800                              |005e: const/16 v12, #int 40 // #28
+1a3fc4: 01ce                                   |0060: move v14, v12
+1a3fc6: 120f                                   |0061: const/4 v15, #int 0 // #0
+1a3fc8: 1300 3c00                              |0062: const/16 v0, #int 60 // #3c
+1a3fcc: 360e 0800                              |0064: if-gt v14, v0, 006c // +0008
+1a3fd0: 4b03 040e                              |0066: aput v3, v4, v14
+1a3fd4: c7f3                                   |0068: sub-float/2addr v3, v15
+1a3fd6: d80e 0e01                              |0069: add-int/lit8 v14, v14, #int 1 // #01
+1a3fda: 28f6                                   |006b: goto 0061 // -000a
+1a3fdc: 1503 0643                              |006c: const/high16 v3, #int 1124466688 // #4306
+1a3fe0: 013e                                   |006e: move v14, v3
+1a3fe2: 1204                                   |006f: const/4 v4, #int 0 // #0
+1a3fe4: 1510 9040                              |0070: const/high16 v16, #int 1083179008 // #4090
+1a3fe8: 6211 0522                              |0072: sget-object v17, Lz2/l;.e:[F // field@2205
+1a3fec: 3654 0900                              |0074: if-gt v4, v5, 007d // +0009
+1a3ff0: 4b0e 1104                              |0076: aput v14, v17, v4
+1a3ff4: a70e 0e10                              |0078: sub-float v14, v14, v16
+1a3ff8: d804 0401                              |007a: add-int/lit8 v4, v4, #int 1 // #01
+1a3ffc: 28f4                                   |007c: goto 0070 // -000c
+1a3ffe: 0124                                   |007d: move v4, v2
+1a4000: 3684 0c00                              |007e: if-gt v4, v8, 008a // +000c
+1a4004: 4b0e 1104                              |0080: aput v14, v17, v4
+1a4008: 1412 6666 e63f                         |0082: const v18, #float 1.8 // #3fe66666
+1a400e: a70e 0e12                              |0085: sub-float v14, v14, v18
+1a4012: d804 0401                              |0087: add-int/lit8 v4, v4, #int 1 // #01
+1a4016: 28f5                                   |0089: goto 007e // -000b
+1a4018: 0164                                   |008a: move v4, v6
+1a401a: 36b4 0b00                              |008b: if-gt v4, v11, 0096 // +000b
+1a401e: 4b0e 1104                              |008d: aput v14, v17, v4
+1a4022: 1512 803f                              |008f: const/high16 v18, #int 1065353216 // #3f80
+1a4026: a70e 0e12                              |0091: sub-float v14, v14, v18
+1a402a: d804 0401                              |0093: add-int/lit8 v4, v4, #int 1 // #01
+1a402e: 28f6                                   |0095: goto 008b // -000a
+1a4030: 0194                                   |0096: move v4, v9
+1a4032: 1412 cdcc cc3d                         |0097: const v18, #float 0.1 // #3dcccccd
+1a4038: 36d4 0900                              |009a: if-gt v4, v13, 00a3 // +0009
+1a403c: 4b0e 1104                              |009c: aput v14, v17, v4
+1a4040: a70e 0e12                              |009e: sub-float v14, v14, v18
+1a4044: d804 0401                              |00a0: add-int/lit8 v4, v4, #int 1 // #01
+1a4048: 28f5                                   |00a2: goto 0097 // -000b
+1a404a: 01c4                                   |00a3: move v4, v12
+1a404c: 3604 0800                              |00a4: if-gt v4, v0, 00ac // +0008
+1a4050: 4b0e 1104                              |00a6: aput v14, v17, v4
+1a4054: c7fe                                   |00a8: sub-float/2addr v14, v15
+1a4056: d804 0401                              |00a9: add-int/lit8 v4, v4, #int 1 // #01
+1a405a: 28f9                                   |00ab: goto 00a4 // -0007
+1a405c: 1504 4e43                              |00ac: const/high16 v4, #int 1129185280 // #434e
+1a4060: 0211 0400                              |00ae: move/from16 v17, v4
+1a4064: 120e                                   |00b0: const/4 v14, #int 0 // #0
+1a4066: 6213 0622                              |00b1: sget-object v19, Lz2/l;.f:[F // field@2206
+1a406a: 365e 0c00                              |00b3: if-gt v14, v5, 00bf // +000c
+1a406e: 4b11 130e                              |00b5: aput v17, v19, v14
+1a4072: 1413 3333 b33f                         |00b7: const v19, #float 1.4 // #3fb33333
+1a4078: a711 1113                              |00ba: sub-float v17, v17, v19
+1a407c: d80e 0e01                              |00bc: add-int/lit8 v14, v14, #int 1 // #01
+1a4080: 28f3                                   |00be: goto 00b1 // -000d
+1a4082: 012e                                   |00bf: move v14, v2
+1a4084: 368e 0c00                              |00c0: if-gt v14, v8, 00cc // +000c
+1a4088: 4b11 130e                              |00c2: aput v17, v19, v14
+1a408c: 1414 9a99 19bf                         |00c4: const v20, #float -0.6 // #bf19999a
+1a4092: a711 1114                              |00c7: sub-float v17, v17, v20
+1a4096: d80e 0e01                              |00c9: add-int/lit8 v14, v14, #int 1 // #01
+1a409a: 28f5                                   |00cb: goto 00c0 // -000b
+1a409c: 016e                                   |00cc: move v14, v6
+1a409e: 36be 0c00                              |00cd: if-gt v14, v11, 00d9 // +000c
+1a40a2: 4b11 130e                              |00cf: aput v17, v19, v14
+1a40a6: 1414 6666 66c0                         |00d1: const v20, #float -3.6 // #c0666666
+1a40ac: a711 1114                              |00d4: sub-float v17, v17, v20
+1a40b0: d80e 0e01                              |00d6: add-int/lit8 v14, v14, #int 1 // #01
+1a40b4: 28f5                                   |00d8: goto 00cd // -000b
+1a40b6: 019e                                   |00d9: move v14, v9
+1a40b8: 36de 0c00                              |00da: if-gt v14, v13, 00e6 // +000c
+1a40bc: 4b11 130e                              |00dc: aput v17, v19, v14
+1a40c0: 1414 6666 06c0                         |00de: const v20, #float -2.1 // #c0066666
+1a40c6: a711 1114                              |00e1: sub-float v17, v17, v20
+1a40ca: d80e 0e01                              |00e3: add-int/lit8 v14, v14, #int 1 // #01
+1a40ce: 28f5                                   |00e5: goto 00da // -000b
+1a40d0: 01ce                                   |00e6: move v14, v12
+1a40d2: 360e 0900                              |00e7: if-gt v14, v0, 00f0 // +0009
+1a40d6: 4b11 130e                              |00e9: aput v17, v19, v14
+1a40da: a711 110f                              |00eb: sub-float v17, v17, v15
+1a40de: d80e 0e01                              |00ed: add-int/lit8 v14, v14, #int 1 // #01
+1a40e2: 28f8                                   |00ef: goto 00e7 // -0008
+1a40e4: 1201                                   |00f0: const/4 v1, #int 0 // #0
+1a40e6: 150e 4c42                              |00f1: const/high16 v14, #int 1112276992 // #424c
+1a40ea: 6211 0a22                              |00f3: sget-object v17, Lz2/l;.j:[F // field@220a
+1a40ee: 3651 0b00                              |00f5: if-gt v1, v5, 0100 // +000b
+1a40f2: 4b0e 1101                              |00f7: aput v14, v17, v1
+1a40f6: 1511 c03f                              |00f9: const/high16 v17, #int 1069547520 // #3fc0
+1a40fa: a70e 0e11                              |00fb: sub-float v14, v14, v17
+1a40fe: d801 0101                              |00fd: add-int/lit8 v1, v1, #int 1 // #01
+1a4102: 28f4                                   |00ff: goto 00f3 // -000c
+1a4104: 0121                                   |0100: move v1, v2
+1a4106: 3681 0900                              |0101: if-gt v1, v8, 010a // +0009
+1a410a: 4b0e 1101                              |0103: aput v14, v17, v1
+1a410e: a70e 0e12                              |0105: sub-float v14, v14, v18
+1a4112: d801 0101                              |0107: add-int/lit8 v1, v1, #int 1 // #01
+1a4116: 28f8                                   |0109: goto 0101 // -0008
+1a4118: 0161                                   |010a: move v1, v6
+1a411a: 36b1 0c00                              |010b: if-gt v1, v11, 0117 // +000c
+1a411e: 4b0e 1101                              |010d: aput v14, v17, v1
+1a4122: 1413 cdcc 4c3e                         |010f: const v19, #float 0.2 // #3e4ccccd
+1a4128: a70e 0e13                              |0112: sub-float v14, v14, v19
+1a412c: d801 0101                              |0114: add-int/lit8 v1, v1, #int 1 // #01
+1a4130: 28f5                                   |0116: goto 010b // -000b
+1a4132: 0191                                   |0117: move v1, v9
+1a4134: 36d1 0900                              |0118: if-gt v1, v13, 0121 // +0009
+1a4138: 4b0e 1101                              |011a: aput v14, v17, v1
+1a413c: a70e 0e12                              |011c: sub-float v14, v14, v18
+1a4140: d801 0101                              |011e: add-int/lit8 v1, v1, #int 1 // #01
+1a4144: 28f8                                   |0120: goto 0118 // -0008
+1a4146: 01c1                                   |0121: move v1, v12
+1a4148: 3601 0c00                              |0122: if-gt v1, v0, 012e // +000c
+1a414c: 4b0e 1101                              |0124: aput v14, v17, v1
+1a4150: 1413 6666 e63e                         |0126: const v19, #float 0.45 // #3ee66666
+1a4156: a70e 0e13                              |0129: sub-float v14, v14, v19
+1a415a: d801 0101                              |012b: add-int/lit8 v1, v1, #int 1 // #01
+1a415e: 28f5                                   |012d: goto 0122 // -000b
+1a4160: 1201                                   |012e: const/4 v1, #int 0 // #0
+1a4162: 620e 0b22                              |012f: sget-object v14, Lz2/l;.k:[F // field@220b
+1a4166: 3651 0b00                              |0131: if-gt v1, v5, 013c // +000b
+1a416a: 4b03 0e01                              |0133: aput v3, v14, v1
+1a416e: 140e cdcc 0cc0                         |0135: const v14, #float -2.2 // #c00ccccd
+1a4174: c7e3                                   |0138: sub-float/2addr v3, v14
+1a4176: d801 0101                              |0139: add-int/lit8 v1, v1, #int 1 // #01
+1a417a: 28f4                                   |013b: goto 012f // -000c
+1a417c: 0121                                   |013c: move v1, v2
+1a417e: 3681 0b00                              |013d: if-gt v1, v8, 0148 // +000b
+1a4182: 4b03 0e01                              |013f: aput v3, v14, v1
+1a4186: 1511 40c0                              |0141: const/high16 v17, #int -1069547520 // #c040
+1a418a: a703 0311                              |0143: sub-float v3, v3, v17
+1a418e: d801 0101                              |0145: add-int/lit8 v1, v1, #int 1 // #01
+1a4192: 28f6                                   |0147: goto 013d // -000a
+1a4194: 0161                                   |0148: move v1, v6
+1a4196: 36b1 0c00                              |0149: if-gt v1, v11, 0155 // +000c
+1a419a: 4b03 0e01                              |014b: aput v3, v14, v1
+1a419e: 1411 cdcc 8cbf                         |014d: const v17, #float -1.1 // #bf8ccccd
+1a41a4: a703 0311                              |0150: sub-float v3, v3, v17
+1a41a8: d801 0101                              |0152: add-int/lit8 v1, v1, #int 1 // #01
+1a41ac: 28f5                                   |0154: goto 0149 // -000b
+1a41ae: 0191                                   |0155: move v1, v9
+1a41b0: 36d1 0800                              |0156: if-gt v1, v13, 015e // +0008
+1a41b4: 4b03 0e01                              |0158: aput v3, v14, v1
+1a41b8: c773                                   |015a: sub-float/2addr v3, v7
+1a41ba: d801 0101                              |015b: add-int/lit8 v1, v1, #int 1 // #01
+1a41be: 28f9                                   |015d: goto 0156 // -0007
+1a41c0: 01c1                                   |015e: move v1, v12
+1a41c2: 3601 0c00                              |015f: if-gt v1, v0, 016b // +000c
+1a41c6: 4b03 0e01                              |0161: aput v3, v14, v1
+1a41ca: 1411 6666 86be                         |0163: const v17, #float -0.2625 // #be866666
+1a41d0: a703 0311                              |0166: sub-float v3, v3, v17
+1a41d4: d801 0101                              |0168: add-int/lit8 v1, v1, #int 1 // #01
+1a41d8: 28f5                                   |016a: goto 015f // -000b
+1a41da: 1201                                   |016b: const/4 v1, #int 0 // #0
+1a41dc: 6203 0c22                              |016c: sget-object v3, Lz2/l;.l:[F // field@220c
+1a41e0: 3651 0b00                              |016e: if-gt v1, v5, 0179 // +000b
+1a41e4: 4b04 0301                              |0170: aput v4, v3, v1
+1a41e8: 1403 3333 f33f                         |0172: const v3, #float 1.9 // #3ff33333
+1a41ee: c734                                   |0175: sub-float/2addr v4, v3
+1a41f0: d801 0101                              |0176: add-int/lit8 v1, v1, #int 1 // #01
+1a41f4: 28f4                                   |0178: goto 016c // -000c
+1a41f6: 0121                                   |0179: move v1, v2
+1a41f8: 3681 0b00                              |017a: if-gt v1, v8, 0185 // +000b
+1a41fc: 4b04 0301                              |017c: aput v4, v3, v1
+1a4200: 140e 6666 a6bf                         |017e: const v14, #float -1.3 // #bfa66666
+1a4206: c7e4                                   |0181: sub-float/2addr v4, v14
+1a4208: d801 0101                              |0182: add-int/lit8 v1, v1, #int 1 // #01
+1a420c: 28f6                                   |0184: goto 017a // -000a
+1a420e: 0161                                   |0185: move v1, v6
+1a4210: 36b1 0a00                              |0186: if-gt v1, v11, 0190 // +000a
+1a4214: 4b04 0301                              |0188: aput v4, v3, v1
+1a4218: 150e 00bf                              |018a: const/high16 v14, #int -1090519040 // #bf00
+1a421c: c7e4                                   |018c: sub-float/2addr v4, v14
+1a421e: d801 0101                              |018d: add-int/lit8 v1, v1, #int 1 // #01
+1a4222: 28f7                                   |018f: goto 0186 // -0009
+1a4224: 0191                                   |0190: move v1, v9
+1a4226: 36d1 0b00                              |0191: if-gt v1, v13, 019c // +000b
+1a422a: 4b04 0301                              |0193: aput v4, v3, v1
+1a422e: 140e cdcc ccbe                         |0195: const v14, #float -0.4 // #becccccd
+1a4234: c7e4                                   |0198: sub-float/2addr v4, v14
+1a4236: d801 0101                              |0199: add-int/lit8 v1, v1, #int 1 // #01
+1a423a: 28f6                                   |019b: goto 0191 // -000a
+1a423c: 01c1                                   |019c: move v1, v12
+1a423e: 3601 0b00                              |019d: if-gt v1, v0, 01a8 // +000b
+1a4242: 4b04 0301                              |019f: aput v4, v3, v1
+1a4246: 140e 3333 b3bd                         |01a1: const v14, #float -0.0875 // #bdb33333
+1a424c: c7e4                                   |01a4: sub-float/2addr v4, v14
+1a424e: d801 0101                              |01a5: add-int/lit8 v1, v1, #int 1 // #01
+1a4252: 28f6                                   |01a7: goto 019d // -000a
+1a4254: 1501 7f43                              |01a8: const/high16 v1, #int 1132396544 // #437f
+1a4258: 0114                                   |01aa: move v4, v1
+1a425a: 1203                                   |01ab: const/4 v3, #int 0 // #0
+1a425c: 620e 0722                              |01ac: sget-object v14, Lz2/l;.g:[F // field@2207
+1a4260: 3653 0a00                              |01ae: if-gt v3, v5, 01b8 // +000a
+1a4264: 4b04 0e03                              |01b0: aput v4, v14, v3
+1a4268: 150e 6040                              |01b2: const/high16 v14, #int 1080033280 // #4060
+1a426c: c7e4                                   |01b4: sub-float/2addr v4, v14
+1a426e: d803 0301                              |01b5: add-int/lit8 v3, v3, #int 1 // #01
+1a4272: 28f5                                   |01b7: goto 01ac // -000b
+1a4274: 0123                                   |01b8: move v3, v2
+1a4276: 3683 0c00                              |01b9: if-gt v3, v8, 01c5 // +000c
+1a427a: 4b04 0e03                              |01bb: aput v4, v14, v3
+1a427e: 1411 cdcc 4c41                         |01bd: const v17, #float 12.8 // #414ccccd
+1a4284: a704 0411                              |01c0: sub-float v4, v4, v17
+1a4288: d803 0301                              |01c2: add-int/lit8 v3, v3, #int 1 // #01
+1a428c: 28f5                                   |01c4: goto 01b9 // -000b
+1a428e: 0163                                   |01c5: move v3, v6
+1a4290: 1411 3333 1340                         |01c6: const v17, #float 2.3 // #40133333
+1a4296: 36b3 0900                              |01c9: if-gt v3, v11, 01d2 // +0009
+1a429a: 4b04 0e03                              |01cb: aput v4, v14, v3
+1a429e: a704 0411                              |01cd: sub-float v4, v4, v17
+1a42a2: d803 0301                              |01cf: add-int/lit8 v3, v3, #int 1 // #01
+1a42a6: 28f5                                   |01d1: goto 01c6 // -000b
+1a42a8: 0193                                   |01d2: move v3, v9
+1a42aa: 36d3 0c00                              |01d3: if-gt v3, v13, 01df // +000c
+1a42ae: 4b04 0e03                              |01d5: aput v4, v14, v3
+1a42b2: 1413 cdcc cc3e                         |01d7: const v19, #float 0.4 // #3ecccccd
+1a42b8: a704 0413                              |01da: sub-float v4, v4, v19
+1a42bc: d803 0301                              |01dc: add-int/lit8 v3, v3, #int 1 // #01
+1a42c0: 28f5                                   |01de: goto 01d3 // -000b
+1a42c2: 01c3                                   |01df: move v3, v12
+1a42c4: 3603 0900                              |01e0: if-gt v3, v0, 01e9 // +0009
+1a42c8: 4b04 0e03                              |01e2: aput v4, v14, v3
+1a42cc: a704 0412                              |01e4: sub-float v4, v4, v18
+1a42d0: d803 0301                              |01e6: add-int/lit8 v3, v3, #int 1 // #01
+1a42d4: 28f8                                   |01e8: goto 01e0 // -0008
+1a42d6: 1203                                   |01e9: const/4 v3, #int 0 // #0
+1a42d8: 6204 0822                              |01ea: sget-object v4, Lz2/l;.h:[F // field@2208
+1a42dc: 3653 0700                              |01ec: if-gt v3, v5, 01f3 // +0007
+1a42e0: 4b01 0403                              |01ee: aput v1, v4, v3
+1a42e4: d803 0301                              |01f0: add-int/lit8 v3, v3, #int 1 // #01
+1a42e8: 28f8                                   |01f2: goto 01ea // -0008
+1a42ea: 011e                                   |01f3: move v14, v1
+1a42ec: 0123                                   |01f4: move v3, v2
+1a42ee: 3683 0c00                              |01f5: if-gt v3, v8, 0201 // +000c
+1a42f2: 4b0e 0403                              |01f7: aput v14, v4, v3
+1a42f6: 1412 3333 4341                         |01f9: const v18, #float 12.2 // #41433333
+1a42fc: a70e 0e12                              |01fc: sub-float v14, v14, v18
+1a4300: d803 0301                              |01fe: add-int/lit8 v3, v3, #int 1 // #01
+1a4304: 28f5                                   |0200: goto 01f5 // -000b
+1a4306: 0163                                   |0201: move v3, v6
+1a4308: 1412 9a99 7940                         |0202: const v18, #float 3.9 // #4079999a
+1a430e: 36b3 0900                              |0205: if-gt v3, v11, 020e // +0009
+1a4312: 4b0e 0403                              |0207: aput v14, v4, v3
+1a4316: a70e 0e12                              |0209: sub-float v14, v14, v18
+1a431a: d803 0301                              |020b: add-int/lit8 v3, v3, #int 1 // #01
+1a431e: 28f5                                   |020d: goto 0202 // -000b
+1a4320: 0193                                   |020e: move v3, v9
+1a4322: 36d3 0c00                              |020f: if-gt v3, v13, 021b // +000c
+1a4326: 4b0e 0403                              |0211: aput v14, v4, v3
+1a432a: 1413 3333 333f                         |0213: const v19, #float 0.7 // #3f333333
+1a4330: a70e 0e13                              |0216: sub-float v14, v14, v19
+1a4334: d803 0301                              |0218: add-int/lit8 v3, v3, #int 1 // #01
+1a4338: 28f5                                   |021a: goto 020f // -000b
+1a433a: 01c3                                   |021b: move v3, v12
+1a433c: 3603 0800                              |021c: if-gt v3, v0, 0224 // +0008
+1a4340: 4b0e 0403                              |021e: aput v14, v4, v3
+1a4344: c77e                                   |0220: sub-float/2addr v14, v7
+1a4346: d803 0301                              |0221: add-int/lit8 v3, v3, #int 1 // #01
+1a434a: 28f9                                   |0223: goto 021c // -0007
+1a434c: 1203                                   |0224: const/4 v3, #int 0 // #0
+1a434e: 6204 0922                              |0225: sget-object v4, Lz2/l;.i:[F // field@2209
+1a4352: 3653 0700                              |0227: if-gt v3, v5, 022e // +0007
+1a4356: 4b01 0403                              |0229: aput v1, v4, v3
+1a435a: d803 0301                              |022b: add-int/lit8 v3, v3, #int 1 // #01
+1a435e: 28f8                                   |022d: goto 0225 // -0008
+1a4360: 0123                                   |022e: move v3, v2
+1a4362: 3683 0700                              |022f: if-gt v3, v8, 0236 // +0007
+1a4366: 4b01 0403                              |0231: aput v1, v4, v3
+1a436a: d803 0301                              |0233: add-int/lit8 v3, v3, #int 1 // #01
+1a436e: 28fa                                   |0235: goto 022f // -0006
+1a4370: 0117                                   |0236: move v7, v1
+1a4372: 0163                                   |0237: move v3, v6
+1a4374: 36b3 0b00                              |0238: if-gt v3, v11, 0243 // +000b
+1a4378: 4b07 0403                              |023a: aput v7, v4, v3
+1a437c: 140e cdcc 6c40                         |023c: const v14, #float 3.7 // #406ccccd
+1a4382: c7e7                                   |023f: sub-float/2addr v7, v14
+1a4384: d803 0301                              |0240: add-int/lit8 v3, v3, #int 1 // #01
+1a4388: 28f6                                   |0242: goto 0238 // -000a
+1a438a: 0193                                   |0243: move v3, v9
+1a438c: 36d3 0b00                              |0244: if-gt v3, v13, 024f // +000b
+1a4390: 4b07 0403                              |0246: aput v7, v4, v3
+1a4394: 140e 6666 663f                         |0248: const v14, #float 0.9 // #3f666666
+1a439a: c7e7                                   |024b: sub-float/2addr v7, v14
+1a439c: d803 0301                              |024c: add-int/lit8 v3, v3, #int 1 // #01
+1a43a0: 28f6                                   |024e: goto 0244 // -000a
+1a43a2: 01c3                                   |024f: move v3, v12
+1a43a4: 3603 0800                              |0250: if-gt v3, v0, 0258 // +0008
+1a43a8: 4b07 0403                              |0252: aput v7, v4, v3
+1a43ac: c7a7                                   |0254: sub-float/2addr v7, v10
+1a43ae: d803 0301                              |0255: add-int/lit8 v3, v3, #int 1 // #01
+1a43b2: 28f9                                   |0257: goto 0250 // -0007
+1a43b4: 0114                                   |0258: move v4, v1
+1a43b6: 1203                                   |0259: const/4 v3, #int 0 // #0
+1a43b8: 6207 0d22                              |025a: sget-object v7, Lz2/l;.m:[F // field@220d
+1a43bc: 3653 0a00                              |025c: if-gt v3, v5, 0266 // +000a
+1a43c0: 4b04 0703                              |025e: aput v4, v7, v3
+1a43c4: 1507 8841                              |0260: const/high16 v7, #int 1099431936 // #4188
+1a43c8: c774                                   |0262: sub-float/2addr v4, v7
+1a43ca: d803 0301                              |0263: add-int/lit8 v3, v3, #int 1 // #01
+1a43ce: 28f5                                   |0265: goto 025a // -000b
+1a43d0: 0123                                   |0266: move v3, v2
+1a43d2: 3683 0900                              |0267: if-gt v3, v8, 0270 // +0009
+1a43d6: 4b04 0703                              |0269: aput v4, v7, v3
+1a43da: a704 0411                              |026b: sub-float v4, v4, v17
+1a43de: d803 0301                              |026d: add-int/lit8 v3, v3, #int 1 // #01
+1a43e2: 28f8                                   |026f: goto 0267 // -0008
+1a43e4: 0163                                   |0270: move v3, v6
+1a43e6: 36b3 0900                              |0271: if-gt v3, v11, 027a // +0009
+1a43ea: 4b04 0703                              |0273: aput v4, v7, v3
+1a43ee: a704 0412                              |0275: sub-float v4, v4, v18
+1a43f2: d803 0301                              |0277: add-int/lit8 v3, v3, #int 1 // #01
+1a43f6: 28f8                                   |0279: goto 0271 // -0008
+1a43f8: 0193                                   |027a: move v3, v9
+1a43fa: 1304 4600                              |027b: const/16 v4, #int 70 // #46
+1a43fe: 3643 0900                              |027d: if-gt v3, v4, 0286 // +0009
+1a4402: 1504 b841                              |027f: const/high16 v4, #int 1102577664 // #41b8
+1a4406: 4b04 0703                              |0281: aput v4, v7, v3
+1a440a: d803 0301                              |0283: add-int/lit8 v3, v3, #int 1 // #01
+1a440e: 28f6                                   |0285: goto 027b // -000a
+1a4410: 1203                                   |0286: const/4 v3, #int 0 // #0
+1a4412: 6204 0e22                              |0287: sget-object v4, Lz2/l;.n:[F // field@220e
+1a4416: 3623 0700                              |0289: if-gt v3, v2, 0290 // +0007
+1a441a: 4b01 0403                              |028b: aput v1, v4, v3
+1a441e: d803 0301                              |028d: add-int/lit8 v3, v3, #int 1 // #01
+1a4422: 28f8                                   |028f: goto 0287 // -0008
+1a4424: 1303 0b00                              |0290: const/16 v3, #int 11 // #b
+1a4428: 0117                                   |0292: move v7, v1
+1a442a: 0135                                   |0293: move v5, v3
+1a442c: 3695 0900                              |0294: if-gt v5, v9, 029d // +0009
+1a4430: a707 0710                              |0296: sub-float v7, v7, v16
+1a4434: 4b07 0405                              |0298: aput v7, v4, v5
+1a4438: d805 0501                              |029a: add-int/lit8 v5, v5, #int 1 // #01
+1a443c: 28f8                                   |029c: goto 0294 // -0008
+1a443e: 1305 1f00                              |029d: const/16 v5, #int 31 // #1f
+1a4442: 0158                                   |029f: move v8, v5
+1a4444: 36c8 0800                              |02a0: if-gt v8, v12, 02a8 // +0008
+1a4448: c7f7                                   |02a2: sub-float/2addr v7, v15
+1a444a: 4b07 0408                              |02a3: aput v7, v4, v8
+1a444e: d808 0801                              |02a5: add-int/lit8 v8, v8, #int 1 // #01
+1a4452: 28f9                                   |02a7: goto 02a0 // -0007
+1a4454: 1308 2900                              |02a8: const/16 v8, #int 41 // #29
+1a4458: 018a                                   |02aa: move v10, v8
+1a445a: 360a 0800                              |02ab: if-gt v10, v0, 02b3 // +0008
+1a445e: c7f7                                   |02ad: sub-float/2addr v7, v15
+1a4460: 4b07 040a                              |02ae: aput v7, v4, v10
+1a4464: d80a 0a01                              |02b0: add-int/lit8 v10, v10, #int 1 // #01
+1a4468: 28f9                                   |02b2: goto 02ab // -0007
+1a446a: 1204                                   |02b3: const/4 v4, #int 0 // #0
+1a446c: 6207 0f22                              |02b4: sget-object v7, Lz2/l;.o:[F // field@220f
+1a4470: 3624 0700                              |02b6: if-gt v4, v2, 02bd // +0007
+1a4474: 4b01 0704                              |02b8: aput v1, v7, v4
+1a4478: d804 0401                              |02ba: add-int/lit8 v4, v4, #int 1 // #01
+1a447c: 28f8                                   |02bc: goto 02b4 // -0008
+1a447e: 3663 0900                              |02bd: if-gt v3, v6, 02c6 // +0009
+1a4482: a701 0110                              |02bf: sub-float v1, v1, v16
+1a4486: 4b01 0703                              |02c1: aput v1, v7, v3
+1a448a: d803 0301                              |02c3: add-int/lit8 v3, v3, #int 1 // #01
+1a448e: 28f8                                   |02c5: goto 02bd // -0008
+1a4490: 1301 1500                              |02c6: const/16 v1, #int 21 // #15
+1a4494: 1502 5243                              |02c8: const/high16 v2, #int 1129447424 // #4352
+1a4498: 3691 0700                              |02ca: if-gt v1, v9, 02d1 // +0007
+1a449c: 4b02 0701                              |02cc: aput v2, v7, v1
+1a44a0: d801 0101                              |02ce: add-int/lit8 v1, v1, #int 1 // #01
+1a44a4: 28f8                                   |02d0: goto 02c8 // -0008
+1a44a6: 36c5 0700                              |02d1: if-gt v5, v12, 02d8 // +0007
+1a44aa: 4b02 0705                              |02d3: aput v2, v7, v5
+1a44ae: d805 0501                              |02d5: add-int/lit8 v5, v5, #int 1 // #01
+1a44b2: 28fa                                   |02d7: goto 02d1 // -0006
+1a44b4: 3608 0700                              |02d8: if-gt v8, v0, 02df // +0007
+1a44b8: 4b02 0708                              |02da: aput v2, v7, v8
+1a44bc: d808 0801                              |02dc: add-int/lit8 v8, v8, #int 1 // #01
+1a44c0: 28fa                                   |02de: goto 02d8 // -0006
+1a44c2: 0e00                                   |02df: return-void
+1a44c4: 0003 0400 0300 0000 0000 0000 0000 ... |02e0: array-data (10 units)
+1a44d8: 0003 0400 0300 0000 0000 0000 0000 ... |02ea: array-data (10 units)
+      catches       : (none)
+      positions     :
+      locals        :
+
+  Virtual methods   -
+  source_file_idx   : 5734 (SourceFile)
+
+Class #2266            -

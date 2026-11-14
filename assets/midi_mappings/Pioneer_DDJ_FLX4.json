@@ -1,0 +1,32 @@
+{
+  "device_name": "Pioneer DDJ-FLX4",
+  "mappings": [
+    { "action_id": "deck0_play", "status": 144, "data1": 11, "type": 0 },
+    { "action_id": "deck0_cue", "status": 144, "data1": 12, "type": 1 },
+    { "action_id": "deck0_sync", "status": 144, "data1": 88, "type": 0 },
+    { "action_id": "deck0_volume", "status": 176, "data1": 19, "type": 2 },
+    { "action_id": "deck0_eq_high", "status": 176, "data1": 7, "type": 2 },
+    { "action_id": "deck0_eq_mid", "status": 176, "data1": 11, "type": 2 },
+    { "action_id": "deck0_eq_low", "status": 176, "data1": 15, "type": 2 },
+    { "action_id": "deck0_cfx_filter", "status": 176, "data1": 23, "type": 2 },
+    { "action_id": "deck0_jog_turn", "status": 176, "data1": 33, "type": 3 },
+    { "action_id": "deck0_jog_touch", "status": 144, "data1": 54, "type": 1 },
+
+    { "action_id": "deck1_play", "status": 145, "data1": 11, "type": 0 },
+    { "action_id": "deck1_cue", "status": 145, "data1": 12, "type": 1 },
+    { "action_id": "deck1_sync", "status": 145, "data1": 88, "type": 0 },
+    { "action_id": "deck1_volume", "status": 177, "data1": 19, "type": 2 },
+    { "action_id": "deck1_eq_high", "status": 177, "data1": 7, "type": 2 },
+    { "action_id": "deck1_eq_mid", "status": 177, "data1": 11, "type": 2 },
+    { "action_id": "deck1_eq_low", "status": 177, "data1": 15, "type": 2 },
+    { "action_id": "deck1_cfx_filter", "status": 177, "data1": 23, "type": 2 },
+    { "action_id": "deck1_jog_turn", "status": 177, "data1": 33, "type": 3 },
+    { "action_id": "deck1_jog_touch", "status": 145, "data1": 54, "type": 1 },
+
+    { "action_id": "crossfader", "status": 176, "data1": 31, "type": 2 },
+    { "action_id": "headphone_cue_mix", "status": 176, "data1": 84, "type": 2 },
+    { "action_id": "headphone_cue_vol", "status": 176, "data1": 85, "type": 2 },
+    { "action_id": "deck0_headphone_cue", "status": 144, "data1": 84, "type": 0 },
+    { "action_id": "deck1_headphone_cue", "status": 145, "data1": 84, "type": 0 }
+  ]
+}

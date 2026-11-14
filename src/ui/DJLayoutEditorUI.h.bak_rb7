@@ -1,0 +1,736 @@
+#pragma once
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "IconsFontAwesome6.h"
+#include "DJLayoutMetrics.h"
+#include "UIScaleManager.h"
+#include <string>
+#include <algorithm>
+#include <cstdio>
+
+namespace KuroUI {
+
+    class DJLayoutEditorUI {
+    public:
+        // Helper universal para Sliders táteis (Touch & Mouse Friendly) com botões de incremento/decremento
+        static bool TouchSlider(const char* label, const char* id, float* p_val, float v_min, float v_max, 
+                                float step, const char* fmt, float default_val, const char* tooltip) {
+            ImGui::PushID(id);
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            
+            // 1. Linha Superior: Nome do Controle + Badge de Valor Estilizado
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextColored(ImVec4(0.92f, 0.94f, 0.98f, 1.0f), "%s", label);
+            
+            char val_buf[32];
+            snprintf(val_buf, sizeof(val_buf), fmt, *p_val);
+            ImVec2 val_sz = ImGui::CalcTextSize(val_buf);
+            
+            float avail_w = ImGui::GetContentRegionAvail().x;
+            float badge_w = val_sz.x + 20.0f;
+            ImGui::SameLine(avail_w - badge_w + ImGui::GetCursorPosX() - 6.0f);
+            
+            ImVec2 badge_min = ImGui::GetCursorScreenPos();
+            ImVec2 badge_max = ImVec2(badge_min.x + badge_w, badge_min.y + 22.0f);
+            dl->AddRectFilled(badge_min, badge_max, IM_COL32(18, 24, 34, 255), 3.0f);
+            dl->AddRect(badge_min, badge_max, IM_COL32(0, 200, 255, 180), 3.0f);
+            dl->AddText(ImVec2(badge_min.x + 10.0f, badge_min.y + 3.0f), IM_COL32(0, 230, 255, 255), val_buf);
+            ImGui::Dummy(ImVec2(badge_w, 22.0f));
+            
+            // 2. Linha de Ação Tátil: [ - ] ============= Slider ============= [ + ] [ ⟲ ]
+            float btn_w = 42.0f;
+            float btn_h = 32.0f;
+            float gap = 6.0f;
+            float reset_w = 34.0f;
+            float slider_w = std::max(120.0f, avail_w - btn_w * 2.0f - reset_w - gap * 3.0f);
+            
+            bool changed = false;
+            
+            // Botão [ - ] (Subtrair passo)
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.26f, 0.36f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.60f, 0.90f, 1.0f));
+            if (ImGui::Button("-##sub", ImVec2(btn_w, btn_h))) {
+                *p_val = std::clamp(*p_val - step, v_min, v_max);
+                changed = true;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Reduzir (-%s)", fmt);
+            
+            ImGui::SameLine(0, gap);
+            
+            // Slider Largo Amplo (Fácil de arrastar com mouse ou toque)
+            ImGui::PushItemWidth(slider_w);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 7.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.10f, 0.13f, 0.18f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.0f, 0.78f, 1.0f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.20f, 0.95f, 1.0f, 1.0f));
+            if (ImGui::SliderFloat("##sld", p_val, v_min, v_max, "")) {
+                changed = true;
+            }
+            if (ImGui::IsItemHovered()) {
+                if (ImGui::IsMouseDoubleClicked(0)) {
+                    *p_val = default_val;
+                    changed = true;
+                }
+                if (tooltip && tooltip[0]) {
+                    ImGui::SetTooltip("%s\n(Duplo clique para restaurar padrão: %s)", tooltip, val_buf);
+                }
+            }
+            ImGui::PopStyleColor(4);
+            ImGui::PopStyleVar();
+            ImGui::PopItemWidth();
+            
+            ImGui::SameLine(0, gap);
+            
+            // Botão [ + ] (Somar passo)
+            if (ImGui::Button("+##add", ImVec2(btn_w, btn_h))) {
+                *p_val = std::clamp(*p_val + step, v_min, v_max);
+                changed = true;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Aumentar (+%s)", fmt);
+            
+            ImGui::SameLine(0, gap);
+            
+            // Botão Reset [ ⟲ ]
+            if (ImGui::Button(ICON_FA_ROTATE_LEFT "##rst", ImVec2(reset_w, btn_h))) {
+                *p_val = default_val;
+                changed = true;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restaurar valor padrão");
+            
+            ImGui::PopStyleColor(3);
+            ImGui::PopID();
+            
+            ImGui::Dummy(ImVec2(0.0f, 6.0f));
+            return changed;
+        }
+
+        // =========================================================================
+        // ENGINE VISUAL INTERATIVA (GIZMO NO CANVAS: SELEÇÃO, TAMANHO, ORIENTAÇÃO & ARRASTO)
+        // =========================================================================
+        static bool DrawCanvasGizmo(DJSelectableWidgetId id, const char* name, ImVec2 min, ImVec2 max,
+                                    int* p_orientation = nullptr, float* p_dim1 = nullptr, float dim1_step = 2.0f,
+                                    float dim1_min = 10.0f, float dim1_max = 500.0f,
+                                    float* p_offset_x = nullptr, float* p_offset_y = nullptr) {
+            auto& metrics = DJLayoutMetrics::getInstance();
+            if (!metrics.edit_mode_active) return false;
+
+            ImDrawList* dl = ImGui::GetForegroundDrawList();
+            bool is_selected = (metrics.selected_edit_widget == (int)id);
+            bool is_hovered = ImGui::IsMouseHoveringRect(min, max);
+
+            if (is_hovered && !is_selected) {
+                // Efeito Hover: Borda Ciano Pulsante Neon com Tag de Identificação
+                dl->AddRect(min, max, IM_COL32(0, 225, 255, 190), 3.0f, 0, 1.8f);
+                ImVec2 t_sz = ImGui::CalcTextSize(name);
+                dl->AddRectFilled(ImVec2(min.x + 3.0f, min.y + 3.0f), ImVec2(min.x + t_sz.x + 16.0f, min.y + 20.0f), IM_COL32(10, 16, 26, 235), 3.0f);
+                dl->AddRect(ImVec2(min.x + 3.0f, min.y + 3.0f), ImVec2(min.x + t_sz.x + 16.0f, min.y + 20.0f), IM_COL32(0, 200, 255, 180), 3.0f);
+                dl->AddText(ImVec2(min.x + 8.0f, min.y + 4.0f), IM_COL32(0, 235, 255, 255), name);
+
+                if (ImGui::IsMouseClicked(0)) {
+                    metrics.selected_edit_widget = (int)id;
+                    return true;
+                }
+            }
+
+            if (is_selected) {
+                // Efeito Selecionado: Moldura Dourada Pioneer com Alças nos 4 Cantos
+                dl->AddRect(min, max, IM_COL32(255, 195, 20, 255), 4.0f, 0, 2.5f);
+                float hs = 8.0f;
+                dl->AddRectFilled(ImVec2(min.x - 2.0f, min.y - 2.0f), ImVec2(min.x + hs, min.y + hs), IM_COL32(255, 195, 20, 255));
+                dl->AddRectFilled(ImVec2(max.x - hs, min.y - 2.0f), ImVec2(max.x + 2.0f, min.y + hs), IM_COL32(255, 195, 20, 255));
+                dl->AddRectFilled(ImVec2(min.x - 2.0f, max.y - hs), ImVec2(min.x + hs, max.y + 2.0f), IM_COL32(255, 195, 20, 255));
+                dl->AddRectFilled(ImVec2(max.x - hs, max.y - hs), ImVec2(max.x + 2.0f, max.y + 2.0f), IM_COL32(255, 195, 20, 255));
+
+                // Floating On-Canvas Quick Action HUD Pill
+                float hud_w = 310.0f;
+                float hud_h = 32.0f;
+                float hud_x = std::clamp(min.x + (max.x - min.x - hud_w) * 0.5f, 10.0f, ImGui::GetIO().DisplaySize.x - hud_w - 10.0f);
+                float hud_y = (min.y > 45.0f) ? (min.y - hud_h - 6.0f) : (max.y + 6.0f);
+
+                ImVec2 hud_min = ImVec2(hud_x, hud_y);
+                ImVec2 hud_max = ImVec2(hud_x + hud_w, hud_y + hud_h);
+
+                dl->AddRectFilled(hud_min, hud_max, IM_COL32(14, 18, 26, 245), 5.0f);
+                dl->AddRect(hud_min, hud_max, IM_COL32(255, 195, 20, 220), 5.0f, 0, 1.5f);
+
+                ImGui::SetCursorScreenPos(ImVec2(hud_min.x + 8.0f, hud_min.y + 4.0f));
+                ImGui::PushID(name);
+
+                // Badge do Nome
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.20f, 1.0f), "%s", name);
+                ImGui::SameLine(0, 8.0f);
+
+                // Alternador de Orientação: [ ↔ ] vs [ ↕ ]
+                if (p_orientation) {
+                    bool is_vert = (*p_orientation == 1);
+                    ImGui::PushStyleColor(ImGuiCol_Button, is_vert ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.18f, 0.24f, 0.32f, 1.0f));
+                    if (ImGui::Button(is_vert ? ICON_FA_ARROWS_UP_DOWN " ↕" : ICON_FA_ARROWS_LEFT_RIGHT " ↔", ImVec2(44.0f, 24.0f))) {
+                        *p_orientation = 1 - *p_orientation;
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Alternar Orientação (%s -> Clique para %s)",
+                                                                 is_vert ? "VERTICAL" : "HORIZONTAL",
+                                                                 is_vert ? "HORIZONTAL" : "VERTICAL");
+                    ImGui::PopStyleColor();
+                    ImGui::SameLine(0, 6.0f);
+                }
+
+                // Ajuste de Dimensão Rápido: [-] e [+]
+                if (p_dim1) {
+                    if (ImGui::Button("-##gizmo_sub", ImVec2(26.0f, 24.0f))) {
+                        *p_dim1 = std::clamp(*p_dim1 - dim1_step, dim1_min, dim1_max);
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Diminuir tamanho (-%.0f)", dim1_step);
+                    ImGui::SameLine(0, 4.0f);
+                    if (ImGui::Button("+##gizmo_add", ImVec2(26.0f, 24.0f))) {
+                        *p_dim1 = std::clamp(*p_dim1 + dim1_step, dim1_min, dim1_max);
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Aumentar tamanho (+%.0f)", dim1_step);
+                    ImGui::SameLine(0, 6.0f);
+                }
+
+                // Alça de Arraste Livre: [ ✥ Mover ]
+                if (p_offset_x || p_offset_y) {
+                    ImGui::Button(ICON_FA_UP_DOWN_LEFT_RIGHT "##drag_gizmo", ImVec2(28.0f, 24.0f));
+                    if (ImGui::IsItemActive()) {
+                        if (p_offset_x) *p_offset_x += ImGui::GetIO().MouseDelta.x;
+                        if (p_offset_y) *p_offset_y += ImGui::GetIO().MouseDelta.y;
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Segure e arraste para reposicionar livremente!");
+                    ImGui::SameLine(0, 6.0f);
+                }
+
+                // Botão Fechar/Desmarcar: [ ✕ ]
+                if (ImGui::Button(ICON_FA_XMARK "##close_gizmo", ImVec2(24.0f, 24.0f))) {
+                    metrics.selected_edit_widget = WIDGET_NONE;
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Desmarcar objeto");
+
+                ImGui::PopID();
+            }
+
+            return is_selected;
+        }
+
+        static void RenderEditToolbar() {
+            auto& metrics = DJLayoutMetrics::getInstance();
+            if (!metrics.edit_mode_active) return;
+
+            ImGuiViewport* vp = ImGui::GetMainViewport();
+
+            // Janela Flutuante Móvel e Redimensionável (Nunca mais cobre o topo cegamente)
+            ImGui::SetNextWindowSize(ImVec2(720.0f, 640.0f), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + (vp->Size.x - 720.0f) * 0.5f, vp->Pos.y + 60.0f), ImGuiCond_FirstUseEver);
+
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
+
+            // Tema visual escuro Club com borda dourada Pioneer
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.06f, 0.08f, 0.11f, 0.98f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.12f, 0.16f, 0.22f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.15f, 0.20f, 0.28f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 0.70f, 0.10f, 0.90f));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.5f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(16.0f, 14.0f));
+
+            bool window_open = metrics.edit_mode_active;
+            if (ImGui::Begin(ICON_FA_SLIDERS "  ESTÚDIO DE ESCALONAMENTO E LAYOUT (WYSIWYG)", &window_open, flags)) {
+                metrics.edit_mode_active = window_open;
+                if (!window_open) {
+                    metrics.saveToFile();
+                }
+
+                // Cabeçalho de Orientação
+                ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_PEN_RULER " PERSONALIZAÇÃO VISUAL & ERGONOMIA LIVRE");
+                ImGui::TextColored(ImVec4(0.70f, 0.80f, 0.90f, 0.90f), 
+                    "Ajuste cada módulo individualmente com os botões [+] e [-] ou arrastando os sliders.\n"
+                    "As alterações entram em vigor instantaneamente e são salvas automaticamente.");
+                ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                if (ImGui::BeginTabBar("##LayoutStudioTabs", ImGuiTabBarFlags_None)) {
+                    
+                    // =========================================================================
+                    // ABA 0: OBJETO SELECIONADO (INSPECTOR VISUAL INSTANTÂNEO & ORIENTAÇÃO)
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_CROSSHAIRS " Objeto Selecionado")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        if (metrics.selected_edit_widget == WIDGET_NONE) {
+                            ImGui::TextColored(ImVec4(0.0f, 0.85f, 1.0f, 1.0f), ICON_FA_HAND_POINTER " CLIQUE EM QUALQUER ELEMENTO NA MESA:");
+                            ImGui::TextColored(ImVec4(0.70f, 0.80f, 0.90f, 0.90f), 
+                                "Clique diretamente nos Knobs de EQ, Faders de Volume, Crossfader, Jogwheels ou Pads\n"
+                                "para inspecionar e editar aqui instantaneamente.");
+                            ImGui::Dummy(ImVec2(0.0f, 8.0f));
+                            ImGui::Separator();
+                            ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                            ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), "OU SELECIONE UM MÓDULO PARA CUSTOMIZAR:");
+                            float bw = 210.0f;
+                            float bh = 36.0f;
+                            if (ImGui::Button(ICON_FA_SLIDERS " Knobs de Equalização (EQ)", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_KNOBS_EQ; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN " Faders de Volume", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_CHANNEL_FADERS; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT " Crossfader Central", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_CROSSFADER; }
+
+                            if (ImGui::Button(ICON_FA_COMPACT_DISC " Pratos / Jogwheel", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_JOGWHEEL; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_GRIP " Performance Pads", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_PADS; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_PLAY " Botões Play / Cue", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_TRANSPORT; }
+
+                            if (ImGui::Button(ICON_FA_WAVE_SQUARE " Waveforms Empilhadas", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_WAVEFORMS; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_BOLT " Rack de Efeitos FX", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_FX_BAR; }
+                            ImGui::SameLine(0, 10.0f);
+                            if (ImGui::Button(ICON_FA_TABLE_COLUMNS " Console do Mixer", ImVec2(bw, bh))) { metrics.selected_edit_widget = WIDGET_MIXER_CONSOLE; }
+                        } else {
+                            // Painel de edição do objeto ativo
+                            if (ImGui::Button(ICON_FA_XMARK " Desmarcar Objeto Ativo", ImVec2(180.0f, 28.0f))) {
+                                metrics.selected_edit_widget = WIDGET_NONE;
+                            }
+                            ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                            switch (metrics.selected_edit_widget) {
+                                case WIDGET_CROSSFADER: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_ARROWS_LEFT_RIGHT " CROSSFADER CENTRAL (Batalha / Transição)");
+                                    ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                                    // Alternador de Orientação
+                                    ImGui::Text("Orientação do Crossfader:");
+                                    bool is_h = (metrics.crossfader_orientation == 0);
+                                    ImGui::PushStyleColor(ImGuiCol_Button, is_h ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                                    if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT " Modo Horizontal ↔ (Padrão)", ImVec2(240.0f, 36.0f))) {
+                                        metrics.crossfader_orientation = 0;
+                                    }
+                                    ImGui::PopStyleColor();
+                                    ImGui::SameLine(0, 12.0f);
+                                    ImGui::PushStyleColor(ImGuiCol_Button, !is_h ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                                    if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN " Modo Vertical ↕ (Batalha/Scratch)", ImVec2(260.0f, 36.0f))) {
+                                        metrics.crossfader_orientation = 1;
+                                    }
+                                    ImGui::PopStyleColor();
+
+                                    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+                                    TouchSlider("Comprimento / Largura da Trilha", "xf_w_sel", &metrics.crossfader_width, 100.0f, 400.0f, 10.0f, "%.0f px", 250.0f, "Extensão do trilho do crossfader.");
+                                    TouchSlider("Altura / Pegada Tátil", "xf_h_sel", &metrics.crossfader_height, 22.0f, 56.0f, 2.0f, "%.0f px", 36.0f, "Área de toque e altura do cap.");
+                                    TouchSlider("Deslocamento Horizontal (Arrastar X)", "xf_off_x", &metrics.crossfader_offset_x, -120.0f, 120.0f, 2.0f, "%.0f px", 0.0f, "Posição livre horizontal do crossfader.");
+                                    TouchSlider("Deslocamento Vertical (Arrastar Y)", "xf_off_y", &metrics.crossfader_offset_y, -60.0f, 60.0f, 2.0f, "%.0f px", 0.0f, "Posição livre vertical do crossfader.");
+                                    break;
+                                }
+                                case WIDGET_KNOBS_EQ: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_SLIDERS " KNOBS DE EQUALIZAÇÃO (TRIM, COMP, HIGH, MID, LOW)");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Raio dos Knobs de EQ (Tamanho)", "knob_r_sel", &metrics.knob_radius_eq, 8.0f, 30.0f, 1.0f, "R: %.0f px", 18.0f, "Diâmetro dos botões de equalização.");
+                                    TouchSlider("Espaçamento Vertical entre Knobs (Gap)", "knob_sp_sel", &metrics.knob_spacing, 2.0f, 35.0f, 1.0f, "%.0f px", 8.0f, "Distância de respiro entre os botões para nunca sobrepor.");
+                                    TouchSlider("Deslocamento Vertical Y (Arrastar)", "knob_off_y", &metrics.mixer_knobs_offset_y, -50.0f, 50.0f, 2.0f, "%.0f px", 0.0f, "Posição vertical do bloco de equalização.");
+                                    break;
+                                }
+                                case WIDGET_CHANNEL_FADERS: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_ARROWS_UP_DOWN " FADERS DE CANAL (VOLUME DE ÁUDIO)");
+                                    ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                                    // Alternador de Orientação dos Faders de Canal
+                                    ImGui::Text("Orientação dos Faders de Canal:");
+                                    bool is_f_v = (metrics.channel_fader_orientation == 0);
+                                    ImGui::PushStyleColor(ImGuiCol_Button, is_f_v ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                                    if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN " Modo Vertical ↕ (Padrão Club)", ImVec2(240.0f, 36.0f))) {
+                                        metrics.channel_fader_orientation = 0;
+                                    }
+                                    ImGui::PopStyleColor();
+                                    ImGui::SameLine(0, 12.0f);
+                                    ImGui::PushStyleColor(ImGuiCol_Button, !is_f_v ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                                    if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT " Modo Horizontal ↔ (Ergonomia Ampla)", ImVec2(260.0f, 36.0f))) {
+                                        metrics.channel_fader_orientation = 1;
+                                    }
+                                    ImGui::PopStyleColor();
+
+                                    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+                                    TouchSlider("Comprimento / Altura do Fader", "fader_h_sel", &metrics.fader_height, 40.0f, 220.0f, 5.0f, "%.0f px", 150.0f, "Comprimento da trilha do fader de canal.");
+                                    TouchSlider("Largura da Pegada do Fader (Knob Cap)", "fader_w_sel", &metrics.fader_width, 16.0f, 44.0f, 2.0f, "%.0f px", 28.0f, "Espessura da pegada para toque e clique.");
+                                    TouchSlider("Deslocamento Vertical Y (Arrastar)", "fader_off_y", &metrics.mixer_faders_offset_y, -50.0f, 50.0f, 2.0f, "%.0f px", 0.0f, "Posição vertical do bloco de faders.");
+                                    break;
+                                }
+                                case WIDGET_JOGWHEEL: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_COMPACT_DISC " PRATOS DE VINIL & JOGWHEELS");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Diâmetro do Prato de Vinil / Jogwheel", "jog_d_sel", &metrics.jogwheel_diameter, 80.0f, 500.0f, 10.0f, "%.0f px", 240.0f, "Tamanho total do disco giratório.");
+                                    TouchSlider("Proporção do Display Central On-Jog", "jog_c_sel", &metrics.jogwheel_center_ratio, 0.20f, 0.65f, 0.02f, "%.2f", 0.42f, "Tamanho do mostrador LCD central.");
+                                    ImGui::Checkbox("Modo Motorizado / Inércia de Rotação", &metrics.jogwheel_motorized_mode);
+                                    break;
+                                }
+                                case WIDGET_PADS: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_GRIP " PERFORMANCE PADS");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Largura dos Performance Pads", "pad_w_sel", &metrics.pad_width, 28.0f, 140.0f, 2.0f, "%.0f px", 56.0f, "Largura individual de cada pad.");
+                                    TouchSlider("Altura dos Performance Pads", "pad_h_sel", &metrics.pad_height, 20.0f, 120.0f, 2.0f, "%.0f px", 42.0f, "Altura individual de cada pad.");
+                                    TouchSlider("Espaçamento entre Pads (Gap)", "pad_g_sel", &metrics.pad_gap, 1.0f, 16.0f, 1.0f, "%.0f px", 5.0f, "Distância de respiro entre os pads.");
+                                    TouchSlider("Escala da Fonte dos Pads", "pad_f_sel", &metrics.pad_font_scale, 0.80f, 2.00f, 0.05f, "%.2fx", 1.20f, "Legibilidade das legendas e números.");
+                                    break;
+                                }
+                                case WIDGET_TRANSPORT: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_PLAY " TRANSPORTE (PLAY / PAUSE & CUE)");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Raio dos Botões Redondos Play/Cue", "tr_r_sel", &metrics.transport_button_radius, 12.0f, 42.0f, 1.0f, "R: %.0f px", 24.0f, "Tamanho dos botões circulares.");
+                                    TouchSlider("Largura da Coluna de Transporte", "tr_w_sel", &metrics.transport_column_width, 60.0f, 130.0f, 4.0f, "%.0f px", 82.0f, "Largura dedicada da coluna lateral.");
+                                    break;
+                                }
+                                case WIDGET_WAVEFORMS: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_WAVE_SQUARE " FORMAS DE ONDA EMPILHADAS (WAVEFORMS)");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Altura das Waveforms Empilhadas", "wav_h_sel", &metrics.waveform_height, 70.0f, 320.0f, 10.0f, "%.0f px", 165.0f, "Espaço vertical das ondas.");
+                                    TouchSlider("Alongamento Horizontal de Transientes", "wav_s_sel", &metrics.waveform_horizontal_stretch, 1.00f, 4.00f, 0.10f, "%.2fx", 1.65f, "Abre a forma de onda horizontalmente.");
+                                    break;
+                                }
+                                case WIDGET_FX_BAR: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_BOLT " RACK DE EFEITOS FX (BEAT FX & CFX)");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Altura do Rack de Efeitos", "fx_h_sel", &metrics.fx_bar_height, 48.0f, 110.0f, 4.0f, "%.0f px", 64.0f, "Altura total da barra horizontal superior.");
+                                    break;
+                                }
+                                case WIDGET_MIXER_CONSOLE:
+                                default: {
+                                    ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), ICON_FA_TABLE_COLUMNS " CONSOLE DO MIXER CENTRAL");
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                    TouchSlider("Largura do Console do Mixer", "mix_w_sel", &metrics.mixer_width, 140.0f, 600.0f, 10.0f, "%.0f px", 280.0f, "Largura total entre os decks.");
+                                    TouchSlider("Espaçamento entre Canais (Gap)", "mix_g_sel", &metrics.mixer_channel_gap, 2.0f, 20.0f, 1.0f, "%.0f px", 6.0f, "Espaço entre canal esquerdo e direito.");
+                                    break;
+                                }
+                            }
+                        }
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 1: GERAL & ESCALA GLOBAL
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_EXPAND " Geral & Escala")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                        
+                        TouchSlider("Escala Global da Interface", "master_scale", &metrics.master_scale, 
+                                    0.50f, 3.00f, 0.05f, "%.2fx", 1.15f, 
+                                    "Ajusta o tamanho de todos os botões, pratos, faders e tipografia simultaneamente.");
+
+                        TouchSlider("Tamanho da Fonte de BPM / Pitch", "bpm_font_scale", &metrics.bpm_font_scale,
+                                    0.80f, 2.50f, 0.05f, "%.2fx", 1.30f,
+                                    "Escala da tipografia de BPM nos decks para facilitar a leitura à distância.");
+
+                        TouchSlider("Tamanho da Fonte de Faixa & Tempos", "track_title_font_scale", &metrics.track_title_font_scale,
+                                    0.80f, 2.00f, 0.05f, "%.2fx", 1.20f,
+                                    "Escala das informações de título, artista e relógio de tempo.");
+
+                        TouchSlider("Tamanho da Fonte dos Performance Pads", "pad_font_scale", &metrics.pad_font_scale,
+                                    0.80f, 2.00f, 0.05f, "%.2fx", 1.20f,
+                                    "Escala das legendas e números dentro dos 8 pads de cada deck.");
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        ImGui::Checkbox("Rasterização Ultra-Sharp 4K (Anti-Aliased)", &metrics.enable_anti_aliased_4k);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Renderiza curvas e linhas vetoriais com anti-aliasing orgânico de alta definição.");
+
+                        ImGui::SameLine(0, 20.0f);
+                        ImGui::Checkbox("Animações Dinâmicas e Glows", &metrics.enable_visual_animations);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ativa transições de iluminação, pulsos luminosos de beat e rotação a 60fps.");
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 2: MIXER CENTRAL & FADERS
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_SLIDERS " Mixer Central")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        TouchSlider("Largura do Console do Mixer", "mixer_width", &metrics.mixer_width,
+                                    140.0f, 600.0f, 10.0f, "%.0f px", 280.0f,
+                                    "Largura total da coluna central do mixer entre os decks A e B.");
+
+                        TouchSlider("Espaçamento entre Canais (Gap)", "mixer_channel_gap", &metrics.mixer_channel_gap,
+                                    2.0f, 20.0f, 1.0f, "%.0f px", 6.0f,
+                                    "Distância lateral entre os canais 1 e 2 no console.");
+
+                        TouchSlider("Raio dos Knobs de Equalização (EQ)", "knob_radius_eq", &metrics.knob_radius_eq,
+                                    8.0f, 30.0f, 1.0f, "R: %.0f px", 18.0f,
+                                    "Diâmetro dos botões giratórios de High, Mid e Low.");
+
+                        TouchSlider("Espaçamento Vertical entre Knobs de EQ (Gap)", "knob_spacing", &metrics.knob_spacing,
+                                    2.0f, 35.0f, 1.0f, "%.0f px", 8.0f,
+                                    "Distância vertical de respiro entre os knobs de TRIM, HIGH, MID e LOW para nunca sobrepor.");
+
+                        TouchSlider("Deslocamento Vertical Y dos Knobs", "mixer_knobs_offset_y", &metrics.mixer_knobs_offset_y,
+                                    -50.0f, 50.0f, 2.0f, "%.0f px", 0.0f,
+                                    "Ajuste fino da posição vertical do rack de knobs de equalização.");
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        // Orientação dos Faders de Canal
+                        ImGui::Text("Orientação dos Faders de Canal (Volume):");
+                        bool is_cf_vert = (metrics.channel_fader_orientation == 0);
+                        ImGui::PushStyleColor(ImGuiCol_Button, is_cf_vert ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                        if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN " ↕ Vertical (Padrão Club)", ImVec2(230.0f, 34.0f))) {
+                            metrics.channel_fader_orientation = 0;
+                        }
+                        ImGui::PopStyleColor();
+                        ImGui::SameLine(0, 10.0f);
+                        ImGui::PushStyleColor(ImGuiCol_Button, !is_cf_vert ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                        if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT " ↔ Horizontal (Ergonomia Ampla)", ImVec2(250.0f, 34.0f))) {
+                            metrics.channel_fader_orientation = 1;
+                        }
+                        ImGui::PopStyleColor();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        TouchSlider("Altura dos Faders de Canal (Volume)", "fader_height", &metrics.fader_height,
+                                    40.0f, 220.0f, 5.0f, "%.0f px", 150.0f,
+                                    "Comprimento da trilha vertical do fader de volume de cada deck.");
+
+                        TouchSlider("Largura da Pegada do Fader (Knob Cap)", "fader_width", &metrics.fader_width,
+                                    16.0f, 44.0f, 2.0f, "%.0f px", 28.0f,
+                                    "Largura física do cap de arrasto do fader (facilita o toque e clique).");
+
+                        TouchSlider("Deslocamento Vertical Y dos Faders", "mixer_faders_offset_y", &metrics.mixer_faders_offset_y,
+                                    -50.0f, 50.0f, 2.0f, "%.0f px", 0.0f,
+                                    "Ajuste fino da posição vertical do rack de faders de canal.");
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        // Orientação do Crossfader
+                        ImGui::Text("Orientação do Crossfader:");
+                        bool is_xf_h = (metrics.crossfader_orientation == 0);
+                        ImGui::PushStyleColor(ImGuiCol_Button, is_xf_h ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                        if (ImGui::Button(ICON_FA_ARROWS_LEFT_RIGHT " ↔ Horizontal (Padrão Rekordbox)", ImVec2(240.0f, 34.0f))) {
+                            metrics.crossfader_orientation = 0;
+                        }
+                        ImGui::PopStyleColor();
+                        ImGui::SameLine(0, 10.0f);
+                        ImGui::PushStyleColor(ImGuiCol_Button, !is_xf_h ? ImVec4(0.0f, 0.55f, 0.85f, 1.0f) : ImVec4(0.14f, 0.18f, 0.25f, 1.0f));
+                        if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN " ↕ Vertical (Batalha / Scratch)", ImVec2(250.0f, 34.0f))) {
+                            metrics.crossfader_orientation = 1;
+                        }
+                        ImGui::PopStyleColor();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        TouchSlider("Largura do Crossfader", "crossfader_width", &metrics.crossfader_width,
+                                    120.0f, 400.0f, 10.0f, "%.0f px", 250.0f,
+                                    "Comprimento horizontal do rasgo do crossfader na base do mixer.");
+
+                        TouchSlider("Altura / Área Tátil do Crossfader", "crossfader_height", &metrics.crossfader_height,
+                                    24.0f, 56.0f, 2.0f, "%.0f px", 36.0f,
+                                    "Altura da área de clique e toque do crossfader.");
+
+                        TouchSlider("Deslocamento Horizontal X do Crossfader", "crossfader_offset_x", &metrics.crossfader_offset_x,
+                                    -120.0f, 120.0f, 2.0f, "%.0f px", 0.0f,
+                                    "Posição livre horizontal do crossfader.");
+
+                        TouchSlider("Deslocamento Vertical Y do Crossfader", "crossfader_offset_y", &metrics.crossfader_offset_y,
+                                    -60.0f, 60.0f, 2.0f, "%.0f px", 0.0f,
+                                    "Posição livre vertical do crossfader.");
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 3: PRATOS & VINIL / JOG
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_COMPACT_DISC " Vinil & Jog")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        TouchSlider("Diâmetro do Prato de Vinil / Jogwheel", "jogwheel_diameter", &metrics.jogwheel_diameter,
+                                    80.0f, 500.0f, 10.0f, "%.0f px", 240.0f,
+                                    "Tamanho do disco giratório (permite desde pratos compactos até vinil de 12 polegadas).");
+
+                        TouchSlider("Proporção do Display Central On-Jog", "jogwheel_center_ratio", &metrics.jogwheel_center_ratio,
+                                    0.20f, 0.65f, 0.02f, "%.2f", 0.42f,
+                                    "Tamanho do mostrador LCD / arte de capa no centro do jogwheel.");
+
+                        TouchSlider("Divisão Vertical Deck (Jog vs Pads)", "deck_tier_split_ratio", &metrics.deck_tier_split_ratio,
+                                    0.30f, 0.75f, 0.02f, "%.2f", 0.54f,
+                                    "Proporção de altura entre a baia superior (Jogwheel) e a bancada inferior (Pads).");
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        ImGui::Checkbox("Modo Motorizado / Inércia de Rotação", &metrics.jogwheel_motorized_mode);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Simula inércia física do vinil com rotação suave contínua a 33/45 RPM.");
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 4: PADS & TRANSPORTE (PLAY / CUE)
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_GRIP " Pads & Transporte")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        TouchSlider("Altura dos Performance Pads", "pad_height", &metrics.pad_height,
+                                    20.0f, 120.0f, 2.0f, "%.0f px", 42.0f,
+                                    "Altura individual de cada um dos 8 pads de performance.");
+
+                        TouchSlider("Largura dos Performance Pads", "pad_width", &metrics.pad_width,
+                                    28.0f, 140.0f, 2.0f, "%.0f px", 56.0f,
+                                    "Largura individual de cada pad de performance.");
+
+                        TouchSlider("Espaçamento entre Pads (Gap)", "pad_gap", &metrics.pad_gap,
+                                    1.0f, 16.0f, 1.0f, "%.0f px", 5.0f,
+                                    "Distância de respiro entre as teclas de pad.");
+
+                        TouchSlider("Raio dos Botões Redondos Play/Cue", "transport_button_radius", &metrics.transport_button_radius,
+                                    12.0f, 42.0f, 1.0f, "R: %.0f px", 24.0f,
+                                    "Tamanho dos botões circulares iluminados de CUE e PLAY/PAUSE.");
+
+                        TouchSlider("Largura da Coluna de Transporte", "transport_column_width", &metrics.transport_column_width,
+                                    60.0f, 130.0f, 4.0f, "%.0f px", 82.0f,
+                                    "Largura da coluna lateral reservada exclusivamente para o Play e Cue.");
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 5: WAVEFORMS & EFEITOS
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_WAVE_SQUARE " Waveforms & FX")) {
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        TouchSlider("Altura do Rack de Efeitos (Beat FX & CFX)", "fx_bar_height", &metrics.fx_bar_height,
+                                    48.0f, 110.0f, 4.0f, "%.0f px", 64.0f,
+                                    "Altura da barra horizontal de efeitos no topo da mesa.");
+
+                        TouchSlider("Altura das Waveforms Empilhadas", "waveform_height", &metrics.waveform_height,
+                                    70.0f, 320.0f, 10.0f, "%.0f px", 165.0f,
+                                    "Espaço vertical reservado para as formas de onda dos Decks 1 e 2.");
+
+                        TouchSlider("Alongamento Horizontal de Transientes", "waveform_horizontal_stretch", &metrics.waveform_horizontal_stretch,
+                                    1.00f, 4.00f, 0.10f, "%.2fx", 1.65f,
+                                    "Abre os transientes da música para visualização cirúrgica de kicks e snares.");
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+
+                        ImGui::TextColored(ImVec4(0.0f, 0.85f, 1.0f, 1.0f), "Motor de Renderização da Waveform:");
+                        const char* eng_opts[] = {
+                            "3-Band Multi-Lane (Padrão Rekordbox HI/MID/LOW)",
+                            "3-Band Fused (Fusão CDJ-3000 Oficial Sobreposta)",
+                            "Rekordbox RGB Clássico (1px Contínuo)",
+                            "Multi-Ribbon Guitar Hero (Fitas Vetoriais Neon)",
+                            "Fusão Híbrida (Mesh 1px Rekordbox + Contorno Neon)"
+                        };
+                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                        if (ImGui::Combo("##WaveEngineCombo", &metrics.waveform_engine_mode, eng_opts, IM_ARRAYSIZE(eng_opts))) {
+                            metrics.ribbon_mode_active = (metrics.waveform_engine_mode == 3);
+                        }
+
+                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                        ImGui::Checkbox("Metrônomo Visual (Downbeat Flash)", &metrics.enable_visual_beat_metronome);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pisca suavemente a cada batida e emite clarão dourado no primeiro compasso.");
+
+                        ImGui::EndTabItem();
+                    }
+
+                    // =========================================================================
+                    // ABA 6: PRESETS PRONTOS & BACKUP
+                    // =========================================================================
+                    if (ImGui::BeginTabItem(ICON_FA_CUBES " Presets & Backup")) {
+                        ImGui::Dummy(ImVec2(0.0f, 8.0f));
+                        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.10f, 1.0f), "PRESETS DE MERCADO (1-CLIQUE):");
+
+                        float pb_w = ImGui::GetContentRegionAvail().x;
+                        float pb_h = 36.0f;
+
+                        if (ImGui::Button(ICON_FA_MUSIC " Padrão Club 2-Decks (CDJ-3000 Style)", ImVec2(pb_w, pb_h))) {
+                            metrics.applyPreset(DJPresetLayoutType::CLUB_STANDARD_2DECK);
+                        }
+                        if (ImGui::Button(ICON_FA_RECORD_VINYL " Batalha de Vinil 12\" (Pratos Gigantes)", ImVec2(pb_w, pb_h))) {
+                            metrics.applyPreset(DJPresetLayoutType::TURNTABLIST_BATTLE_12INCH);
+                        }
+                        if (ImGui::Button(ICON_FA_HEADPHONES " Techno Studio 4-Decks (Xone 4-Band)", ImVec2(pb_w, pb_h))) {
+                            metrics.applyPreset(DJPresetLayoutType::TECHNO_STUDIO_4DECK);
+                        }
+                        if (ImGui::Button(ICON_FA_LAPTOP " Compacto Laptop (Ultrabooks)", ImVec2(pb_w, pb_h))) {
+                            metrics.applyPreset(DJPresetLayoutType::ULTRA_COMPACT_LAPTOP);
+                        }
+                        if (ImGui::Button(ICON_FA_DESKTOP " UltraWide 4K Hero Display", ImVec2(pb_w, pb_h))) {
+                            metrics.applyPreset(DJPresetLayoutType::ULTRAWIDE_4K_HERO);
+                        }
+
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                        ImGui::Separator();
+                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                        float half_w = (pb_w - 10.0f) * 0.5f;
+                        if (ImGui::Button(ICON_FA_FLOPPY_DISK " Salvar meu Layout em Arquivo", ImVec2(half_w, pb_h))) {
+                            metrics.saveToFile("assets/layouts/user_custom_layout.json");
+                        }
+                        ImGui::SameLine(0, 10.0f);
+                        if (ImGui::Button(ICON_FA_FOLDER_OPEN " Carregar meu Layout Salvo", ImVec2(half_w, pb_h))) {
+                            metrics.loadFromFile("assets/layouts/user_custom_layout.json");
+                        }
+
+                        ImGui::EndTabItem();
+                    }
+
+                    ImGui::EndTabBar();
+                }
+
+                // =========================================================================
+                // RODAPÉ: AÇÕES PRINCIPAIS (TOUCH-FRIENDLY 42PX)
+                // =========================================================================
+                ImGui::Dummy(ImVec2(0.0f, 10.0f));
+                ImGui::Separator();
+                ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                float total_w = ImGui::GetContentRegionAvail().x;
+                float act_btn_h = 42.0f;
+                float done_w = total_w * 0.62f;
+                float reset_w = total_w - done_w - 10.0f;
+
+                // Botão [ CONCLUIR E FECHAR ]
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.55f, 0.40f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.75f, 0.55f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.90f, 0.65f, 1.0f));
+                if (ImGui::Button(ICON_FA_CHECK " CONCLUIR E FECHAR (Ctrl + E)", ImVec2(done_w, act_btn_h))) {
+                    metrics.edit_mode_active = false;
+                    metrics.saveToFile();
+                }
+                ImGui::PopStyleColor(3);
+
+                ImGui::SameLine(0, 10.0f);
+
+                // Botão [ RESTAURAR PADRÕES ]
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.35f, 0.15f, 0.15f, 0.9f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.60f, 0.20f, 0.20f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.80f, 0.25f, 0.25f, 1.0f));
+                if (ImGui::Button(ICON_FA_ROTATE_LEFT " Restaurar Padrões", ImVec2(reset_w, act_btn_h))) {
+                    metrics.resetToDefaults();
+                    metrics.saveToFile();
+                }
+                ImGui::PopStyleColor(3);
+            }
+            ImGui::End();
+
+            ImGui::PopStyleVar(3);
+            ImGui::PopStyleColor(4);
+        }
+
+        // Renderiza um divisor arrastável (Splitter) interativo entre dois painéis
+        static bool Splitter(const char* str_id, bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f) {
+            ImGuiContext& g = *GImGui;
+            ImGuiWindow* window = g.CurrentWindow;
+            ImGuiID id = window->GetID(str_id);
+            ImRect bb;
+            bb.Min = window->DC.CursorPos;
+            bb.Max = split_vertically ? ImVec2(bb.Min.x + thickness, bb.Min.y + splitter_long_axis_size) : ImVec2(bb.Min.x + splitter_long_axis_size, bb.Min.y + thickness);
+            return ImGui::SplitterBehavior(bb, id, split_vertically ? ImGuiAxis_X : ImGuiAxis_Y, size1, size2, min_size1, min_size2, 0.0f);
+        }
+    };
+
+}

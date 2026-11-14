@@ -1,0 +1,58 @@
+      name          : 'r'
+      type          : '(II[I)F'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 9
+      ins           : 4
+      outs          : 3
+      insns size    : 75 16-bit code units
+1a4514:                                        |[1a4514] z2.m.r:(II[I)F
+1a4524: 1230                                   |0000: const/4 v0, #int 3 // #3
+1a4526: 4400 0800                              |0001: aget v0, v8, v0
+1a452a: 3d00 4500                              |0003: if-lez v0, 0048 // +0045
+1a452e: 1241                                   |0005: const/4 v1, #int 4 // #4
+1a4530: 4401 0801                              |0006: aget v1, v8, v1
+1a4534: 6e10 c43f 0500                         |0008: invoke-virtual {v5}, Lz2/m;.getWaveSlotNum:()I // method@3fc4
+1a453a: 0a02                                   |000b: move-result v2
+1a453c: 3221 0600                              |000c: if-eq v1, v2, 0012 // +0006
+1a4540: 1201                                   |000e: const/4 v1, #int 0 // #0
+1a4542: 4408 0801                              |000f: aget v8, v8, v1
+1a4546: 2807                                   |0011: goto 0018 // +0007
+1a4548: db01 0102                              |0012: div-int/lit8 v1, v1, #int 2 // #02
+1a454c: d801 0105                              |0014: add-int/lit8 v1, v1, #int 5 // #05
+1a4550: 4408 0801                              |0016: aget v8, v8, v1
+1a4554: 6e10 c03f 0500                         |0018: invoke-virtual {v5}, Lz2/m;.getDataWidth:()I // method@3fc0
+1a455a: 0a01                                   |001b: move-result v1
+1a455c: 9002 0100                              |001c: add-int v2, v1, v0
+1a4560: d802 02ff                              |001e: add-int/lit8 v2, v2, #int -1 // #ff
+1a4564: b302                                   |0020: div-int/2addr v2, v0
+1a4566: d223 e803                              |0021: mul-int/lit16 v3, v2, #int 1000 // #03e8
+1a456a: 1304 e803                              |0023: const/16 v4, #int 1000 // #3e8
+1a456e: 7130 c63f 4803                         |0025: invoke-static {v8, v4, v3}, Lz2/m;.h:(III)I // method@3fc6
+1a4574: 0a08                                   |0028: move-result v8
+1a4576: b220                                   |0029: mul-int/2addr v0, v2
+1a4578: 7130 c63f 0801                         |002a: invoke-static {v8, v0, v1}, Lz2/m;.h:(III)I // method@3fc6
+1a457e: 0a08                                   |002d: move-result v8
+1a4580: 7130 c63f 4703                         |002e: invoke-static {v7, v4, v3}, Lz2/m;.h:(III)I // method@3fc6
+1a4586: 0a07                                   |0031: move-result v7
+1a4588: 7130 c63f 0701                         |0032: invoke-static {v7, v0, v1}, Lz2/m;.h:(III)I // method@3fc6
+1a458e: 0a07                                   |0035: move-result v7
+1a4590: b187                                   |0036: sub-int/2addr v7, v8
+1a4592: db01 0102                              |0037: div-int/lit8 v1, v1, #int 2 // #02
+1a4596: b071                                   |0039: add-int/2addr v1, v7
+1a4598: 8217                                   |003a: int-to-float v7, v1
+1a459a: 5458 2322                              |003b: iget-object v8, v5, Lz2/m;.T:[Z // field@2223
+1a459e: 4706 0806                              |003d: aget-boolean v6, v8, v6
+1a45a2: 3906 0800                              |003f: if-nez v6, 0047 // +0008
+1a45a6: 6e10 c33f 0500                         |0041: invoke-virtual {v5}, Lz2/m;.getWaveOffset:()I // method@3fc3
+1a45ac: 0a05                                   |0044: move-result v5
+1a45ae: 8255                                   |0045: int-to-float v5, v5
+1a45b0: c757                                   |0046: sub-float/2addr v7, v5
+1a45b2: 0f07                                   |0047: return v7
+1a45b4: 1505 80bf                              |0048: const/high16 v5, #int -1082130432 // #bf80
+1a45b8: 0f05                                   |004a: return v5
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #18              : (in Lz2/m;)

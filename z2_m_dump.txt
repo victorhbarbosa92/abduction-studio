@@ -1,0 +1,1183 @@
+  Class descriptor  : 'Lz2/m;'
+  Access flags      : 0x0401 (PUBLIC ABSTRACT)
+  Superclass        : 'Lk2/c;'
+  Interfaces        -
+  Static fields     -
+  Instance fields   -
+    #0              : (in Lz2/m;)
+      name          : 'A'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #1              : (in Lz2/m;)
+      name          : 'B'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #2              : (in Lz2/m;)
+      name          : 'C'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #3              : (in Lz2/m;)
+      name          : 'D'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #4              : (in Lz2/m;)
+      name          : 'E'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #5              : (in Lz2/m;)
+      name          : 'F'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #6              : (in Lz2/m;)
+      name          : 'G'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #7              : (in Lz2/m;)
+      name          : 'H'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #8              : (in Lz2/m;)
+      name          : 'I'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #9              : (in Lz2/m;)
+      name          : 'J'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #10              : (in Lz2/m;)
+      name          : 'K'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #11              : (in Lz2/m;)
+      name          : 'L'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #12              : (in Lz2/m;)
+      name          : 'M'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #13              : (in Lz2/m;)
+      name          : 'N'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #14              : (in Lz2/m;)
+      name          : 'O'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #15              : (in Lz2/m;)
+      name          : 'P'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #16              : (in Lz2/m;)
+      name          : 'Q'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #17              : (in Lz2/m;)
+      name          : 'R'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #18              : (in Lz2/m;)
+      name          : 'S'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #19              : (in Lz2/m;)
+      name          : 'T'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #20              : (in Lz2/m;)
+      name          : 'U'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #21              : (in Lz2/m;)
+      name          : 'V'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #22              : (in Lz2/m;)
+      name          : 'W'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #23              : (in Lz2/m;)
+      name          : 'a0'
+      type          : '[Lz2/l;'
+      access        : 0x0011 (PUBLIC FINAL)
+    #24              : (in Lz2/m;)
+      name          : 'b0'
+      type          : '[Lw2/j;'
+      access        : 0x0011 (PUBLIC FINAL)
+    #25              : (in Lz2/m;)
+      name          : 'c0'
+      type          : '[Lw2/j;'
+      access        : 0x0011 (PUBLIC FINAL)
+    #26              : (in Lz2/m;)
+      name          : 'd0'
+      type          : '[[Lw2/j;'
+      access        : 0x0011 (PUBLIC FINAL)
+    #27              : (in Lz2/m;)
+      name          : 'e0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #28              : (in Lz2/m;)
+      name          : 'f0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #29              : (in Lz2/m;)
+      name          : 'g0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #30              : (in Lz2/m;)
+      name          : 'h0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #31              : (in Lz2/m;)
+      name          : 'i0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #32              : (in Lz2/m;)
+      name          : 'j0'
+      type          : '[I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #33              : (in Lz2/m;)
+      name          : 'k'
+      type          : '[F'
+      access        : 0x0011 (PUBLIC FINAL)
+    #34              : (in Lz2/m;)
+      name          : 'k0'
+      type          : '[Z'
+      access        : 0x0011 (PUBLIC FINAL)
+    #35              : (in Lz2/m;)
+      name          : 'l'
+      type          : 'F'
+      access        : 0x0001 (PUBLIC)
+    #36              : (in Lz2/m;)
+      name          : 'l0'
+      type          : 'Z'
+      access        : 0x0001 (PUBLIC)
+    #37              : (in Lz2/m;)
+      name          : 'm'
+      type          : 'F'
+      access        : 0x0001 (PUBLIC)
+    #38              : (in Lz2/m;)
+      name          : 'n'
+      type          : 'F'
+      access        : 0x0001 (PUBLIC)
+    #39              : (in Lz2/m;)
+      name          : 'o'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #40              : (in Lz2/m;)
+      name          : 'p'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #41              : (in Lz2/m;)
+      name          : 'q'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #42              : (in Lz2/m;)
+      name          : 'r'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #43              : (in Lz2/m;)
+      name          : 's'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #44              : (in Lz2/m;)
+      name          : 't'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #45              : (in Lz2/m;)
+      name          : 'u'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #46              : (in Lz2/m;)
+      name          : 'v'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #47              : (in Lz2/m;)
+      name          : 'w'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #48              : (in Lz2/m;)
+      name          : 'x'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #49              : (in Lz2/m;)
+      name          : 'y'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #50              : (in Lz2/m;)
+      name          : 'z'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+  Direct methods    -
+    #0              : (in Lz2/m;)
+      name          : '<init>'
+      type          : '(Landroid/content/Context;Landroid/util/AttributeSet;)V'
+      access        : 0x10001 (PUBLIC CONSTRUCTOR)
+      code          -
+      registers     : 9
+      ins           : 3
+      outs          : 4
+      insns size    : 455 16-bit code units
+1a46fc:                                        |[1a46fc] z2.m.<init>:(Landroid/content/Context;Landroid/util/AttributeSet;)V
+1a470c: 7030 4b33 7608                         |0000: invoke-direct {v6, v7, v8}, Lk2/c;.<init>:(Landroid/content/Context;Landroid/util/AttributeSet;)V // method@334b
+1a4712: 1307 1500                              |0003: const/16 v7, #int 21 // #15
+1a4716: 2377 0a0c                              |0005: new-array v7, v7, [F // type@0c0a
+1a471a: 2607 6301 0000                         |0007: fill-array-data v7, 0000016a // +00000163
+1a4720: 5b67 3122                              |000a: iput-object v7, v6, Lz2/m;.k:[F // field@2231
+1a4724: 1207                                   |000c: const/4 v7, #int 0 // #0
+1a4726: 5967 3322                              |000d: iput v7, v6, Lz2/m;.l:F // field@2233
+1a472a: 5967 3522                              |000f: iput v7, v6, Lz2/m;.m:F // field@2235
+1a472e: 5967 3622                              |0011: iput v7, v6, Lz2/m;.n:F // field@2236
+1a4732: 1207                                   |0013: const/4 v7, #int 0 // #0
+1a4734: 7140 c00d 7777                         |0014: invoke-static {v7, v7, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a473a: 0a08                                   |0017: move-result v8
+1a473c: 5968 3722                              |0018: iput v8, v6, Lz2/m;.o:I // field@2237
+1a4740: 1308 8000                              |001a: const/16 v8, #int 128 // #80
+1a4744: 7140 c00d 7877                         |001c: invoke-static {v8, v7, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a474a: 0a00                                   |001f: move-result v0
+1a474c: 5960 3822                              |0020: iput v0, v6, Lz2/m;.p:I // field@2238
+1a4750: 1300 ff00                              |0022: const/16 v0, #int 255 // #ff
+1a4754: 7140 c00d 0800                         |0024: invoke-static {v8, v0, v0, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a475a: 0a01                                   |0027: move-result v1
+1a475c: 5961 3922                              |0028: iput v1, v6, Lz2/m;.q:I // field@2239
+1a4760: 1301 3800                              |002a: const/16 v1, #int 56 // #38
+1a4764: 7140 c00d 1011                         |002c: invoke-static {v0, v1, v1, v1}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a476a: 0a01                                   |002f: move-result v1
+1a476c: 5961 3a22                              |0030: iput v1, v6, Lz2/m;.r:I // field@223a
+1a4770: 1301 fa00                              |0032: const/16 v1, #int 250 // #fa
+1a4774: 1302 4000                              |0034: const/16 v2, #int 64 // #40
+1a4778: 7140 c00d 1022                         |0036: invoke-static {v0, v1, v2, v2}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a477e: 0a03                                   |0039: move-result v3
+1a4780: 5963 3b22                              |003a: iput v3, v6, Lz2/m;.s:I // field@223b
+1a4784: 1303 5800                              |003c: const/16 v3, #int 88 // #58
+1a4788: 1304 ca00                              |003e: const/16 v4, #int 202 // #ca
+1a478c: 7140 c00d 3014                         |0040: invoke-static {v0, v3, v4, v1}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4792: 0a03                                   |0043: move-result v3
+1a4794: 5963 3c22                              |0044: iput v3, v6, Lz2/m;.t:I // field@223c
+1a4798: 7140 c00d 7077                         |0046: invoke-static {v0, v7, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a479e: 0a03                                   |0049: move-result v3
+1a47a0: 5963 3d22                              |004a: iput v3, v6, Lz2/m;.u:I // field@223d
+1a47a4: 7140 c00d 1022                         |004c: invoke-static {v0, v1, v2, v2}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47aa: 0a01                                   |004f: move-result v1
+1a47ac: 5961 3e22                              |0050: iput v1, v6, Lz2/m;.v:I // field@223e
+1a47b0: 1301 a000                              |0052: const/16 v1, #int 160 // #a0
+1a47b4: 7140 c00d 1011                         |0054: invoke-static {v0, v1, v1, v1}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47ba: 0a01                                   |0057: move-result v1
+1a47bc: 5961 3f22                              |0058: iput v1, v6, Lz2/m;.w:I // field@223f
+1a47c0: 1301 4c00                              |005a: const/16 v1, #int 76 // #4c
+1a47c4: 1302 a300                              |005c: const/16 v2, #int 163 // #a3
+1a47c8: 7140 c00d 0172                         |005e: invoke-static {v1, v0, v2, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47ce: 0a03                                   |0061: move-result v3
+1a47d0: 5963 4022                              |0062: iput v3, v6, Lz2/m;.x:I // field@2240
+1a47d4: 1303 3300                              |0064: const/16 v3, #int 51 // #33
+1a47d8: 7140 c00d 0300                         |0066: invoke-static {v3, v0, v0, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47de: 0a04                                   |0069: move-result v4
+1a47e0: 5964 4122                              |006a: iput v4, v6, Lz2/m;.y:I // field@2241
+1a47e4: 7140 c00d 0072                         |006c: invoke-static {v0, v0, v2, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47ea: 0a04                                   |006f: move-result v4
+1a47ec: 5964 4222                              |0070: iput v4, v6, Lz2/m;.z:I // field@2242
+1a47f0: 1304 1700                              |0072: const/16 v4, #int 23 // #17
+1a47f4: 7140 c00d 0047                         |0074: invoke-static {v0, v0, v7, v4}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a47fa: 0a04                                   |0077: move-result v4
+1a47fc: 1305 c400                              |0078: const/16 v5, #int 196 // #c4
+1a4800: 7140 c00d 7005                         |007a: invoke-static {v0, v7, v5, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4806: 0a05                                   |007d: move-result v5
+1a4808: 7140 c00d 3070                         |007e: invoke-static {v0, v3, v0, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a480e: 0a03                                   |0081: move-result v3
+1a4810: 7140 c00d 8007                         |0082: invoke-static {v0, v8, v7, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4816: 0a08                                   |0085: move-result v8
+1a4818: 2440 0b0c 5483                         |0086: filled-new-array {v4, v5, v3, v8}, [I // type@0c0b
+1a481e: 0c08                                   |0089: move-result-object v8
+1a4820: 5b68 1022                              |008a: iput-object v8, v6, Lz2/m;.A:[I // field@2210
+1a4824: 7140 c00d 0072                         |008c: invoke-static {v0, v0, v2, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a482a: 0a08                                   |008f: move-result v8
+1a482c: 5968 1122                              |0090: iput v8, v6, Lz2/m;.B:I // field@2211
+1a4830: 1308 d100                              |0092: const/16 v8, #int 209 // #d1
+1a4834: 7140 c00d 7180                         |0094: invoke-static {v1, v7, v0, v8}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a483a: 0a02                                   |0097: move-result v2
+1a483c: 5962 1222                              |0098: iput v2, v6, Lz2/m;.C:I // field@2212
+1a4840: 7140 c00d 7107                         |009a: invoke-static {v1, v7, v7, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4846: 0a02                                   |009d: move-result v2
+1a4848: 5962 1322                              |009e: iput v2, v6, Lz2/m;.D:I // field@2213
+1a484c: 7140 c00d 0100                         |00a0: invoke-static {v1, v0, v0, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4852: 0a02                                   |00a3: move-result v2
+1a4854: 5962 1422                              |00a4: iput v2, v6, Lz2/m;.E:I // field@2214
+1a4858: 7140 c00d 7080                         |00a6: invoke-static {v0, v7, v0, v8}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a485e: 0a08                                   |00a9: move-result v8
+1a4860: 5968 1522                              |00aa: iput v8, v6, Lz2/m;.F:I // field@2215
+1a4864: 7140 c00d 0000                         |00ac: invoke-static {v0, v0, v0, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a486a: 0a08                                   |00af: move-result v8
+1a486c: 5968 1622                              |00b0: iput v8, v6, Lz2/m;.G:I // field@2216
+1a4870: 7140 c00d 0077                         |00b2: invoke-static {v0, v0, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4876: 0a08                                   |00b5: move-result v8
+1a4878: 5968 1722                              |00b6: iput v8, v6, Lz2/m;.H:I // field@2217
+1a487c: 7140 c00d 0077                         |00b8: invoke-static {v0, v0, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4882: 0a08                                   |00bb: move-result v8
+1a4884: 5968 1822                              |00bc: iput v8, v6, Lz2/m;.I:I // field@2218
+1a4888: 1308 e000                              |00be: const/16 v8, #int 224 // #e0
+1a488c: 7140 c00d 0078                         |00c0: invoke-static {v0, v0, v8, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4892: 0a02                                   |00c3: move-result v2
+1a4894: 5962 1922                              |00c4: iput v2, v6, Lz2/m;.J:I // field@2219
+1a4898: 7140 c00d 0078                         |00c6: invoke-static {v0, v0, v8, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a489e: 0a08                                   |00c9: move-result v8
+1a48a0: 5968 1a22                              |00ca: iput v8, v6, Lz2/m;.K:I // field@221a
+1a48a4: 1308 9900                              |00cc: const/16 v8, #int 153 // #99
+1a48a8: 7140 c00d 0800                         |00ce: invoke-static {v8, v0, v0, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a48ae: 0a08                                   |00d1: move-result v8
+1a48b0: 5968 1b22                              |00d2: iput v8, v6, Lz2/m;.L:I // field@221b
+1a48b4: 7140 c00d 7177                         |00d4: invoke-static {v1, v7, v7, v7}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a48ba: 0a08                                   |00d7: move-result v8
+1a48bc: 5968 1c22                              |00d8: iput v8, v6, Lz2/m;.M:I // field@221c
+1a48c0: 12f8                                   |00da: const/4 v8, #int -1 // #ff
+1a48c2: 5968 1d22                              |00db: iput v8, v6, Lz2/m;.N:I // field@221d
+1a48c6: 5968 1e22                              |00dd: iput v8, v6, Lz2/m;.O:I // field@221e
+1a48ca: 5968 1f22                              |00df: iput v8, v6, Lz2/m;.P:I // field@221f
+1a48ce: 5968 2022                              |00e1: iput v8, v6, Lz2/m;.Q:I // field@2220
+1a48d2: 2440 0b0c 8888                         |00e3: filled-new-array {v8, v8, v8, v8}, [I // type@0c0b
+1a48d8: 0c00                                   |00e6: move-result-object v0
+1a48da: 5b60 2122                              |00e7: iput-object v0, v6, Lz2/m;.R:[I // field@2221
+1a48de: 2440 0b0c 8888                         |00e9: filled-new-array {v8, v8, v8, v8}, [I // type@0c0b
+1a48e4: 0c00                                   |00ec: move-result-object v0
+1a48e6: 5b60 2222                              |00ed: iput-object v0, v6, Lz2/m;.S:[I // field@2222
+1a48ea: 1220                                   |00ef: const/4 v0, #int 2 // #2
+1a48ec: 2301 d40c                              |00f0: new-array v1, v0, [Z // type@0cd4
+1a48f0: 2601 a600 0000                         |00f2: fill-array-data v1, 00000198 // +000000a6
+1a48f6: 5b61 2322                              |00f5: iput-object v1, v6, Lz2/m;.T:[Z // field@2223
+1a48fa: 2301 d40c                              |00f7: new-array v1, v0, [Z // type@0cd4
+1a48fe: 2601 a500 0000                         |00f9: fill-array-data v1, 0000019e // +000000a5
+1a4904: 5b61 2422                              |00fc: iput-object v1, v6, Lz2/m;.U:[Z // field@2224
+1a4908: 2420 0b0c 8800                         |00fe: filled-new-array {v8, v8}, [I // type@0c0b
+1a490e: 0c08                                   |0101: move-result-object v8
+1a4910: 5b68 2522                              |0102: iput-object v8, v6, Lz2/m;.V:[I // field@2225
+1a4914: 2420 0b0c 7700                         |0104: filled-new-array {v7, v7}, [I // type@0c0b
+1a491a: 0c08                                   |0107: move-result-object v8
+1a491c: 5b68 2622                              |0108: iput-object v8, v6, Lz2/m;.W:[I // field@2226
+1a4920: 2208 010c                              |010a: new-instance v8, Lz2/l; // type@0c01
+1a4924: 7010 bc3f 0800                         |010c: invoke-direct {v8}, Lz2/l;.<init>:()V // method@3fbc
+1a492a: 2201 010c                              |010f: new-instance v1, Lz2/l; // type@0c01
+1a492e: 7010 bc3f 0100                         |0111: invoke-direct {v1}, Lz2/l;.<init>:()V // method@3fbc
+1a4934: 2420 d20c 1800                         |0114: filled-new-array {v8, v1}, [Lz2/l; // type@0cd2
+1a493a: 0c08                                   |0117: move-result-object v8
+1a493c: 5b68 2722                              |0118: iput-object v8, v6, Lz2/m;.a0:[Lz2/l; // field@2227
+1a4940: 1208                                   |011a: const/4 v8, #int 0 // #0
+1a4942: 2420 cd0c 8800                         |011b: filled-new-array {v8, v8}, [Lw2/j; // type@0ccd
+1a4948: 0c01                                   |011e: move-result-object v1
+1a494a: 5b61 2822                              |011f: iput-object v1, v6, Lz2/m;.b0:[Lw2/j; // field@2228
+1a494e: 2420 cd0c 8800                         |0121: filled-new-array {v8, v8}, [Lw2/j; // type@0ccd
+1a4954: 0c01                                   |0124: move-result-object v1
+1a4956: 5b61 2922                              |0125: iput-object v1, v6, Lz2/m;.c0:[Lw2/j; // field@2229
+1a495a: 2440 cd0c 8888                         |0127: filled-new-array {v8, v8, v8, v8}, [Lw2/j; // type@0ccd
+1a4960: 0c01                                   |012a: move-result-object v1
+1a4962: 2440 cd0c 8888                         |012b: filled-new-array {v8, v8, v8, v8}, [Lw2/j; // type@0ccd
+1a4968: 0c08                                   |012e: move-result-object v8
+1a496a: 2420 da0c 8100                         |012f: filled-new-array {v1, v8}, [[Lw2/j; // type@0cda
+1a4970: 0c08                                   |0132: move-result-object v8
+1a4972: 5b68 2a22                              |0133: iput-object v8, v6, Lz2/m;.d0:[[Lw2/j; // field@222a
+1a4976: 2308 d40c                              |0135: new-array v8, v0, [Z // type@0cd4
+1a497a: 2608 6d00 0000                         |0137: fill-array-data v8, 000001a4 // +0000006d
+1a4980: 5b68 2b22                              |013a: iput-object v8, v6, Lz2/m;.e0:[Z // field@222b
+1a4984: 2308 d40c                              |013c: new-array v8, v0, [Z // type@0cd4
+1a4988: 2608 6c00 0000                         |013e: fill-array-data v8, 000001aa // +0000006c
+1a498e: 5b68 2c22                              |0141: iput-object v8, v6, Lz2/m;.f0:[Z // field@222c
+1a4992: 2308 d40c                              |0143: new-array v8, v0, [Z // type@0cd4
+1a4996: 2608 6b00 0000                         |0145: fill-array-data v8, 000001b0 // +0000006b
+1a499c: 5b68 2d22                              |0148: iput-object v8, v6, Lz2/m;.g0:[Z // field@222d
+1a49a0: 2308 d40c                              |014a: new-array v8, v0, [Z // type@0cd4
+1a49a4: 2608 6a00 0000                         |014c: fill-array-data v8, 000001b6 // +0000006a
+1a49aa: 5b68 2e22                              |014f: iput-object v8, v6, Lz2/m;.h0:[Z // field@222e
+1a49ae: 2308 d40c                              |0151: new-array v8, v0, [Z // type@0cd4
+1a49b2: 2608 6900 0000                         |0153: fill-array-data v8, 000001bc // +00000069
+1a49b8: 5b68 2f22                              |0156: iput-object v8, v6, Lz2/m;.i0:[Z // field@222f
+1a49bc: 1508 0080                              |0158: const/high16 v8, #int -2147483648 // #8000
+1a49c0: 2420 0b0c 8800                         |015a: filled-new-array {v8, v8}, [I // type@0c0b
+1a49c6: 0c08                                   |015d: move-result-object v8
+1a49c8: 5b68 3022                              |015e: iput-object v8, v6, Lz2/m;.j0:[I // field@2230
+1a49cc: 2308 d40c                              |0160: new-array v8, v0, [Z // type@0cd4
+1a49d0: 2608 6000 0000                         |0162: fill-array-data v8, 000001c2 // +00000060
+1a49d6: 5b68 3222                              |0165: iput-object v8, v6, Lz2/m;.k0:[Z // field@2232
+1a49da: 5c67 3422                              |0167: iput-boolean v7, v6, Lz2/m;.l0:Z // field@2234
+1a49de: 0e00                                   |0169: return-void
+1a49e0: 0003 0400 1500 0000 0000 0000 0000 ... |016a: array-data (46 units)
+1a4a3c: 0003 0100 0200 0000 0000               |0198: array-data (5 units)
+1a4a46: 0000                                   |019d: nop // spacer
+1a4a48: 0003 0100 0200 0000 0000               |019e: array-data (5 units)
+1a4a52: 0000                                   |01a3: nop // spacer
+1a4a54: 0003 0100 0200 0000 0000               |01a4: array-data (5 units)
+1a4a5e: 0000                                   |01a9: nop // spacer
+1a4a60: 0003 0100 0200 0000 0000               |01aa: array-data (5 units)
+1a4a6a: 0000                                   |01af: nop // spacer
+1a4a6c: 0003 0100 0200 0000 0000               |01b0: array-data (5 units)
+1a4a76: 0000                                   |01b5: nop // spacer
+1a4a78: 0003 0100 0200 0000 0000               |01b6: array-data (5 units)
+1a4a82: 0000                                   |01bb: nop // spacer
+1a4a84: 0003 0100 0200 0000 0000               |01bc: array-data (5 units)
+1a4a8e: 0000                                   |01c1: nop // spacer
+1a4a90: 0003 0100 0200 0000 0000               |01c2: array-data (5 units)
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #1              : (in Lz2/m;)
+      name          : 'h'
+      type          : '(III)I'
+      access        : 0x0009 (PUBLIC STATIC)
+      code          -
+      registers     : 9
+      ins           : 3
+      outs          : 0
+      insns size    : 46 16-bit code units
+1a45e8:                                        |[1a45e8] z2.m.h:(III)I
+1a45f8: 1600 0100                              |0000: const-wide/16 v0, #int 1 // #1
+1a45fc: 3587 1600                              |0002: if-ge v7, v8, 0018 // +0016
+1a4600: 3a06 0b00                              |0004: if-ltz v6, 000f // +000b
+1a4604: 8162                                   |0006: int-to-long v2, v6
+1a4606: 8184                                   |0007: int-to-long v4, v8
+1a4608: bd42                                   |0008: mul-long/2addr v2, v4
+1a460a: 8176                                   |0009: int-to-long v6, v7
+1a460c: bb62                                   |000a: add-long/2addr v2, v6
+1a460e: bc02                                   |000b: sub-long/2addr v2, v0
+1a4610: be62                                   |000c: div-long/2addr v2, v6
+1a4612: 8426                                   |000d: long-to-int v6, v2
+1a4614: 0f06                                   |000e: return v6
+1a4616: 8160                                   |000f: int-to-long v0, v6
+1a4618: 7d00                                   |0010: neg-long v0, v0
+1a461a: 8182                                   |0011: int-to-long v2, v8
+1a461c: bd20                                   |0012: mul-long/2addr v0, v2
+1a461e: 8176                                   |0013: int-to-long v6, v7
+1a4620: be60                                   |0014: div-long/2addr v0, v6
+1a4622: 8406                                   |0015: long-to-int v6, v0
+1a4624: 7b66                                   |0016: neg-int v6, v6
+1a4626: 0f06                                   |0017: return v6
+1a4628: 3787 1500                              |0018: if-le v7, v8, 002d // +0015
+1a462c: 3a06 0900                              |001a: if-ltz v6, 0023 // +0009
+1a4630: 8160                                   |001c: int-to-long v0, v6
+1a4632: 8182                                   |001d: int-to-long v2, v8
+1a4634: bd20                                   |001e: mul-long/2addr v0, v2
+1a4636: 8176                                   |001f: int-to-long v6, v7
+1a4638: be60                                   |0020: div-long/2addr v0, v6
+1a463a: 8406                                   |0021: long-to-int v6, v0
+1a463c: 0f06                                   |0022: return v6
+1a463e: 8162                                   |0023: int-to-long v2, v6
+1a4640: 7d22                                   |0024: neg-long v2, v2
+1a4642: 8184                                   |0025: int-to-long v4, v8
+1a4644: bd42                                   |0026: mul-long/2addr v2, v4
+1a4646: 8176                                   |0027: int-to-long v6, v7
+1a4648: bb62                                   |0028: add-long/2addr v2, v6
+1a464a: bc02                                   |0029: sub-long/2addr v2, v0
+1a464c: be62                                   |002a: div-long/2addr v2, v6
+1a464e: 8426                                   |002b: long-to-int v6, v2
+1a4650: 7b66                                   |002c: neg-int v6, v6
+1a4652: 0f06                                   |002d: return v6
+      catches       : (none)
+      positions     :
+      locals        :
+
+  Virtual methods   -
+    #0              : (in Lz2/m;)
+      name          : 'getBeatInset'
+      type          : '()F'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #1              : (in Lz2/m;)
+      name          : 'getBeatMarkInset'
+      type          : '()F'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #2              : (in Lz2/m;)
+      name          : 'getDataWidth'
+      type          : '()I'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 2
+      ins           : 1
+      outs          : 1
+      insns size    : 12 16-bit code units
+1a4654:                                        |[1a4654] z2.m.getDataWidth:()I
+1a4664: 6e10 c53f 0100                         |0000: invoke-virtual {v1}, Lz2/m;.getWaveWidth:()I // method@3fc5
+1a466a: 0a00                                   |0003: move-result v0
+1a466c: 6e10 c33f 0100                         |0004: invoke-virtual {v1}, Lz2/m;.getWaveOffset:()I // method@3fc3
+1a4672: 0a01                                   |0007: move-result v1
+1a4674: da01 0102                              |0008: mul-int/lit8 v1, v1, #int 2 // #02
+1a4678: b001                                   |000a: add-int/2addr v1, v0
+1a467a: 0f01                                   |000b: return v1
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #3              : (in Lz2/m;)
+      name          : 'getPlayBarInset'
+      type          : '()F'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #4              : (in Lz2/m;)
+      name          : 'getWaveHeight'
+      type          : '()F'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 3
+      ins           : 1
+      outs          : 3
+      insns size    : 13 16-bit code units
+1a45bc:                                        |[1a45bc] z2.m.getWaveHeight:()F
+1a45cc: 6e10 1e13 0200                         |0000: invoke-virtual {v2}, Landroid/view/View;.getContext:()Landroid/content/Context; // method@131e
+1a45d2: 0c02                                   |0003: move-result-object v2
+1a45d4: 1300 5000                              |0004: const/16 v0, #int 80 // #50
+1a45d8: 1301 1900                              |0006: const/16 v1, #int 25 // #19
+1a45dc: 7130 b73d 0201                         |0008: invoke-static {v2, v0, v1}, Lw2/B;.i:(Landroid/content/Context;II)F // method@3db7
+1a45e2: 0a02                                   |000b: move-result v2
+1a45e4: 0f02                                   |000c: return v2
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #5              : (in Lz2/m;)
+      name          : 'getWaveOffset'
+      type          : '()I'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 1
+      ins           : 1
+      outs          : 1
+      insns size    : 7 16-bit code units
+1a46dc:                                        |[1a46dc] z2.m.getWaveOffset:()I
+1a46ec: 6e10 c53f 0000                         |0000: invoke-virtual {v0}, Lz2/m;.getWaveWidth:()I // method@3fc5
+1a46f2: 0a00                                   |0003: move-result v0
+1a46f4: db00 0004                              |0004: div-int/lit8 v0, v0, #int 4 // #04
+1a46f8: 0f00                                   |0006: return v0
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #6              : (in Lz2/m;)
+      name          : 'getWaveSlotNum'
+      type          : '()I'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #7              : (in Lz2/m;)
+      name          : 'getWaveWidth'
+      type          : '()I'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #8              : (in Lz2/m;)
+      name          : 'i'
+      type          : '(I[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #9              : (in Lz2/m;)
+      name          : 'j'
+      type          : '(I[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #10              : (in Lz2/m;)
+      name          : 'k'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #11              : (in Lz2/m;)
+      name          : 'l'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #12              : (in Lz2/m;)
+      name          : 'm'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #13              : (in Lz2/m;)
+      name          : 'n'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #14              : (in Lz2/m;)
+      name          : 'o'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #15              : (in Lz2/m;)
+      name          : 'p'
+      type          : '(I[I[I[I[I[I[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #16              : (in Lz2/m;)
+      name          : 'q'
+      type          : '(IIII[I)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 26
+      ins           : 6
+      outs          : 4
+      insns size    : 407 16-bit code units
+1a4a9c:                                        |[1a4a9c] z2.m.q:(IIII[I)V
+1a4aac: 0800 1400                              |0000: move-object/from16 v0, v20
+1a4ab0: 0201 1600                              |0002: move/from16 v1, v22
+1a4ab4: 0202 1700                              |0004: move/from16 v2, v23
+1a4ab8: 0203 1800                              |0006: move/from16 v3, v24
+1a4abc: 5404 2522                              |0008: iget-object v4, v0, Lz2/m;.V:[I // field@2225
+1a4ac0: 4404 0415                              |000a: aget v4, v4, v21
+1a4ac4: 1305 ff00                              |000c: const/16 v5, #int 255 // #ff
+1a4ac8: 1206                                   |000e: const/4 v6, #int 0 // #0
+1a4aca: 1507 7f43                              |000f: const/high16 v7, #int 1132396544 // #437f
+1a4ace: 1508 003f                              |0011: const/high16 v8, #int 1056964608 // #3f00
+1a4ad2: 5409 2722                              |0013: iget-object v9, v0, Lz2/m;.a0:[Lz2/l; // field@2227
+1a4ad6: 122a                                   |0015: const/4 v10, #int 2 // #2
+1a4ad8: 121b                                   |0016: const/4 v11, #int 1 // #1
+1a4ada: 120c                                   |0017: const/4 v12, #int 0 // #0
+1a4adc: 12fd                                   |0018: const/4 v13, #int -1 // #ff
+1a4ade: 3904 6c00                              |0019: if-nez v4, 0085 // +006c
+1a4ae2: 4600 0915                              |001b: aget-object v0, v9, v21
+1a4ae6: 6e10 d22f 0000                         |001d: invoke-virtual {v0}, Ljava/lang/Object;.getClass:()Ljava/lang/Class; // method@2fd2
+1a4aec: 8210                                   |0020: int-to-float v0, v1
+1a4aee: 2e01 0600                              |0021: cmpg-float v1, v6, v0
+1a4af2: 3b01 0400                              |0023: if-gez v1, 0027 // +0004
+1a4af6: 0101                                   |0025: move v1, v0
+1a4af8: 2802                                   |0026: goto 0028 // +0002
+1a4afa: 0161                                   |0027: move v1, v6
+1a4afc: 8222                                   |0028: int-to-float v2, v2
+1a4afe: 2e04 0102                              |0029: cmpg-float v4, v1, v2
+1a4b02: 3b04 0300                              |002b: if-gez v4, 002e // +0003
+1a4b06: 0121                                   |002d: move v1, v2
+1a4b08: 8233                                   |002e: int-to-float v3, v3
+1a4b0a: 2e04 0103                              |002f: cmpg-float v4, v1, v3
+1a4b0e: 3b04 0300                              |0031: if-gez v4, 0034 // +0003
+1a4b12: 0131                                   |0033: move v1, v3
+1a4b14: 2d04 0106                              |0034: cmpl-float v4, v1, v6
+1a4b18: 3d04 4700                              |0036: if-lez v4, 007d // +0047
+1a4b1c: c910                                   |0038: div-float/2addr v0, v1
+1a4b1e: c912                                   |0039: div-float/2addr v2, v1
+1a4b20: c913                                   |003a: div-float/2addr v3, v1
+1a4b22: 7120 b32f 3000                         |003b: invoke-static {v0, v3}, Ljava/lang/Math;.max:(FF)F // method@2fb3
+1a4b28: 0a01                                   |003e: move-result v1
+1a4b2a: 2d04 0108                              |003f: cmpl-float v4, v1, v8
+1a4b2e: 3d04 0300                              |0041: if-lez v4, 0044 // +0003
+1a4b32: 2802                                   |0043: goto 0045 // +0002
+1a4b34: 0118                                   |0044: move v8, v1
+1a4b36: 1401 9a99 993e                         |0045: const v1, #float 0.3 // #3e99999a
+1a4b3c: c818                                   |0048: mul-float/2addr v8, v1
+1a4b3e: 1501 803f                              |0049: const/high16 v1, #int 1065353216 // #3f80
+1a4b42: a704 0108                              |004b: sub-float v4, v1, v8
+1a4b46: c824                                   |004d: mul-float/2addr v4, v2
+1a4b48: 1402 6666 a63f                         |004e: const v2, #float 1.3 // #3fa66666
+1a4b4e: c823                                   |0051: mul-float/2addr v3, v2
+1a4b50: 2e02 0006                              |0052: cmpg-float v2, v0, v6
+1a4b54: 3b02 0300                              |0054: if-gez v2, 0057 // +0003
+1a4b58: 0160                                   |0056: move v0, v6
+1a4b5a: 2d02 0001                              |0057: cmpl-float v2, v0, v1
+1a4b5e: 3d02 0300                              |0059: if-lez v2, 005c // +0003
+1a4b62: 0110                                   |005b: move v0, v1
+1a4b64: 2e02 0406                              |005c: cmpg-float v2, v4, v6
+1a4b68: 3b02 0300                              |005e: if-gez v2, 0061 // +0003
+1a4b6c: 0164                                   |0060: move v4, v6
+1a4b6e: 2d02 0401                              |0061: cmpl-float v2, v4, v1
+1a4b72: 3d02 0300                              |0063: if-lez v2, 0066 // +0003
+1a4b76: 0114                                   |0065: move v4, v1
+1a4b78: 2e02 0306                              |0066: cmpg-float v2, v3, v6
+1a4b7c: 3b02 0300                              |0068: if-gez v2, 006b // +0003
+1a4b80: 2802                                   |006a: goto 006c // +0002
+1a4b82: 0136                                   |006b: move v6, v3
+1a4b84: 2d02 0601                              |006c: cmpl-float v2, v6, v1
+1a4b88: 3d02 0300                              |006e: if-lez v2, 0071 // +0003
+1a4b8c: 2802                                   |0070: goto 0072 // +0002
+1a4b8e: 0161                                   |0071: move v1, v6
+1a4b90: c870                                   |0072: mul-float/2addr v0, v7
+1a4b92: 8700                                   |0073: float-to-int v0, v0
+1a4b94: c874                                   |0074: mul-float/2addr v4, v7
+1a4b96: 8742                                   |0075: float-to-int v2, v4
+1a4b98: c871                                   |0076: mul-float/2addr v1, v7
+1a4b9a: 8711                                   |0077: float-to-int v1, v1
+1a4b9c: 7140 c00d 0512                         |0078: invoke-static {v5, v0, v2, v1}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4ba2: 0a00                                   |007b: move-result v0
+1a4ba4: 2802                                   |007c: goto 007e // +0002
+1a4ba6: 01d0                                   |007d: move v0, v13
+1a4ba8: 4b00 190c                              |007e: aput v0, v25, v12
+1a4bac: 4b0d 190b                              |0080: aput v13, v25, v11
+1a4bb0: 4b0d 190a                              |0082: aput v13, v25, v10
+1a4bb4: 0e00                                   |0084: return-void
+1a4bb6: 33b4 0101                              |0085: if-ne v4, v11, 0186 // +0101
+1a4bba: 4600 0915                              |0087: aget-object v0, v9, v21
+1a4bbe: 5404 0122                              |0089: iget-object v4, v0, Lz2/l;.a:[F // field@2201
+1a4bc2: 5400 0222                              |008b: iget-object v0, v0, Lz2/l;.b:[F // field@2202
+1a4bc6: 8229                                   |008d: int-to-float v9, v2
+1a4bc8: 821d                                   |008e: int-to-float v13, v1
+1a4bca: 8233                                   |008f: int-to-float v3, v3
+1a4bcc: 150e 0034                              |0090: const/high16 v14, #int 872415232 // #3400
+1a4bd0: 2d0f 090e                              |0092: cmpl-float v15, v9, v14
+1a4bd4: 1910 3440                              |0094: const-wide/high16 v16, #long 4626322717216342016 // #4034
+1a4bd8: 3d0f 1100                              |0096: if-lez v15, 00a7 // +0011
+1a4bdc: a90f 0d09                              |0098: div-float v15, v13, v9
+1a4be0: 0212 0600                              |009a: move/from16 v18, v6
+1a4be4: 0213 0700                              |009c: move/from16 v19, v7
+1a4be8: 89f6                                   |009e: float-to-double v6, v15
+1a4bea: 7120 b02f 7600                         |009f: invoke-static {v6, v7}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4bf0: 0b06                                   |00a2: move-result-wide v6
+1a4bf2: ad06 0610                              |00a3: mul-double v6, v6, v16
+1a4bf6: 8c66                                   |00a5: double-to-float v6, v6
+1a4bf8: 2805                                   |00a6: goto 00ab // +0005
+1a4bfa: 0212 0600                              |00a7: move/from16 v18, v6
+1a4bfe: 0213 0700                              |00a9: move/from16 v19, v7
+1a4c02: 1307 3c00                              |00ab: const/16 v7, #int 60 // #3c
+1a4c06: 3721 1c00                              |00ad: if-le v1, v2, 00c9 // +001c
+1a4c0a: 8761                                   |00af: float-to-int v1, v6
+1a4c0c: 3771 0300                              |00b0: if-le v1, v7, 00b3 // +0003
+1a4c10: 0171                                   |00b2: move v1, v7
+1a4c12: 3b01 0300                              |00b3: if-gez v1, 00b6 // +0003
+1a4c16: 01c1                                   |00b5: move v1, v12
+1a4c18: 6202 0422                              |00b6: sget-object v2, Lz2/l;.d:[F // field@2204
+1a4c1c: 4402 0201                              |00b8: aget v2, v2, v1
+1a4c20: 4b02 040c                              |00ba: aput v2, v4, v12
+1a4c24: 6202 0522                              |00bc: sget-object v2, Lz2/l;.e:[F // field@2205
+1a4c28: 4402 0201                              |00be: aget v2, v2, v1
+1a4c2c: 4b02 040b                              |00c0: aput v2, v4, v11
+1a4c30: 6202 0622                              |00c2: sget-object v2, Lz2/l;.f:[F // field@2206
+1a4c34: 4401 0201                              |00c4: aget v1, v2, v1
+1a4c38: 4b01 040a                              |00c6: aput v1, v4, v10
+1a4c3c: 2824                                   |00c8: goto 00ec // +0024
+1a4c3e: a901 090d                              |00c9: div-float v1, v9, v13
+1a4c42: 8911                                   |00cb: float-to-double v1, v1
+1a4c44: 7120 b02f 2100                         |00cc: invoke-static {v1, v2}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4c4a: 0b01                                   |00cf: move-result-wide v1
+1a4c4c: ad01 0110                              |00d0: mul-double v1, v1, v16
+1a4c50: 8c11                                   |00d2: double-to-float v1, v1
+1a4c52: 8711                                   |00d3: float-to-int v1, v1
+1a4c54: 3771 0300                              |00d4: if-le v1, v7, 00d7 // +0003
+1a4c58: 0171                                   |00d6: move v1, v7
+1a4c5a: 3b01 0300                              |00d7: if-gez v1, 00da // +0003
+1a4c5e: 01c1                                   |00d9: move v1, v12
+1a4c60: 6202 0a22                              |00da: sget-object v2, Lz2/l;.j:[F // field@220a
+1a4c64: 4402 0201                              |00dc: aget v2, v2, v1
+1a4c68: 4b02 040c                              |00de: aput v2, v4, v12
+1a4c6c: 6202 0b22                              |00e0: sget-object v2, Lz2/l;.k:[F // field@220b
+1a4c70: 4402 0201                              |00e2: aget v2, v2, v1
+1a4c74: 4b02 040b                              |00e4: aput v2, v4, v11
+1a4c78: 6202 0c22                              |00e6: sget-object v2, Lz2/l;.l:[F // field@220c
+1a4c7c: 4401 0201                              |00e8: aget v1, v2, v1
+1a4c80: 4b01 040a                              |00ea: aput v1, v4, v10
+1a4c84: c939                                   |00ec: div-float/2addr v9, v3
+1a4c86: 8991                                   |00ed: float-to-double v1, v9
+1a4c88: 7120 b02f 2100                         |00ee: invoke-static {v1, v2}, Ljava/lang/Math;.log10:(D)D // method@2fb0
+1a4c8e: 0b01                                   |00f1: move-result-wide v1
+1a4c90: 190f 34c0                              |00f2: const-wide/high16 v15, #long -4597049319638433792 // #c034
+1a4c94: cdf1                                   |00f4: mul-double/2addr v1, v15
+1a4c96: 8c11                                   |00f5: double-to-float v1, v1
+1a4c98: 2d02 010e                              |00f6: cmpl-float v2, v1, v14
+1a4c9c: 1503 70c2                              |00f8: const/high16 v3, #int -1032847360 // #c270
+1a4ca0: 3d02 0700                              |00fa: if-lez v2, 0101 // +0007
+1a4ca4: 4b13 000b                              |00fc: aput v19, v0, v11
+1a4ca8: 4b13 000a                              |00fe: aput v19, v0, v10
+1a4cac: 2825                                   |0100: goto 0125 // +0025
+1a4cae: 2e02 0103                              |0101: cmpg-float v2, v1, v3
+1a4cb2: 6206 0f22                              |0103: sget-object v6, Lz2/l;.o:[F // field@220f
+1a4cb6: 6209 0e22                              |0105: sget-object v9, Lz2/l;.n:[F // field@220e
+1a4cba: 3b02 0b00                              |0107: if-gez v2, 0112 // +000b
+1a4cbe: 4402 0907                              |0109: aget v2, v9, v7
+1a4cc2: 4b02 000b                              |010b: aput v2, v0, v11
+1a4cc6: 4402 0607                              |010d: aget v2, v6, v7
+1a4cca: 4b02 000a                              |010f: aput v2, v0, v10
+1a4cce: 2814                                   |0111: goto 0125 // +0014
+1a4cd0: 8712                                   |0112: float-to-int v2, v1
+1a4cd2: 7110 a32f 0200                         |0113: invoke-static {v2}, Ljava/lang/Math;.abs:(I)I // method@2fa3
+1a4cd8: 0a02                                   |0116: move-result v2
+1a4cda: 3772 0300                              |0117: if-le v2, v7, 011a // +0003
+1a4cde: 0172                                   |0119: move v2, v7
+1a4ce0: 3b02 0300                              |011a: if-gez v2, 011d // +0003
+1a4ce4: 01c2                                   |011c: move v2, v12
+1a4ce6: 4409 0902                              |011d: aget v9, v9, v2
+1a4cea: 4b09 000b                              |011f: aput v9, v0, v11
+1a4cee: 4402 0602                              |0121: aget v2, v6, v2
+1a4cf2: 4b02 000a                              |0123: aput v2, v0, v10
+1a4cf6: 1502 a040                              |0125: const/high16 v2, #int 1084227584 // #40a0
+1a4cfa: c721                                   |0127: sub-float/2addr v1, v2
+1a4cfc: 2d02 0112                              |0128: cmpl-float v2, v1, v18
+1a4d00: 3d02 0500                              |012a: if-lez v2, 012f // +0005
+1a4d04: 4b13 000c                              |012c: aput v19, v0, v12
+1a4d08: 281e                                   |012e: goto 014c // +001e
+1a4d0a: 2e02 0103                              |012f: cmpg-float v2, v1, v3
+1a4d0e: 6203 0d22                              |0131: sget-object v3, Lz2/l;.m:[F // field@220d
+1a4d12: 3b02 0900                              |0133: if-gez v2, 013c // +0009
+1a4d16: 1301 4600                              |0135: const/16 v1, #int 70 // #46
+1a4d1a: 4401 0301                              |0137: aget v1, v3, v1
+1a4d1e: 4b01 000c                              |0139: aput v1, v0, v12
+1a4d22: 2811                                   |013b: goto 014c // +0011
+1a4d24: 8711                                   |013c: float-to-int v1, v1
+1a4d26: 7110 a32f 0100                         |013d: invoke-static {v1}, Ljava/lang/Math;.abs:(I)I // method@2fa3
+1a4d2c: 0a01                                   |0140: move-result v1
+1a4d2e: 3771 0300                              |0141: if-le v1, v7, 0144 // +0003
+1a4d32: 2802                                   |0143: goto 0145 // +0002
+1a4d34: 0117                                   |0144: move v7, v1
+1a4d36: 3b07 0300                              |0145: if-gez v7, 0148 // +0003
+1a4d3a: 01c7                                   |0147: move v7, v12
+1a4d3c: 4401 0307                              |0148: aget v1, v3, v7
+1a4d40: 4b01 000c                              |014a: aput v1, v0, v12
+1a4d44: 4401 040c                              |014c: aget v1, v4, v12
+1a4d48: 8711                                   |014e: float-to-int v1, v1
+1a4d4a: 4402 040b                              |014f: aget v2, v4, v11
+1a4d4e: 8722                                   |0151: float-to-int v2, v2
+1a4d50: 4403 040a                              |0152: aget v3, v4, v10
+1a4d54: 8733                                   |0154: float-to-int v3, v3
+1a4d56: 7140 c00d 1532                         |0155: invoke-static {v5, v1, v2, v3}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4d5c: 0a01                                   |0158: move-result v1
+1a4d5e: 4b01 190c                              |0159: aput v1, v25, v12
+1a4d62: 4401 000c                              |015b: aget v1, v0, v12
+1a4d66: 4402 040c                              |015d: aget v2, v4, v12
+1a4d6a: c621                                   |015f: add-float/2addr v1, v2
+1a4d6c: c881                                   |0160: mul-float/2addr v1, v8
+1a4d6e: 8711                                   |0161: float-to-int v1, v1
+1a4d70: 4402 000b                              |0162: aget v2, v0, v11
+1a4d74: 4403 040b                              |0164: aget v3, v4, v11
+1a4d78: c632                                   |0166: add-float/2addr v2, v3
+1a4d7a: c882                                   |0167: mul-float/2addr v2, v8
+1a4d7c: 8722                                   |0168: float-to-int v2, v2
+1a4d7e: 4403 000a                              |0169: aget v3, v0, v10
+1a4d82: 4404 040a                              |016b: aget v4, v4, v10
+1a4d86: c643                                   |016d: add-float/2addr v3, v4
+1a4d88: c883                                   |016e: mul-float/2addr v3, v8
+1a4d8a: 8733                                   |016f: float-to-int v3, v3
+1a4d8c: 7140 c00d 1532                         |0170: invoke-static {v5, v1, v2, v3}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4d92: 0a01                                   |0173: move-result v1
+1a4d94: 4b01 190b                              |0174: aput v1, v25, v11
+1a4d98: 4401 000c                              |0176: aget v1, v0, v12
+1a4d9c: 8711                                   |0178: float-to-int v1, v1
+1a4d9e: 4402 000b                              |0179: aget v2, v0, v11
+1a4da2: 8722                                   |017b: float-to-int v2, v2
+1a4da4: 4400 000a                              |017c: aget v0, v0, v10
+1a4da8: 8700                                   |017e: float-to-int v0, v0
+1a4daa: 7140 c00d 1502                         |017f: invoke-static {v5, v1, v2, v0}, Landroid/graphics/Color;.argb:(IIII)I // method@0dc0
+1a4db0: 0a00                                   |0182: move-result v0
+1a4db2: 4b00 190a                              |0183: aput v0, v25, v10
+1a4db6: 0e00                                   |0185: return-void
+1a4db8: 7402 d53f 1400                         |0186: invoke-virtual/range {v20, v21}, Lz2/m;.u:(I)Z // method@3fd5
+1a4dbe: 0a01                                   |0189: move-result v1
+1a4dc0: 3801 0c00                              |018a: if-eqz v1, 0196 // +000c
+1a4dc4: 5400 2622                              |018c: iget-object v0, v0, Lz2/m;.W:[I // field@2226
+1a4dc8: 4400 0015                              |018e: aget v0, v0, v21
+1a4dcc: 4b00 190c                              |0190: aput v0, v25, v12
+1a4dd0: 4b0d 190b                              |0192: aput v13, v25, v11
+1a4dd4: 4b0d 190a                              |0194: aput v13, v25, v10
+1a4dd8: 0e00                                   |0196: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #17              : (in Lz2/m;)
+      name          : 'r'
+      type          : '(II[I)F'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 9
+      ins           : 4
+      outs          : 3
+      insns size    : 75 16-bit code units
+1a4514:                                        |[1a4514] z2.m.r:(II[I)F
+1a4524: 1230                                   |0000: const/4 v0, #int 3 // #3
+1a4526: 4400 0800                              |0001: aget v0, v8, v0
+1a452a: 3d00 4500                              |0003: if-lez v0, 0048 // +0045
+1a452e: 1241                                   |0005: const/4 v1, #int 4 // #4
+1a4530: 4401 0801                              |0006: aget v1, v8, v1
+1a4534: 6e10 c43f 0500                         |0008: invoke-virtual {v5}, Lz2/m;.getWaveSlotNum:()I // method@3fc4
+1a453a: 0a02                                   |000b: move-result v2
+1a453c: 3221 0600                              |000c: if-eq v1, v2, 0012 // +0006
+1a4540: 1201                                   |000e: const/4 v1, #int 0 // #0
+1a4542: 4408 0801                              |000f: aget v8, v8, v1
+1a4546: 2807                                   |0011: goto 0018 // +0007
+1a4548: db01 0102                              |0012: div-int/lit8 v1, v1, #int 2 // #02
+1a454c: d801 0105                              |0014: add-int/lit8 v1, v1, #int 5 // #05
+1a4550: 4408 0801                              |0016: aget v8, v8, v1
+1a4554: 6e10 c03f 0500                         |0018: invoke-virtual {v5}, Lz2/m;.getDataWidth:()I // method@3fc0
+1a455a: 0a01                                   |001b: move-result v1
+1a455c: 9002 0100                              |001c: add-int v2, v1, v0
+1a4560: d802 02ff                              |001e: add-int/lit8 v2, v2, #int -1 // #ff
+1a4564: b302                                   |0020: div-int/2addr v2, v0
+1a4566: d223 e803                              |0021: mul-int/lit16 v3, v2, #int 1000 // #03e8
+1a456a: 1304 e803                              |0023: const/16 v4, #int 1000 // #3e8
+1a456e: 7130 c63f 4803                         |0025: invoke-static {v8, v4, v3}, Lz2/m;.h:(III)I // method@3fc6
+1a4574: 0a08                                   |0028: move-result v8
+1a4576: b220                                   |0029: mul-int/2addr v0, v2
+1a4578: 7130 c63f 0801                         |002a: invoke-static {v8, v0, v1}, Lz2/m;.h:(III)I // method@3fc6
+1a457e: 0a08                                   |002d: move-result v8
+1a4580: 7130 c63f 4703                         |002e: invoke-static {v7, v4, v3}, Lz2/m;.h:(III)I // method@3fc6
+1a4586: 0a07                                   |0031: move-result v7
+1a4588: 7130 c63f 0701                         |0032: invoke-static {v7, v0, v1}, Lz2/m;.h:(III)I // method@3fc6
+1a458e: 0a07                                   |0035: move-result v7
+1a4590: b187                                   |0036: sub-int/2addr v7, v8
+1a4592: db01 0102                              |0037: div-int/lit8 v1, v1, #int 2 // #02
+1a4596: b071                                   |0039: add-int/2addr v1, v7
+1a4598: 8217                                   |003a: int-to-float v7, v1
+1a459a: 5458 2322                              |003b: iget-object v8, v5, Lz2/m;.T:[Z // field@2223
+1a459e: 4706 0806                              |003d: aget-boolean v6, v8, v6
+1a45a2: 3906 0800                              |003f: if-nez v6, 0047 // +0008
+1a45a6: 6e10 c33f 0500                         |0041: invoke-virtual {v5}, Lz2/m;.getWaveOffset:()I // method@3fc3
+1a45ac: 0a05                                   |0044: move-result v5
+1a45ae: 8255                                   |0045: int-to-float v5, v5
+1a45b0: c757                                   |0046: sub-float/2addr v7, v5
+1a45b2: 0f07                                   |0047: return v7
+1a45b4: 1505 80bf                              |0048: const/high16 v5, #int -1082130432 // #bf80
+1a45b8: 0f05                                   |004a: return v5
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #18              : (in Lz2/m;)
+      name          : 's'
+      type          : '(I)I'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 3
+      ins           : 2
+      outs          : 0
+      insns size    : 39 16-bit code units
+1a467c:                                        |[1a467c] z2.m.s:(I)I
+1a468c: 5410 2f22                              |0000: iget-object v0, v1, Lz2/m;.i0:[Z // field@222f
+1a4690: 4700 0002                              |0002: aget-boolean v0, v0, v2
+1a4694: 3800 0500                              |0004: if-eqz v0, 0009 // +0005
+1a4698: 5211 1a22                              |0006: iget v1, v1, Lz2/m;.K:I // field@221a
+1a469c: 0f01                                   |0008: return v1
+1a469e: 5410 2e22                              |0009: iget-object v0, v1, Lz2/m;.h0:[Z // field@222e
+1a46a2: 4700 0002                              |000b: aget-boolean v0, v0, v2
+1a46a6: 3800 0500                              |000d: if-eqz v0, 0012 // +0005
+1a46aa: 5211 1922                              |000f: iget v1, v1, Lz2/m;.J:I // field@2219
+1a46ae: 0f01                                   |0011: return v1
+1a46b0: 5410 2d22                              |0012: iget-object v0, v1, Lz2/m;.g0:[Z // field@222d
+1a46b4: 4700 0002                              |0014: aget-boolean v0, v0, v2
+1a46b8: 3800 0500                              |0016: if-eqz v0, 001b // +0005
+1a46bc: 5211 1822                              |0018: iget v1, v1, Lz2/m;.I:I // field@2218
+1a46c0: 0f01                                   |001a: return v1
+1a46c2: 5410 2c22                              |001b: iget-object v0, v1, Lz2/m;.f0:[Z // field@222c
+1a46c6: 4702 0002                              |001d: aget-boolean v2, v0, v2
+1a46ca: 3802 0500                              |001f: if-eqz v2, 0024 // +0005
+1a46ce: 5211 1722                              |0021: iget v1, v1, Lz2/m;.H:I // field@2217
+1a46d2: 0f01                                   |0023: return v1
+1a46d4: 5211 1622                              |0024: iget v1, v1, Lz2/m;.G:I // field@2216
+1a46d8: 0f01                                   |0026: return v1
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #19              : (in Lz2/m;)
+      name          : 'setZoomColor'
+      type          : '(I)V'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 4
+      ins           : 2
+      outs          : 2
+      insns size    : 25 16-bit code units
+1a4fb0:                                        |[1a4fb0] z2.m.setZoomColor:(I)V
+1a4fc0: 6200 7f20                              |0000: sget-object v0, Lw2/B;.a:[Lcom/google/android/material/datepicker/c; // field@207f
+1a4fc4: 6000 b020                              |0002: sget v0, Lw2/h;.f:I // field@20b0
+1a4fc8: 5421 2522                              |0004: iget-object v1, v2, Lz2/m;.V:[I // field@2225
+1a4fcc: 4b00 0103                              |0006: aput v0, v1, v3
+1a4fd0: 6200 8720                              |0008: sget-object v0, Lw2/B;.i:[I // field@2087
+1a4fd4: 2101                                   |000a: array-length v1, v0
+1a4fd6: 7120 913e 1300                         |000b: invoke-static {v3, v1}, Ly0/a;.o:(II)Z // method@3e91
+1a4fdc: 0a01                                   |000e: move-result v1
+1a4fde: 7110 0a39 0100                         |000f: invoke-static {v1}, Ln1/a;.b:(Z)V // method@390a
+1a4fe4: 4400 0003                              |0012: aget v0, v0, v3
+1a4fe8: 5422 2622                              |0014: iget-object v2, v2, Lz2/m;.W:[I // field@2226
+1a4fec: 4b00 0203                              |0016: aput v0, v2, v3
+1a4ff0: 0e00                                   |0018: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #20              : (in Lz2/m;)
+      name          : 'setZoomCue'
+      type          : '(I)V'
+      access        : 0x0001 (PUBLIC)
+      code          -
+      registers     : 5
+      ins           : 2
+      outs          : 2
+      insns size    : 50 16-bit code units
+1a4ff4:                                        |[1a4ff4] z2.m.setZoomCue:(I)V
+1a5004: 5430 2822                              |0000: iget-object v0, v3, Lz2/m;.b0:[Lw2/j; // field@2228
+1a5008: 7110 bc3d 0400                         |0002: invoke-static {v4}, Lw2/B;.n:(I)Lw2/m; // method@3dbc
+1a500e: 0c01                                   |0005: move-result-object v1
+1a5010: 4d01 0004                              |0006: aput-object v1, v0, v4
+1a5014: 6200 7f20                              |0008: sget-object v0, Lw2/B;.a:[Lcom/google/android/material/datepicker/c; // field@207f
+1a5018: 1221                                   |000a: const/4 v1, #int 2 // #2
+1a501a: 7120 913e 1400                         |000b: invoke-static {v4, v1}, Ly0/a;.o:(II)Z // method@3e91
+1a5020: 0a01                                   |000e: move-result v1
+1a5022: 7110 0a39 0100                         |000f: invoke-static {v1}, Ln1/a;.b:(Z)V // method@390a
+1a5028: 4600 0004                              |0012: aget-object v0, v0, v4
+1a502c: 3800 0700                              |0014: if-eqz v0, 001b // +0007
+1a5030: 5400 4d10                              |0016: iget-object v0, v0, Lcom/google/android/material/datepicker/c;.e:Ljava/lang/Object; // field@104d
+1a5034: 1f00 7e0b                              |0018: check-cast v0, Lw2/k; // type@0b7e
+1a5038: 2802                                   |001a: goto 001c // +0002
+1a503a: 1200                                   |001b: const/4 v0, #int 0 // #0
+1a503c: 5431 2922                              |001c: iget-object v1, v3, Lz2/m;.c0:[Lw2/j; // field@2229
+1a5040: 4d00 0104                              |001e: aput-object v0, v1, v4
+1a5044: 1200                                   |0020: const/4 v0, #int 0 // #0
+1a5046: 1241                                   |0021: const/4 v1, #int 4 // #4
+1a5048: 3510 0f00                              |0022: if-ge v0, v1, 0031 // +000f
+1a504c: 5431 2a22                              |0024: iget-object v1, v3, Lz2/m;.d0:[[Lw2/j; // field@222a
+1a5050: 4601 0104                              |0026: aget-object v1, v1, v4
+1a5054: 7120 ba3d 0400                         |0028: invoke-static {v4, v0}, Lw2/B;.l:(II)Lw2/k; // method@3dba
+1a505a: 0c02                                   |002b: move-result-object v2
+1a505c: 4d02 0100                              |002c: aput-object v2, v1, v0
+1a5060: d800 0001                              |002e: add-int/lit8 v0, v0, #int 1 // #01
+1a5064: 28f1                                   |0030: goto 0021 // -000f
+1a5066: 0e00                                   |0031: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #21              : (in Lz2/m;)
+      name          : 't'
+      type          : '()V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 9
+      ins           : 1
+      outs          : 4
+      insns size    : 225 16-bit code units
+1a4ddc:                                        |[1a4ddc] z2.m.t:()V
+1a4dec: 1210                                   |0000: const/4 v0, #int 1 // #1
+1a4dee: 0101                                   |0001: move v1, v0
+1a4df0: 5482 3122                              |0002: iget-object v2, v8, Lz2/m;.k:[F // field@2231
+1a4df4: 2123                                   |0004: array-length v3, v2
+1a4df6: 3531 1100                              |0005: if-ge v1, v3, 0016 // +0011
+1a4dfa: 6e10 1e13 0800                         |0007: invoke-virtual {v8}, Landroid/view/View;.getContext:()Landroid/content/Context; // method@131e
+1a4e00: 0c03                                   |000a: move-result-object v3
+1a4e02: 1504 803f                              |000b: const/high16 v4, #int 1065353216 // #3f80
+1a4e06: 7130 b63d 1304                         |000d: invoke-static {v3, v1, v4}, Lw2/B;.h:(Landroid/content/Context;IF)F // method@3db6
+1a4e0c: 0a03                                   |0010: move-result v3
+1a4e0e: 4b03 0201                              |0011: aput v3, v2, v1
+1a4e12: d801 0101                              |0013: add-int/lit8 v1, v1, #int 1 // #01
+1a4e16: 28ed                                   |0015: goto 0002 // -0013
+1a4e18: 6e10 c23f 0800                         |0016: invoke-virtual {v8}, Lz2/m;.getWaveHeight:()F // method@3fc2
+1a4e1e: 6e10 be3f 0800                         |0019: invoke-virtual {v8}, Lz2/m;.getBeatInset:()F // method@3fbe
+1a4e24: 0a01                                   |001c: move-result v1
+1a4e26: 5981 3322                              |001d: iput v1, v8, Lz2/m;.l:F // field@2233
+1a4e2a: 6e10 bf3f 0800                         |001f: invoke-virtual {v8}, Lz2/m;.getBeatMarkInset:()F // method@3fbf
+1a4e30: 0a01                                   |0022: move-result v1
+1a4e32: 5981 3522                              |0023: iput v1, v8, Lz2/m;.m:F // field@2235
+1a4e36: 6e10 c13f 0800                         |0025: invoke-virtual {v8}, Lz2/m;.getPlayBarInset:()F // method@3fc1
+1a4e3c: 0a01                                   |0028: move-result v1
+1a4e3e: 5981 3622                              |0029: iput v1, v8, Lz2/m;.n:F // field@2236
+1a4e42: 1201                                   |002b: const/4 v1, #int 0 // #0
+1a4e44: 6e20 d23f 1800                         |002c: invoke-virtual {v8, v1}, Lz2/m;.setZoomColor:(I)V // method@3fd2
+1a4e4a: 6e20 d23f 0800                         |002f: invoke-virtual {v8, v0}, Lz2/m;.setZoomColor:(I)V // method@3fd2
+1a4e50: 6e20 d33f 1800                         |0032: invoke-virtual {v8, v1}, Lz2/m;.setZoomCue:(I)V // method@3fd3
+1a4e56: 6e20 d33f 0800                         |0035: invoke-virtual {v8, v0}, Lz2/m;.setZoomCue:(I)V // method@3fd3
+1a4e5c: 6003 b720                              |0038: sget v3, Lw2/l;.c:I // field@20b7
+1a4e60: 6e20 5733 3800                         |003a: invoke-virtual {v8, v3}, Lk2/c;.setBackgroundColor:(I)V // method@3357
+1a4e66: 2203 8709                              |003d: new-instance v3, Lk2/a; // type@0987
+1a4e6a: 7020 3e33 0300                         |003f: invoke-direct {v3, v0}, Lk2/a;.<init>:(I)V // method@333e
+1a4e70: 5484 1519                              |0042: iget-object v4, v8, Lk2/c;.h:Ljava/util/ArrayList; // field@1915
+1a4e74: 6e20 ce30 3400                         |0044: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4e7a: 6e10 e030 0400                         |0047: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4e80: 0a03                                   |004a: move-result v3
+1a4e82: b103                                   |004b: sub-int/2addr v3, v0
+1a4e84: 6e20 d530 3400                         |004c: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4e8a: 0c05                                   |004f: move-result-object v5
+1a4e8c: 1f05 8809                              |0050: check-cast v5, Lk2/b; // type@0988
+1a4e90: 1306 0040                              |0052: const/16 v6, #int 16384 // #4000
+1a4e94: 6e20 4a33 6500                         |0054: invoke-virtual {v5, v6}, Lk2/b;.f:(I)V // method@334a
+1a4e9a: 5983 1d22                              |0057: iput v3, v8, Lz2/m;.N:I // field@221d
+1a4e9e: 2203 8709                              |0059: new-instance v3, Lk2/a; // type@0987
+1a4ea2: 1245                                   |005b: const/4 v5, #int 4 // #4
+1a4ea4: 7020 3e33 5300                         |005c: invoke-direct {v3, v5}, Lk2/a;.<init>:(I)V // method@333e
+1a4eaa: 6e20 ce30 3400                         |005f: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4eb0: 6e10 e030 0400                         |0062: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4eb6: 0a03                                   |0065: move-result v3
+1a4eb8: b103                                   |0066: sub-int/2addr v3, v0
+1a4eba: 6e20 d530 3400                         |0067: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4ec0: 0c06                                   |006a: move-result-object v6
+1a4ec2: 1f06 8809                              |006b: check-cast v6, Lk2/b; // type@0988
+1a4ec6: 1307 0008                              |006d: const/16 v7, #int 2048 // #800
+1a4eca: 6e20 4a33 7600                         |006f: invoke-virtual {v6, v7}, Lk2/b;.f:(I)V // method@334a
+1a4ed0: 5983 1e22                              |0072: iput v3, v8, Lz2/m;.O:I // field@221e
+1a4ed4: 7100 6133 0000                         |0074: invoke-static {}, Lk2/f;.h:()Lk2/f; // method@3361
+1a4eda: 0c03                                   |0077: move-result-object v3
+1a4edc: 6e20 ce30 3400                         |0078: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4ee2: 6e10 e030 0400                         |007b: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4ee8: 0a03                                   |007e: move-result v3
+1a4eea: b103                                   |007f: sub-int/2addr v3, v0
+1a4eec: 6e20 d530 3400                         |0080: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4ef2: 0c06                                   |0083: move-result-object v6
+1a4ef4: 1f06 8809                              |0084: check-cast v6, Lk2/b; // type@0988
+1a4ef8: 1307 0800                              |0086: const/16 v7, #int 8 // #8
+1a4efc: 6e20 4a33 7600                         |0088: invoke-virtual {v6, v7}, Lk2/b;.f:(I)V // method@334a
+1a4f02: 5983 1f22                              |008b: iput v3, v8, Lz2/m;.P:I // field@221f
+1a4f06: 2203 8709                              |008d: new-instance v3, Lk2/a; // type@0987
+1a4f0a: 7020 3e33 5300                         |008f: invoke-direct {v3, v5}, Lk2/a;.<init>:(I)V // method@333e
+1a4f10: 6e20 ce30 3400                         |0092: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.add:(Ljava/lang/Object;)Z // method@30ce
+1a4f16: 6e10 e030 0400                         |0095: invoke-virtual {v4}, Ljava/util/ArrayList;.size:()I // method@30e0
+1a4f1c: 0a03                                   |0098: move-result v3
+1a4f1e: b103                                   |0099: sub-int/2addr v3, v0
+1a4f20: 6e20 d530 3400                         |009a: invoke-virtual {v4, v3}, Ljava/util/ArrayList;.get:(I)Ljava/lang/Object; // method@30d5
+1a4f26: 0c00                                   |009d: move-result-object v0
+1a4f28: 1f00 8809                              |009e: check-cast v0, Lk2/b; // type@0988
+1a4f2c: 1304 1000                              |00a0: const/16 v4, #int 16 // #10
+1a4f30: 6e20 4a33 4000                         |00a2: invoke-virtual {v0, v4}, Lk2/b;.f:(I)V // method@334a
+1a4f36: 5983 2022                              |00a5: iput v3, v8, Lz2/m;.Q:I // field@2220
+1a4f3a: 1a00 ee02                              |00a7: const-string v0, "A" // string@02ee
+1a4f3e: 6e20 eb2f 1000                         |00a9: invoke-virtual {v0, v1}, Ljava/lang/String;.codePointAt:(I)I // method@2feb
+1a4f44: 0a00                                   |00ac: move-result v0
+1a4f46: 3551 2d00                              |00ad: if-ge v1, v5, 00da // +002d
+1a4f4a: 9003 0001                              |00af: add-int v3, v0, v1
+1a4f4e: 7110 3e2f 0300                         |00b1: invoke-static {v3}, Ljava/lang/Character;.toChars:(I)[C // method@2f3e
+1a4f54: 0c03                                   |00b4: move-result-object v3
+1a4f56: 7110 1730 0300                         |00b5: invoke-static {v3}, Ljava/lang/String;.valueOf:([C)Ljava/lang/String; // method@3017
+1a4f5c: 0c03                                   |00b8: move-result-object v3
+1a4f5e: 6204 e808                              |00b9: sget-object v4, Landroid/graphics/Typeface;.DEFAULT_BOLD:Landroid/graphics/Typeface; // field@08e8
+1a4f62: 1304 1200                              |00bb: const/16 v4, #int 18 // #12
+1a4f66: 4406 0204                              |00bd: aget v6, v2, v4
+1a4f6a: 5487 1022                              |00bf: iget-object v7, v8, Lz2/m;.A:[I // field@2210
+1a4f6e: 4407 0701                              |00c1: aget v7, v7, v1
+1a4f72: 6e40 4e33 3876                         |00c3: invoke-virtual {v8, v3, v6, v7}, Lk2/c;.c:(Ljava/lang/String;FI)I // method@334e
+1a4f78: 0a06                                   |00c6: move-result v6
+1a4f7a: 5487 2122                              |00c7: iget-object v7, v8, Lz2/m;.R:[I // field@2221
+1a4f7e: 4b06 0701                              |00c9: aput v6, v7, v1
+1a4f82: 4404 0204                              |00cb: aget v4, v2, v4
+1a4f86: 5286 1122                              |00cd: iget v6, v8, Lz2/m;.B:I // field@2211
+1a4f8a: 6e40 4e33 3864                         |00cf: invoke-virtual {v8, v3, v4, v6}, Lk2/c;.c:(Ljava/lang/String;FI)I // method@334e
+1a4f90: 0a03                                   |00d2: move-result v3
+1a4f92: 5484 2222                              |00d3: iget-object v4, v8, Lz2/m;.S:[I // field@2222
+1a4f96: 4b03 0401                              |00d5: aput v3, v4, v1
+1a4f9a: d801 0101                              |00d7: add-int/lit8 v1, v1, #int 1 // #01
+1a4f9e: 28d4                                   |00d9: goto 00ad // -002c
+1a4fa0: 6e10 4c33 0800                         |00da: invoke-virtual {v8}, Lk2/c;.a:()V // method@334c
+1a4fa6: 6e10 5633 0800                         |00dd: invoke-virtual {v8}, Lk2/c;.requestRender:()V // method@3356
+1a4fac: 0e00                                   |00e0: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #22              : (in Lz2/m;)
+      name          : 'u'
+      type          : '(I)Z'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 2
+      ins           : 2
+      outs          : 0
+      insns size    : 11 16-bit code units
+1a44ec:                                        |[1a44ec] z2.m.u:(I)Z
+1a44fc: 5400 2522                              |0000: iget-object v0, v0, Lz2/m;.V:[I // field@2225
+1a4500: 4400 0001                              |0002: aget v0, v0, v1
+1a4504: 1221                                   |0004: const/4 v1, #int 2 // #2
+1a4506: 3310 0400                              |0005: if-ne v0, v1, 0009 // +0004
+1a450a: 1210                                   |0007: const/4 v0, #int 1 // #1
+1a450c: 0f00                                   |0008: return v0
+1a450e: 1200                                   |0009: const/4 v0, #int 0 // #0
+1a4510: 0f00                                   |000a: return v0
+      catches       : (none)
+      positions     :
+      locals        :
+
+  source_file_idx   : 5734 (SourceFile)
+
+Class #1416            -

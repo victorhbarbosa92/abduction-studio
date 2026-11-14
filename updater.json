@@ -1,0 +1,4 @@
+{
+  "worker_url": "https://abduction-updater-gateway.YOUR_SUBDOMAIN.workers.dev",
+  "secret_key": ""
+}

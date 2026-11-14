@@ -1,0 +1,541 @@
+#pragma once
+#include "imgui.h"
+#include "DJLayoutMetrics.h"
+#include "DJBeatPulseEngine.h"
+#include "../core/DJMIRPhrasingEngine.h"
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <string>
+
+namespace KuroUI {
+
+    struct RibbonPoint {
+        float x = 0.0f;
+        float high_amp = 0.0f;   // Altura em pixels calculada com curva Pioneer dB (h_high)
+        float mid_amp  = 0.0f;   // Altura em pixels calculada com curva Pioneer dB (h_mid)
+        float low_amp  = 0.0f;   // Altura em pixels calculada com curva Pioneer dB (h_low)
+        float total_amp = 0.0f;  // Altura total em pixels (h_total)
+        float cycle_max = 1.0f;  // Excursão instantânea positiva do áudio [0.35..1.25]
+        float cycle_min = -1.0f; // Excursão instantânea negativa do áudio [-1.25..-0.35]
+        bool  is_tail = false;   // Silêncio / cauda de osciloscópio
+        bool  active = true;
+    };
+
+    class DJMultiRibbonWaveform {
+    private:
+        DJMultiRibbonWaveform() = default;
+
+        // Renderizador comum de Playhead central, Metrônomo Óptico e Badges Informativas
+        void renderPlayheadAndBadges(
+            ImDrawList* dl,
+            ImVec2 pos,
+            float width,
+            float height,
+            float center_x,
+            double cur_b_phase,
+            int cur_b_in_bar,
+            bool is_playing,
+            KuroAudio::TrackPhraseType cur_ph
+        ) {
+            auto& metrics = DJLayoutMetrics::getInstance();
+
+            // Metrônomo Óptico no Playhead Central
+            float anim_factor = 1.0f;
+            if (metrics.enable_visual_animations && is_playing) {
+                anim_factor = std::max(0.0f, 1.0f - (float)cur_b_phase * 1.5f);
+            }
+
+            ImU32 beat_col = DJBeatPulseEngine::getBeatColor(cur_b_in_bar, 1.0f);
+
+            if (metrics.enable_visual_beat_metronome) {
+                if (cur_b_in_bar == 1) {
+                    float flare_w = 4.0f + 5.0f * anim_factor;
+                    ImU32 flare_col = IM_COL32(255, 220, 60, (int)(180 * anim_factor));
+                    dl->AddRectFilled(ImVec2(center_x - flare_w, pos.y),
+                                      ImVec2(center_x + flare_w, pos.y + height), flare_col);
+                } else {
+                    float pulse_w = 2.0f + 2.0f * anim_factor;
+                    ImU32 pulse_col = DJBeatPulseEngine::getBeatColor(cur_b_in_bar, 0.45f * anim_factor);
+                    dl->AddRectFilled(ImVec2(center_x - pulse_w, pos.y),
+                                      ImVec2(center_x + pulse_w, pos.y + height), pulse_col);
+                }
+            }
+
+            // Agulha Playhead Central
+            dl->AddLine(ImVec2(center_x, pos.y), ImVec2(center_x, pos.y + height), beat_col, 2.0f);
+
+            // Badges superiores: Beat e Frase MIR
+            char beat_badge[32];
+            snprintf(beat_badge, sizeof(beat_badge), "BEAT %d/4", cur_b_in_bar);
+            ImVec2 badge_pos(pos.x + 8.0f, pos.y + 4.0f);
+            dl->AddRectFilled(badge_pos, ImVec2(badge_pos.x + 64.0f, badge_pos.y + 16.0f),
+                              IM_COL32(0, 0, 0, 175), 3.0f);
+            dl->AddText(ImVec2(badge_pos.x + 5.0f, badge_pos.y + 1.0f), beat_col, beat_badge);
+
+            const char* ph_name = "VERSE";
+            switch (cur_ph) {
+                case KuroAudio::TrackPhraseType::INTRO: ph_name = "INTRO"; break;
+                case KuroAudio::TrackPhraseType::VERSE_1: ph_name = "VERSE 1"; break;
+                case KuroAudio::TrackPhraseType::BUILDUP: ph_name = "BUILD-UP"; break;
+                case KuroAudio::TrackPhraseType::DROP: ph_name = "DROP [HOT]"; break;
+                case KuroAudio::TrackPhraseType::BREAK_RESPRO: ph_name = "BREAK / RESPIRO"; break;
+                case KuroAudio::TrackPhraseType::VERSE_2: ph_name = "VERSE 2"; break;
+                case KuroAudio::TrackPhraseType::OUTRO: ph_name = "OUTRO"; break;
+                default: ph_name = "PHRASE"; break;
+            }
+            ImU32 ph_col = KuroAudio::DJMIRPhrasingEngine::getPhraseColor(cur_ph, false, 1.0f);
+            ImVec2 ph_badge_pos(pos.x + 78.0f, pos.y + 4.0f);
+            dl->AddRectFilled(ph_badge_pos, ImVec2(ph_badge_pos.x + 105.0f, ph_badge_pos.y + 16.0f),
+                              IM_COL32(0, 0, 0, 175), 3.0f);
+            dl->AddText(ImVec2(ph_badge_pos.x + 6.0f, ph_badge_pos.y + 1.0f), ph_col, ph_name);
+        }
+
+    public:
+        static DJMultiRibbonWaveform& getInstance() {
+            static DJMultiRibbonWaveform instance;
+            return instance;
+        }
+
+        // =========================================================================
+        // MODO 1: REKORDBOX 3-BAND MULTI-LANE (AMOSTRAGEM PADRÃO OFICIAL EM 3 BAIAS)
+        // 3 Baias independentes (High, Mid, Low) com a autêntica amostragem contínua
+        // Rekordbox por colunas de 1.0px, curva dB Pioneer e miolo incandescente (50%).
+        // =========================================================================
+        void renderRekordbox3BandMultiLane(
+            ImDrawList* dl,
+            const std::vector<RibbonPoint>& rib_pts,
+            ImVec2 pos,
+            float width,
+            float height,
+            float center_x,
+            double cur_b_phase,
+            int cur_b_in_bar,
+            bool is_playing,
+            KuroAudio::TrackPhraseType cur_ph
+        ) {
+            if (!dl || rib_pts.size() < 2 || width <= 10.0f || height <= 10.0f) return;
+
+            auto& metrics = DJLayoutMetrics::getInstance();
+
+            // 1. Fundo da baia de waveforms com gradiente sutil
+            ImU32 bg_color_top = IM_COL32(10, 13, 19, 245);
+            ImU32 bg_color_bot = IM_COL32(15, 18, 26, 250);
+            dl->AddRectFilledMultiColor(pos, ImVec2(pos.x + width, pos.y + height),
+                                        bg_color_top, bg_color_top, bg_color_bot, bg_color_bot);
+
+            // Tonalidade sutil da frase musical detectada (MIR)
+            ImU32 phrase_tint = KuroAudio::DJMIRPhrasingEngine::getPhraseColor(cur_ph, false, 0.07f);
+            dl->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), phrase_tint);
+
+            // 2. Altura de cada baia
+            float high_ratio = metrics.ribbon_lane_high_ratio;
+            float mid_ratio  = metrics.ribbon_lane_mid_ratio;
+            float low_ratio  = metrics.ribbon_lane_low_ratio;
+            float total_r = high_ratio + mid_ratio + low_ratio;
+            if (total_r <= 0.01f) { high_ratio = 0.28f; mid_ratio = 0.36f; low_ratio = 0.36f; total_r = 1.0f; }
+
+            float high_h = height * (high_ratio / total_r);
+            float mid_h  = height * (mid_ratio  / total_r);
+            float low_h  = height * (low_ratio  / total_r);
+
+            float high_base_y = pos.y + high_h * 0.5f;
+            float mid_base_y  = pos.y + high_h + mid_h * 0.5f;
+            float low_base_y  = pos.y + high_h + mid_h + low_h * 0.5f;
+
+            // Linhas divisórias sutis de lane
+            ImU32 div_col = IM_COL32(255, 255, 255, 22);
+            dl->AddLine(ImVec2(pos.x, pos.y + high_h), ImVec2(pos.x + width, pos.y + high_h), div_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, pos.y + high_h + mid_h), ImVec2(pos.x + width, pos.y + high_h + mid_h), div_col, 1.0f);
+
+            // Sub-rótulos laterais de frequência Rekordbox
+            dl->AddText(ImVec2(pos.x + 8.0f, high_base_y - 6.0f), IM_COL32(0, 240, 255, 160), "HI");
+            dl->AddText(ImVec2(pos.x + 8.0f, mid_base_y - 6.0f),  IM_COL32(255, 185, 35, 160), "MID");
+            dl->AddText(ImVec2(pos.x + 8.0f, low_base_y - 6.0f),  IM_COL32(0, 140, 255, 160), "LOW");
+
+            // Cores oficiais Rekordbox 3-Band
+            // HIGH: Ciano Cristalino / Gelo Ártico
+            ImU32 high_outer = IM_COL32(0, 205, 255, 235);
+            ImU32 high_core  = IM_COL32(245, 252, 255, 255);
+
+            // MID: Ouro Solar / Âmbar Quente
+            ImU32 mid_outer  = IM_COL32(215, 115, 15, 240);
+            ImU32 mid_core   = IM_COL32(255, 195, 45, 255);
+
+            // LOW: Azul Royal Profundo (ou Magenta/Vermelho no Drop)
+            ImU32 low_outer  = IM_COL32(0, 75, 225, 240);
+            ImU32 low_core   = IM_COL32(45, 175, 255, 255);
+
+            if (cur_ph == KuroAudio::TrackPhraseType::DROP) {
+                low_outer = IM_COL32(255, 25, 70, 245);
+                low_core  = IM_COL32(255, 130, 185, 255);
+            }
+
+            float max_high_sub_h = (high_h * 0.5f) * 0.88f;
+            float max_mid_sub_h  = (mid_h  * 0.5f) * 0.88f;
+            float max_low_sub_h  = (low_h  * 0.5f) * 0.88f;
+
+            // Ganho calibrado para manter proporção compacta e elegante (não alonga para cima)
+            float gain_elongate = 1.25f;
+
+            // 3. Renderização por estrias contínuas verticais Rekordbox (1.0px por coluna)
+            const size_t pt_count = rib_pts.size();
+            for (size_t i = 0; i < pt_count; i++) {
+                const auto& p = rib_pts[i];
+                if (p.x < pos.x || p.x > pos.x + width) continue;
+
+                float x1 = p.x;
+                float x2 = p.x + 1.0f;
+
+                if (p.is_tail || !p.active) {
+                    continue;
+                }
+
+                // --- HIGH SUB-LANE ---
+                {
+                    float amp_h = std::clamp(p.high_amp * gain_elongate, 2.0f, max_high_sub_h);
+                    float y_top = high_base_y - amp_h * std::clamp(p.cycle_max, 0.65f, 1.20f);
+                    float y_bot = high_base_y + amp_h * std::clamp(-p.cycle_min, 0.65f, 1.20f);
+                    if (y_bot - y_top < 2.0f) { y_top = high_base_y - 1.0f; y_bot = high_base_y + 1.0f; }
+
+                    // Pass 1: Envelope externo contíguo Rekordbox
+                    dl->AddRectFilledMultiColor(ImVec2(x1, y_top), ImVec2(x2, high_base_y),
+                                                high_outer, high_outer, high_core, high_core);
+                    dl->AddRectFilledMultiColor(ImVec2(x1, high_base_y), ImVec2(x2, y_bot),
+                                                high_core, high_core, high_outer, high_outer);
+
+                    // Pass 2: Miolo Incandescente denso a 50% de amplitude
+                    float core_top = high_base_y - (high_base_y - y_top) * 0.5f;
+                    float core_bot = high_base_y + (y_bot - high_base_y) * 0.5f;
+                    dl->AddRectFilled(ImVec2(x1, core_top), ImVec2(x2, core_bot), high_core);
+                }
+
+                // --- MID SUB-LANE ---
+                {
+                    float amp_m = std::clamp(p.mid_amp * gain_elongate, 2.0f, max_mid_sub_h);
+                    float y_top = mid_base_y - amp_m * std::clamp(p.cycle_max, 0.65f, 1.20f);
+                    float y_bot = mid_base_y + amp_m * std::clamp(-p.cycle_min, 0.65f, 1.20f);
+                    if (y_bot - y_top < 2.0f) { y_top = mid_base_y - 1.0f; y_bot = mid_base_y + 1.0f; }
+
+                    dl->AddRectFilledMultiColor(ImVec2(x1, y_top), ImVec2(x2, mid_base_y),
+                                                mid_outer, mid_outer, mid_core, mid_core);
+                    dl->AddRectFilledMultiColor(ImVec2(x1, mid_base_y), ImVec2(x2, y_bot),
+                                                mid_core, mid_core, mid_outer, mid_outer);
+
+                    float core_top = mid_base_y - (mid_base_y - y_top) * 0.5f;
+                    float core_bot = mid_base_y + (y_bot - mid_base_y) * 0.5f;
+                    dl->AddRectFilled(ImVec2(x1, core_top), ImVec2(x2, core_bot), mid_core);
+                }
+
+                // --- LOW SUB-LANE ---
+                {
+                    float amp_l = std::clamp(p.low_amp * (gain_elongate * 0.95f), 2.0f, max_low_sub_h);
+                    float y_top = low_base_y - amp_l * std::clamp(p.cycle_max, 0.65f, 1.20f);
+                    float y_bot = low_base_y + amp_l * std::clamp(-p.cycle_min, 0.65f, 1.20f);
+                    if (y_bot - y_top < 2.0f) { y_top = low_base_y - 1.0f; y_bot = low_base_y + 1.0f; }
+
+                    dl->AddRectFilledMultiColor(ImVec2(x1, y_top), ImVec2(x2, low_base_y),
+                                                low_outer, low_outer, low_core, low_core);
+                    dl->AddRectFilledMultiColor(ImVec2(x1, low_base_y), ImVec2(x2, y_bot),
+                                                low_core, low_core, low_outer, low_outer);
+
+                    float core_top = low_base_y - (low_base_y - y_top) * 0.5f;
+                    float core_bot = low_base_y + (y_bot - low_base_y) * 0.5f;
+                    dl->AddRectFilled(ImVec2(x1, core_top), ImVec2(x2, core_bot), low_core);
+                }
+            }
+
+            // 4. Linhas neutras de zero-crossing (centro de cada sub-baia)
+            ImU32 zero_cross_col = IM_COL32(255, 255, 255, 45);
+            dl->AddLine(ImVec2(pos.x, high_base_y), ImVec2(pos.x + width, high_base_y), zero_cross_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, mid_base_y),  ImVec2(pos.x + width, mid_base_y),  zero_cross_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, low_base_y),  ImVec2(pos.x + width, low_base_y),  zero_cross_col, 1.0f);
+
+            // 5. Playhead, Metrônomo e Badges
+            renderPlayheadAndBadges(dl, pos, width, height, center_x, cur_b_phase, cur_b_in_bar, is_playing, cur_ph);
+        }
+
+        // =========================================================================
+        // MODO 2: REKORDBOX 3-BAND FUSED (FUSÃO DAS WAVEFORMS PADRÃO CDJ-3000)
+        // Fusão em eixo único compartilhado: Graves (Azul), Médios (Âmbar) e Agudos
+        // (Branco Diamante) sobrepostos em camadas concêntricas estilo Pioneer CDJ-3000.
+        // =========================================================================
+        void renderRekordbox3BandFusedLane(
+            ImDrawList* dl,
+            const std::vector<RibbonPoint>& rib_pts,
+            ImVec2 pos,
+            float width,
+            float height,
+            float center_x,
+            double cur_b_phase,
+            int cur_b_in_bar,
+            bool is_playing,
+            KuroAudio::TrackPhraseType cur_ph
+        ) {
+            if (!dl || rib_pts.size() < 2 || width <= 10.0f || height <= 10.0f) return;
+
+            // Fundo
+            ImU32 bg_color_top = IM_COL32(10, 13, 19, 250);
+            ImU32 bg_color_bot = IM_COL32(14, 18, 25, 255);
+            dl->AddRectFilledMultiColor(pos, ImVec2(pos.x + width, pos.y + height),
+                                        bg_color_top, bg_color_top, bg_color_bot, bg_color_bot);
+
+            ImU32 phrase_tint = KuroAudio::DJMIRPhrasingEngine::getPhraseColor(cur_ph, false, 0.06f);
+            dl->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), phrase_tint);
+
+            float mid_y = pos.y + height * 0.5f;
+            float max_half_h = (height * 0.5f) * 0.82f;
+            float gain_fused = 1.25f;
+
+            // Cores oficiais CDJ-3000 3-Band
+            ImU32 low_outer  = (cur_ph == KuroAudio::TrackPhraseType::DROP) ? IM_COL32(255, 25, 70, 240) : IM_COL32(0, 60, 190, 230);
+            ImU32 low_core   = (cur_ph == KuroAudio::TrackPhraseType::DROP) ? IM_COL32(255, 120, 180, 255) : IM_COL32(30, 150, 255, 255);
+
+            ImU32 mid_outer  = IM_COL32(195, 95, 10, 235);
+            ImU32 mid_core   = IM_COL32(255, 180, 30, 255);
+
+            ImU32 high_outer = IM_COL32(160, 215, 255, 240);
+            ImU32 high_core  = IM_COL32(255, 255, 255, 255);
+
+            const size_t pt_count = rib_pts.size();
+            for (size_t i = 0; i < pt_count; i++) {
+                const auto& p = rib_pts[i];
+                if (p.x < pos.x || p.x > pos.x + width) continue;
+
+                float x1 = p.x;
+                float x2 = p.x + 1.0f;
+
+                if (p.is_tail || !p.active) continue;
+
+                float pos_m = std::clamp(p.cycle_max, 0.65f, 1.20f);
+                float neg_m = std::clamp(-p.cycle_min, 0.65f, 1.20f);
+
+                // 1. Camada Graves (Base Azul)
+                float amp_l = std::clamp(p.low_amp * gain_fused, 2.0f, max_half_h);
+                float y_l_top = mid_y - amp_l * pos_m;
+                float y_l_bot = mid_y + amp_l * neg_m;
+                dl->AddRectFilledMultiColor(ImVec2(x1, y_l_top), ImVec2(x2, mid_y), low_outer, low_outer, low_core, low_core);
+                dl->AddRectFilledMultiColor(ImVec2(x1, mid_y), ImVec2(x2, y_l_bot), low_core, low_core, low_outer, low_outer);
+                dl->AddRectFilled(ImVec2(x1, mid_y - (mid_y - y_l_top) * 0.5f), ImVec2(x2, mid_y + (y_l_bot - mid_y) * 0.5f), low_core);
+
+                // 2. Camada Médios (Intermediário Âmbar)
+                float amp_m = std::clamp(p.mid_amp * gain_fused, 2.0f, max_half_h * 0.88f);
+                float y_m_top = mid_y - amp_m * pos_m;
+                float y_m_bot = mid_y + amp_m * neg_m;
+                dl->AddRectFilledMultiColor(ImVec2(x1, y_m_top), ImVec2(x2, mid_y), mid_outer, mid_outer, mid_core, mid_core);
+                dl->AddRectFilledMultiColor(ImVec2(x1, mid_y), ImVec2(x2, y_m_bot), mid_core, mid_core, mid_outer, mid_outer);
+                dl->AddRectFilled(ImVec2(x1, mid_y - (mid_y - y_m_top) * 0.5f), ImVec2(x2, mid_y + (y_m_bot - mid_y) * 0.5f), mid_core);
+
+                // 3. Camada Agudos (Cúpula Branca Diamante)
+                float amp_h = std::clamp(p.high_amp * gain_fused, 2.0f, max_half_h * 0.78f);
+                float y_h_top = mid_y - amp_h * pos_m;
+                float y_h_bot = mid_y + amp_h * neg_m;
+                dl->AddRectFilledMultiColor(ImVec2(x1, y_h_top), ImVec2(x2, mid_y), high_outer, high_outer, high_core, high_core);
+                dl->AddRectFilledMultiColor(ImVec2(x1, mid_y), ImVec2(x2, y_h_bot), high_core, high_core, high_outer, high_outer);
+                dl->AddRectFilled(ImVec2(x1, mid_y - (mid_y - y_h_top) * 0.5f), ImVec2(x2, mid_y + (y_h_bot - mid_y) * 0.5f), high_core);
+            }
+
+            // Linha central neutra 1px
+            dl->AddLine(ImVec2(pos.x, mid_y), ImVec2(pos.x + width, mid_y), IM_COL32(255, 255, 255, 160), 1.0f);
+
+            // Playhead, Metrônomo e Badges
+            renderPlayheadAndBadges(dl, pos, width, height, center_x, cur_b_phase, cur_b_in_bar, is_playing, cur_ph);
+        }
+
+        // =========================================================================
+        // MODO 3: FUSÃO HÍBRIDA (REKORDBOX CONTINUOUS MESH + FITAS NEON RIBBON)
+        // Combina o miolo denso de estriação contínua Rekordbox com o contorno luminoso
+        // e glow de fitas desacopladas estilo Guitar Hero.
+        // =========================================================================
+        void renderHybridFusionDeckLane(
+            ImDrawList* dl,
+            const std::vector<RibbonPoint>& rib_pts,
+            ImVec2 pos,
+            float width,
+            float height,
+            float center_x,
+            double cur_b_phase,
+            int cur_b_in_bar,
+            bool is_playing,
+            KuroAudio::TrackPhraseType cur_ph
+        ) {
+            // Renderiza a base contínua de mesh 3-Band Rekordbox
+            renderRekordbox3BandMultiLane(dl, rib_pts, pos, width, height, center_x,
+                                          cur_b_phase, cur_b_in_bar, is_playing, cur_ph);
+
+            if (rib_pts.size() < 2) return;
+
+            auto& metrics = DJLayoutMetrics::getInstance();
+            float high_ratio = metrics.ribbon_lane_high_ratio;
+            float mid_ratio  = metrics.ribbon_lane_mid_ratio;
+            float low_ratio  = metrics.ribbon_lane_low_ratio;
+            float total_r = high_ratio + mid_ratio + low_ratio;
+            if (total_r <= 0.01f) { high_ratio = 0.28f; mid_ratio = 0.36f; low_ratio = 0.36f; total_r = 1.0f; }
+
+            float high_h = height * (high_ratio / total_r);
+            float mid_h  = height * (mid_ratio  / total_r);
+            float low_h  = height * (low_ratio  / total_r);
+
+            float high_base_y = pos.y + high_h * 0.5f;
+            float mid_base_y  = pos.y + high_h + mid_h * 0.5f;
+            float low_base_y  = pos.y + high_h + mid_h + low_h * 0.5f;
+
+            float max_high_sub_h = (high_h * 0.5f) * 0.88f;
+            float max_mid_sub_h  = (mid_h  * 0.5f) * 0.88f;
+            float max_low_sub_h  = (low_h  * 0.5f) * 0.88f;
+            float gain_elongate = 1.25f;
+
+            ImU32 high_neon = IM_COL32(0, 240, 255, 230);
+            ImU32 mid_neon  = IM_COL32(255, 185, 35, 230);
+            ImU32 low_neon  = (cur_ph == KuroAudio::TrackPhraseType::DROP) ? IM_COL32(255, 25, 70, 255) : IM_COL32(0, 160, 255, 230);
+
+            // Traço vetorial de contorno neon de precisão sobre as estrias
+            const size_t pt_count = rib_pts.size();
+            for (size_t i = 0; i + 1 < pt_count; i++) {
+                const auto& p1 = rib_pts[i];
+                const auto& p2 = rib_pts[i + 1];
+                if (p2.x < pos.x || p1.x > pos.x + width) continue;
+
+                // High contour
+                float h1 = std::clamp(p1.high_amp * gain_elongate, 2.0f, max_high_sub_h);
+                float h2 = std::clamp(p2.high_amp * gain_elongate, 2.0f, max_high_sub_h);
+                dl->AddLine(ImVec2(p1.x, high_base_y - h1), ImVec2(p2.x, high_base_y - h2), high_neon, 1.5f);
+                dl->AddLine(ImVec2(p1.x, high_base_y + h1), ImVec2(p2.x, high_base_y + h2), high_neon, 1.5f);
+
+                // Mid contour
+                float m1 = std::clamp(p1.mid_amp * gain_elongate, 2.0f, max_mid_sub_h);
+                float m2 = std::clamp(p2.mid_amp * gain_elongate, 2.0f, max_mid_sub_h);
+                dl->AddLine(ImVec2(p1.x, mid_base_y - m1), ImVec2(p2.x, mid_base_y - m2), mid_neon, 1.5f);
+                dl->AddLine(ImVec2(p1.x, mid_base_y + m1), ImVec2(p2.x, mid_base_y + m2), mid_neon, 1.5f);
+
+                // Low contour
+                float l1 = std::clamp(p1.low_amp * (gain_elongate * 0.95f), 2.0f, max_low_sub_h);
+                float l2 = std::clamp(p2.low_amp * (gain_elongate * 0.95f), 2.0f, max_low_sub_h);
+                dl->AddLine(ImVec2(p1.x, low_base_y - l1), ImVec2(p2.x, low_base_y - l2), low_neon, 1.7f);
+                dl->AddLine(ImVec2(p1.x, low_base_y + l1), ImVec2(p2.x, low_base_y + l2), low_neon, 1.7f);
+            }
+        }
+
+        // =========================================================================
+        // MODO 4: MULTI-RIBBON DESACOPLADO (ESTILO VOCAL GUITAR HERO ORIGINAL)
+        // 3 Fitas independentes empilhadas com preenchimento vetorial e contornos neon
+        // =========================================================================
+        void renderMultiRibbonDeckLane(
+            ImDrawList* dl,
+            const std::vector<RibbonPoint>& rib_pts,
+            ImVec2 pos,
+            float width,
+            float height,
+            float center_x,
+            double cur_b_phase,
+            int cur_b_in_bar,
+            bool is_playing,
+            KuroAudio::TrackPhraseType cur_ph
+        ) {
+            if (!dl || rib_pts.size() < 2 || width <= 10.0f || height <= 10.0f) return;
+
+            auto& metrics = DJLayoutMetrics::getInstance();
+
+            // 1. Fundo da baia de waveforms com gradiente sutil
+            ImU32 bg_color_top = IM_COL32(11, 14, 20, 240);
+            ImU32 bg_color_bot = IM_COL32(16, 19, 28, 245);
+            dl->AddRectFilledMultiColor(pos, ImVec2(pos.x + width, pos.y + height),
+                                        bg_color_top, bg_color_top, bg_color_bot, bg_color_bot);
+
+            ImU32 phrase_tint = KuroAudio::DJMIRPhrasingEngine::getPhraseColor(cur_ph, false, 0.08f);
+            dl->AddRectFilled(pos, ImVec2(pos.x + width, pos.y + height), phrase_tint);
+
+            // 2. Cálculo das alturas das 3 baias empilhadas
+            float high_ratio = metrics.ribbon_lane_high_ratio;
+            float mid_ratio  = metrics.ribbon_lane_mid_ratio;
+            float low_ratio  = metrics.ribbon_lane_low_ratio;
+            float total_r = high_ratio + mid_ratio + low_ratio;
+            if (total_r <= 0.01f) { high_ratio = 0.28f; mid_ratio = 0.36f; low_ratio = 0.36f; total_r = 1.0f; }
+
+            float high_h = height * (high_ratio / total_r);
+            float mid_h  = height * (mid_ratio  / total_r);
+            float low_h  = height * (low_ratio  / total_r);
+
+            float high_base_y = pos.y + high_h * 0.5f;
+            float mid_base_y  = pos.y + high_h + mid_h * 0.5f;
+            float low_base_y  = pos.y + high_h + mid_h + low_h * 0.5f;
+
+            // Linhas divisórias sutis de lane
+            ImU32 div_col = IM_COL32(255, 255, 255, 20);
+            dl->AddLine(ImVec2(pos.x, pos.y + high_h), ImVec2(pos.x + width, pos.y + high_h), div_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, pos.y + high_h + mid_h), ImVec2(pos.x + width, pos.y + high_h + mid_h), div_col, 1.0f);
+
+            // Cores base das 3 fitas (Guitar Hero Multi-Ribbon)
+            ImU32 high_edge_col = IM_COL32(0, 240, 255, 240);
+            ImU32 high_fill_col = IM_COL32(0, 180, 230, 80);
+
+            ImU32 mid_edge_col  = IM_COL32(255, 185, 35, 240);
+            ImU32 mid_fill_col  = IM_COL32(230, 140, 20, 85);
+
+            ImU32 low_edge_col  = IM_COL32(255, 45, 160, 245);
+            ImU32 low_fill_col  = IM_COL32(200, 20, 120, 95);
+
+            if (cur_ph == KuroAudio::TrackPhraseType::DROP) {
+                low_edge_col = IM_COL32(255, 25, 60, 255);
+                low_fill_col = IM_COL32(255, 40, 40, 120);
+            }
+
+            float max_high_sub_h = (high_h * 0.5f) * 0.88f;
+            float max_mid_sub_h  = (mid_h  * 0.5f) * 0.88f;
+            float max_low_sub_h  = (low_h  * 0.5f) * 0.88f;
+            float gain_elongate = 1.25f;
+
+            // 3. Renderização contínua das 3 fitas empilhadas
+            const size_t pt_count = rib_pts.size();
+            for (size_t i = 0; i + 1 < pt_count; i++) {
+                const auto& p1 = rib_pts[i];
+                const auto& p2 = rib_pts[i + 1];
+
+                if (p2.x < pos.x || p1.x > pos.x + width) continue;
+
+                // --- HIGH RIBBON ---
+                float h1 = std::clamp(p1.high_amp * gain_elongate, 1.2f, max_high_sub_h);
+                float h2 = std::clamp(p2.high_amp * gain_elongate, 1.2f, max_high_sub_h);
+                ImVec2 h_top1(p1.x, high_base_y - h1);
+                ImVec2 h_bot1(p1.x, high_base_y + h1);
+                ImVec2 h_top2(p2.x, high_base_y - h2);
+                ImVec2 h_bot2(p2.x, high_base_y + h2);
+                dl->AddQuadFilled(h_top1, h_top2, h_bot2, h_bot1, high_fill_col);
+                dl->AddLine(h_top1, h_top2, high_edge_col, 1.8f);
+                dl->AddLine(h_bot1, h_bot2, high_edge_col, 1.8f);
+
+                // --- MID RIBBON ---
+                float m1 = std::clamp(p1.mid_amp * gain_elongate, 1.2f, max_mid_sub_h);
+                float m2 = std::clamp(p2.mid_amp * gain_elongate, 1.2f, max_mid_sub_h);
+                ImVec2 m_top1(p1.x, mid_base_y - m1);
+                ImVec2 m_bot1(p1.x, mid_base_y + m1);
+                ImVec2 m_top2(p2.x, mid_base_y - m2);
+                ImVec2 m_bot2(p2.x, mid_base_y + m2);
+                dl->AddQuadFilled(m_top1, m_top2, m_bot2, m_bot1, mid_fill_col);
+                dl->AddLine(m_top1, m_top2, mid_edge_col, 1.8f);
+                dl->AddLine(m_bot1, m_bot2, mid_edge_col, 1.8f);
+
+                // --- LOW RIBBON ---
+                float l1 = std::clamp(p1.low_amp * (gain_elongate * 0.95f), 1.2f, max_low_sub_h);
+                float l2 = std::clamp(p2.low_amp * (gain_elongate * 0.95f), 1.2f, max_low_sub_h);
+                ImVec2 l_top1(p1.x, low_base_y - l1);
+                ImVec2 l_bot1(p1.x, low_base_y + l1);
+                ImVec2 l_top2(p2.x, low_base_y - l2);
+                ImVec2 l_bot2(p2.x, low_base_y + l2);
+                dl->AddQuadFilled(l_top1, l_top2, l_bot2, l_bot1, low_fill_col);
+                dl->AddLine(l_top1, l_top2, low_edge_col, 2.0f);
+                dl->AddLine(l_bot1, l_bot2, low_edge_col, 2.0f);
+            }
+
+            // 4. Linhas neutras de zero-crossing (centro de cada fita)
+            ImU32 zero_cross_col = IM_COL32(255, 255, 255, 45);
+            dl->AddLine(ImVec2(pos.x, high_base_y), ImVec2(pos.x + width, high_base_y), zero_cross_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, mid_base_y),  ImVec2(pos.x + width, mid_base_y),  zero_cross_col, 1.0f);
+            dl->AddLine(ImVec2(pos.x, low_base_y),  ImVec2(pos.x + width, low_base_y),  zero_cross_col, 1.0f);
+
+            // 5. Playhead, Metrônomo e Badges
+            renderPlayheadAndBadges(dl, pos, width, height, center_x, cur_b_phase, cur_b_in_bar, is_playing, cur_ph);
+        }
+    };
+
+} // namespace KuroUI

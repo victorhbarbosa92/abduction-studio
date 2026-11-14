@@ -1,0 +1,434 @@
+  Class descriptor  : 'Lk2/a;'
+  Access flags      : 0x0011 (PUBLIC FINAL)
+  Superclass        : 'Lk2/b;'
+  Interfaces        -
+  Static fields     -
+  Instance fields   -
+    #0              : (in Lk2/a;)
+      name          : 'a'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #1              : (in Lk2/a;)
+      name          : 'b'
+      type          : 'I'
+      access        : 0x0011 (PUBLIC FINAL)
+    #2              : (in Lk2/a;)
+      name          : 'c'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #3              : (in Lk2/a;)
+      name          : 'd'
+      type          : 'I'
+      access        : 0x0001 (PUBLIC)
+    #4              : (in Lk2/a;)
+      name          : 'e'
+      type          : 'Ljava/nio/FloatBuffer;'
+      access        : 0x0001 (PUBLIC)
+    #5              : (in Lk2/a;)
+      name          : 'f'
+      type          : 'Ljava/nio/ByteBuffer;'
+      access        : 0x0001 (PUBLIC)
+  Direct methods    -
+    #0              : (in Lk2/a;)
+      name          : '<init>'
+      type          : '(I)V'
+      access        : 0x10001 (PUBLIC CONSTRUCTOR)
+      code          -
+      registers     : 5
+      ins           : 2
+      outs          : 1
+      insns size    : 39 16-bit code units
+14b47c:                                        |[14b47c] k2.a.<init>:(I)V
+14b48c: 7010 ce2f 0300                         |0000: invoke-direct {v3}, Ljava/lang/Object;.<init>:()V // method@2fce
+14b492: 1200                                   |0003: const/4 v0, #int 0 // #0
+14b494: 5930 0d19                              |0004: iput v0, v3, Lk2/a;.c:I // field@190d
+14b498: 5930 0e19                              |0006: iput v0, v3, Lk2/a;.d:I // field@190e
+14b49c: 1201                                   |0008: const/4 v1, #int 0 // #0
+14b49e: 5b31 0f19                              |0009: iput-object v1, v3, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b4a2: 5b31 1019                              |000b: iput-object v1, v3, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b4a6: 1212                                   |000d: const/4 v2, #int 1 // #1
+14b4a8: 3324 0800                              |000e: if-ne v4, v2, 0016 // +0008
+14b4ac: 5934 0b19                              |0010: iput v4, v3, Lk2/a;.a:I // field@190b
+14b4b0: 1224                                   |0012: const/4 v4, #int 2 // #2
+14b4b2: 5934 0c19                              |0013: iput v4, v3, Lk2/a;.b:I // field@190c
+14b4b6: 0e00                                   |0015: return-void
+14b4b8: 1242                                   |0016: const/4 v2, #int 4 // #4
+14b4ba: 3324 0800                              |0017: if-ne v4, v2, 001f // +0008
+14b4be: 5934 0b19                              |0019: iput v4, v3, Lk2/a;.a:I // field@190b
+14b4c2: 1234                                   |001b: const/4 v4, #int 3 // #3
+14b4c4: 5934 0c19                              |001c: iput v4, v3, Lk2/a;.b:I // field@190c
+14b4c8: 0e00                                   |001e: return-void
+14b4ca: 5930 0b19                              |001f: iput v0, v3, Lk2/a;.a:I // field@190b
+14b4ce: 5930 0c19                              |0021: iput v0, v3, Lk2/a;.b:I // field@190c
+14b4d2: 7100 2039 0000                         |0023: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b4d8: 2701                                   |0026: throw v1
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #1              : (in Lk2/a;)
+      name          : 'g'
+      type          : '(Lk2/a;Lk2/a;)V'
+      access        : 0x0009 (PUBLIC STATIC)
+      code          -
+      registers     : 4
+      ins           : 2
+      outs          : 2
+      insns size    : 82 16-bit code units
+14b510:                                        |[14b510] k2.a.g:(Lk2/a;Lk2/a;)V
+14b520: 5220 0b19                              |0000: iget v0, v2, Lk2/a;.a:I // field@190b
+14b524: 5231 0b19                              |0002: iget v1, v3, Lk2/a;.a:I // field@190b
+14b528: 3310 4900                              |0004: if-ne v0, v1, 004d // +0049
+14b52c: 6e10 3f33 0200                         |0006: invoke-virtual {v2}, Lk2/a;.a:()V // method@333f
+14b532: 5230 0d19                              |0009: iget v0, v3, Lk2/a;.c:I // field@190d
+14b536: 6e20 4333 0200                         |000b: invoke-virtual {v2, v0}, Lk2/a;.f:(I)V // method@3343
+14b53c: 5230 0e19                              |000e: iget v0, v3, Lk2/a;.d:I // field@190e
+14b540: 3d00 3c00                              |0010: if-lez v0, 004c // +003c
+14b544: 5230 0d19                              |0012: iget v0, v3, Lk2/a;.c:I // field@190d
+14b548: 3d00 0c00                              |0014: if-lez v0, 0020 // +000c
+14b54c: 5430 0f19                              |0016: iget-object v0, v3, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b550: 6e10 9430 0000                         |0018: invoke-virtual {v0}, Ljava/nio/FloatBuffer;.flip:()Ljava/nio/Buffer; // method@3094
+14b556: 5430 1019                              |001b: iget-object v0, v3, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b55a: 6e10 8830 0000                         |001d: invoke-virtual {v0}, Ljava/nio/ByteBuffer;.flip:()Ljava/nio/Buffer; // method@3088
+14b560: 5430 0f19                              |0020: iget-object v0, v3, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b564: 6e10 8130 0000                         |0022: invoke-virtual {v0}, Ljava/nio/Buffer;.hasRemaining:()Z // method@3081
+14b56a: 0a00                                   |0025: move-result v0
+14b56c: 3800 0e00                              |0026: if-eqz v0, 0034 // +000e
+14b570: 5420 0f19                              |0028: iget-object v0, v2, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b574: 5431 0f19                              |002a: iget-object v1, v3, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b578: 6e10 9530 0100                         |002c: invoke-virtual {v1}, Ljava/nio/FloatBuffer;.get:()F // method@3095
+14b57e: 0a01                                   |002f: move-result v1
+14b580: 6e20 9630 1000                         |0030: invoke-virtual {v0, v1}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b586: 28ed                                   |0033: goto 0020 // -0013
+14b588: 5430 1019                              |0034: iget-object v0, v3, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b58c: 6e10 8130 0000                         |0036: invoke-virtual {v0}, Ljava/nio/Buffer;.hasRemaining:()Z // method@3081
+14b592: 0a00                                   |0039: move-result v0
+14b594: 3800 0e00                              |003a: if-eqz v0, 0048 // +000e
+14b598: 5420 1019                              |003c: iget-object v0, v2, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b59c: 5431 1019                              |003e: iget-object v1, v3, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b5a0: 6e10 8930 0100                         |0040: invoke-virtual {v1}, Ljava/nio/ByteBuffer;.get:()B // method@3089
+14b5a6: 0a01                                   |0043: move-result v1
+14b5a8: 6e20 8c30 1000                         |0044: invoke-virtual {v0, v1}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b5ae: 28ed                                   |0047: goto 0034 // -0013
+14b5b0: 5233 0e19                              |0048: iget v3, v3, Lk2/a;.d:I // field@190e
+14b5b4: 5923 0e19                              |004a: iput v3, v2, Lk2/a;.d:I // field@190e
+14b5b8: 0e00                                   |004c: return-void
+14b5ba: 7100 2039 0000                         |004d: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b5c0: 1202                                   |0050: const/4 v2, #int 0 // #0
+14b5c2: 2702                                   |0051: throw v2
+      catches       : (none)
+      positions     :
+      locals        :
+
+  Virtual methods   -
+    #0              : (in Lk2/a;)
+      name          : 'a'
+      type          : '()V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 2
+      ins           : 1
+      outs          : 1
+      insns size    : 18 16-bit code units
+14b4dc:                                        |[14b4dc] k2.a.a:()V
+14b4ec: 5210 0d19                              |0000: iget v0, v1, Lk2/a;.c:I // field@190d
+14b4f0: 3d00 0f00                              |0002: if-lez v0, 0011 // +000f
+14b4f4: 5410 0f19                              |0004: iget-object v0, v1, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b4f8: 6e10 9330 0000                         |0006: invoke-virtual {v0}, Ljava/nio/FloatBuffer;.clear:()Ljava/nio/Buffer; // method@3093
+14b4fe: 5410 1019                              |0009: iget-object v0, v1, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b502: 6e10 8730 0000                         |000b: invoke-virtual {v0}, Ljava/nio/ByteBuffer;.clear:()Ljava/nio/Buffer; // method@3087
+14b508: 1200                                   |000e: const/4 v0, #int 0 // #0
+14b50a: 5910 0e19                              |000f: iput v0, v1, Lk2/a;.d:I // field@190e
+14b50e: 0e00                                   |0011: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #1              : (in Lk2/a;)
+      name          : 'b'
+      type          : '(Ljavax/microedition/khronos/opengles/GL10;)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 8
+      ins           : 2
+      outs          : 5
+      insns size    : 64 16-bit code units
+14b5c4:                                        |[14b5c4] k2.a.b:(Ljavax/microedition/khronos/opengles/GL10;)V
+14b5d4: 5260 0e19                              |0000: iget v0, v6, Lk2/a;.d:I // field@190e
+14b5d8: 3d00 3d00                              |0002: if-lez v0, 003f // +003d
+14b5dc: 5260 0d19                              |0004: iget v0, v6, Lk2/a;.c:I // field@190d
+14b5e0: 3d00 0c00                              |0006: if-lez v0, 0012 // +000c
+14b5e4: 5460 0f19                              |0008: iget-object v0, v6, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b5e8: 6e10 9430 0000                         |000a: invoke-virtual {v0}, Ljava/nio/FloatBuffer;.flip:()Ljava/nio/Buffer; // method@3094
+14b5ee: 5460 1019                              |000d: iget-object v0, v6, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b5f2: 6e10 8830 0000                         |000f: invoke-virtual {v0}, Ljava/nio/ByteBuffer;.flip:()Ljava/nio/Buffer; // method@3088
+14b5f8: 1400 7480 0000                         |0012: const v0, #float 4.60803e-41 // #00008074
+14b5fe: 7220 7932 0700                         |0015: invoke-interface {v7, v0}, Ljavax/microedition/khronos/opengles/GL10;.glEnableClientState:(I)V // method@3279
+14b604: 1401 7680 0000                         |0018: const v1, #float 4.60831e-41 // #00008076
+14b60a: 7220 7932 1700                         |001b: invoke-interface {v7, v1}, Ljavax/microedition/khronos/opengles/GL10;.glEnableClientState:(I)V // method@3279
+14b610: 1302 0614                              |001e: const/16 v2, #int 5126 // #1406
+14b614: 5463 0f19                              |0020: iget-object v3, v6, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b618: 1224                                   |0022: const/4 v4, #int 2 // #2
+14b61a: 1205                                   |0023: const/4 v5, #int 0 // #0
+14b61c: 7253 8032 4752                         |0024: invoke-interface {v7, v4, v2, v5, v3}, Ljavax/microedition/khronos/opengles/GL10;.glVertexPointer:(IIILjava/nio/Buffer;)V // method@3280
+14b622: 1302 0114                              |0027: const/16 v2, #int 5121 // #1401
+14b626: 5463 1019                              |0029: iget-object v3, v6, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b62a: 1244                                   |002b: const/4 v4, #int 4 // #4
+14b62c: 7253 7332 4752                         |002c: invoke-interface {v7, v4, v2, v5, v3}, Ljavax/microedition/khronos/opengles/GL10;.glColorPointer:(IIILjava/nio/Buffer;)V // method@3273
+14b632: 5262 0e19                              |002f: iget v2, v6, Lk2/a;.d:I // field@190e
+14b636: 5263 0c19                              |0031: iget v3, v6, Lk2/a;.b:I // field@190c
+14b63a: b232                                   |0033: mul-int/2addr v2, v3
+14b63c: 5266 0b19                              |0034: iget v6, v6, Lk2/a;.a:I // field@190b
+14b640: 7240 7732 6725                         |0036: invoke-interface {v7, v6, v5, v2}, Ljavax/microedition/khronos/opengles/GL10;.glDrawArrays:(III)V // method@3277
+14b646: 7220 7632 0700                         |0039: invoke-interface {v7, v0}, Ljavax/microedition/khronos/opengles/GL10;.glDisableClientState:(I)V // method@3276
+14b64c: 7220 7632 1700                         |003c: invoke-interface {v7, v1}, Ljavax/microedition/khronos/opengles/GL10;.glDisableClientState:(I)V // method@3276
+14b652: 0e00                                   |003f: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #2              : (in Lk2/a;)
+      name          : 'c'
+      type          : '(FFFFII)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 11
+      ins           : 7
+      outs          : 2
+      insns size    : 141 16-bit code units
+14b654:                                        |[14b654] k2.a.c:(FFFFII)V
+14b664: 1200                                   |0000: const/4 v0, #int 0 // #0
+14b666: 5241 0b19                              |0001: iget v1, v4, Lk2/a;.a:I // field@190b
+14b66a: 1212                                   |0003: const/4 v2, #int 1 // #1
+14b66c: 3321 8500                              |0004: if-ne v1, v2, 0089 // +0085
+14b670: 5241 0e19                              |0006: iget v1, v4, Lk2/a;.d:I // field@190e
+14b674: 5243 0d19                              |0008: iget v3, v4, Lk2/a;.c:I // field@190d
+14b678: 3431 0b00                              |000a: if-lt v1, v3, 0015 // +000b
+14b67c: 3d01 0500                              |000c: if-lez v1, 0011 // +0005
+14b680: da01 0102                              |000e: mul-int/lit8 v1, v1, #int 2 // #02
+14b684: 2802                                   |0010: goto 0012 // +0002
+14b686: 0121                                   |0011: move v1, v2
+14b688: 6e20 4333 1400                         |0012: invoke-virtual {v4, v1}, Lk2/a;.f:(I)V // method@3343
+14b68e: 5241 0e19                              |0015: iget v1, v4, Lk2/a;.d:I // field@190e
+14b692: 5243 0d19                              |0017: iget v3, v4, Lk2/a;.c:I // field@190d
+14b696: 3531 6c00                              |0019: if-ge v1, v3, 0085 // +006c
+14b69a: 5440 0f19                              |001b: iget-object v0, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b69e: 6e20 9630 5000                         |001d: invoke-virtual {v0, v5}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b6a4: 5445 0f19                              |0020: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b6a8: 6e20 9630 6500                         |0022: invoke-virtual {v5, v6}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b6ae: 5445 0f19                              |0025: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b6b2: 6e20 9630 7500                         |0027: invoke-virtual {v5, v7}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b6b8: 5445 0f19                              |002a: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b6bc: 6e20 9630 8500                         |002c: invoke-virtual {v5, v8}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b6c2: 5445 1019                              |002f: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b6c6: 7110 c30d 0900                         |0031: invoke-static {v9}, Landroid/graphics/Color;.red:(I)I // method@0dc3
+14b6cc: 0a06                                   |0034: move-result v6
+14b6ce: 8d66                                   |0035: int-to-byte v6, v6
+14b6d0: 6e20 8c30 6500                         |0036: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b6d6: 5445 1019                              |0039: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b6da: 7110 c20d 0900                         |003b: invoke-static {v9}, Landroid/graphics/Color;.green:(I)I // method@0dc2
+14b6e0: 0a06                                   |003e: move-result v6
+14b6e2: 8d66                                   |003f: int-to-byte v6, v6
+14b6e4: 6e20 8c30 6500                         |0040: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b6ea: 5445 1019                              |0043: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b6ee: 7110 c10d 0900                         |0045: invoke-static {v9}, Landroid/graphics/Color;.blue:(I)I // method@0dc1
+14b6f4: 0a06                                   |0048: move-result v6
+14b6f6: 8d66                                   |0049: int-to-byte v6, v6
+14b6f8: 6e20 8c30 6500                         |004a: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b6fe: 5445 1019                              |004d: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b702: 7110 bf0d 0900                         |004f: invoke-static {v9}, Landroid/graphics/Color;.alpha:(I)I // method@0dbf
+14b708: 0a06                                   |0052: move-result v6
+14b70a: 8d66                                   |0053: int-to-byte v6, v6
+14b70c: 6e20 8c30 6500                         |0054: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b712: 5445 1019                              |0057: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b716: 7110 c30d 0a00                         |0059: invoke-static {v10}, Landroid/graphics/Color;.red:(I)I // method@0dc3
+14b71c: 0a06                                   |005c: move-result v6
+14b71e: 8d66                                   |005d: int-to-byte v6, v6
+14b720: 6e20 8c30 6500                         |005e: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b726: 5445 1019                              |0061: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b72a: 7110 c20d 0a00                         |0063: invoke-static {v10}, Landroid/graphics/Color;.green:(I)I // method@0dc2
+14b730: 0a06                                   |0066: move-result v6
+14b732: 8d66                                   |0067: int-to-byte v6, v6
+14b734: 6e20 8c30 6500                         |0068: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b73a: 5445 1019                              |006b: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b73e: 7110 c10d 0a00                         |006d: invoke-static {v10}, Landroid/graphics/Color;.blue:(I)I // method@0dc1
+14b744: 0a06                                   |0070: move-result v6
+14b746: 8d66                                   |0071: int-to-byte v6, v6
+14b748: 6e20 8c30 6500                         |0072: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b74e: 5445 1019                              |0075: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b752: 7110 bf0d 0a00                         |0077: invoke-static {v10}, Landroid/graphics/Color;.alpha:(I)I // method@0dbf
+14b758: 0a06                                   |007a: move-result v6
+14b75a: 8d66                                   |007b: int-to-byte v6, v6
+14b75c: 6e20 8c30 6500                         |007c: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b762: 5245 0e19                              |007f: iget v5, v4, Lk2/a;.d:I // field@190e
+14b766: b025                                   |0081: add-int/2addr v5, v2
+14b768: 5945 0e19                              |0082: iput v5, v4, Lk2/a;.d:I // field@190e
+14b76c: 0e00                                   |0084: return-void
+14b76e: 7100 2039 0000                         |0085: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b774: 2700                                   |0088: throw v0
+14b776: 7100 2039 0000                         |0089: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b77c: 2700                                   |008c: throw v0
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #3              : (in Lk2/a;)
+      name          : 'e'
+      type          : '(FFIFFIFFI)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 14
+      ins           : 10
+      outs          : 2
+      insns size    : 192 16-bit code units
+14b780:                                        |[14b780] k2.a.e:(FFIFFIFFI)V
+14b790: 5240 0b19                              |0000: iget v0, v4, Lk2/a;.a:I // field@190b
+14b794: 1241                                   |0002: const/4 v1, #int 4 // #4
+14b796: 1202                                   |0003: const/4 v2, #int 0 // #0
+14b798: 3310 b800                              |0004: if-ne v0, v1, 00bc // +00b8
+14b79c: 5240 0e19                              |0006: iget v0, v4, Lk2/a;.d:I // field@190e
+14b7a0: 5241 0d19                              |0008: iget v1, v4, Lk2/a;.c:I // field@190d
+14b7a4: 1213                                   |000a: const/4 v3, #int 1 // #1
+14b7a6: 3410 0b00                              |000b: if-lt v0, v1, 0016 // +000b
+14b7aa: 3d00 0500                              |000d: if-lez v0, 0012 // +0005
+14b7ae: da00 0002                              |000f: mul-int/lit8 v0, v0, #int 2 // #02
+14b7b2: 2802                                   |0011: goto 0013 // +0002
+14b7b4: 0130                                   |0012: move v0, v3
+14b7b6: 6e20 4333 0400                         |0013: invoke-virtual {v4, v0}, Lk2/a;.f:(I)V // method@3343
+14b7bc: 5240 0e19                              |0016: iget v0, v4, Lk2/a;.d:I // field@190e
+14b7c0: 5241 0d19                              |0018: iget v1, v4, Lk2/a;.c:I // field@190d
+14b7c4: 3510 9e00                              |001a: if-ge v0, v1, 00b8 // +009e
+14b7c8: 5440 0f19                              |001c: iget-object v0, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7cc: 6e20 9630 5000                         |001e: invoke-virtual {v0, v5}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b7d2: 5445 0f19                              |0021: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7d6: 6e20 9630 6500                         |0023: invoke-virtual {v5, v6}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b7dc: 5445 0f19                              |0026: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7e0: 6e20 9630 8500                         |0028: invoke-virtual {v5, v8}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b7e6: 5445 0f19                              |002b: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7ea: 6e20 9630 9500                         |002d: invoke-virtual {v5, v9}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b7f0: 5445 0f19                              |0030: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7f4: 6e20 9630 b500                         |0032: invoke-virtual {v5, v11}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b7fa: 5445 0f19                              |0035: iget-object v5, v4, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b7fe: 6e20 9630 c500                         |0037: invoke-virtual {v5, v12}, Ljava/nio/FloatBuffer;.put:(F)Ljava/nio/FloatBuffer; // method@3096
+14b804: 5445 1019                              |003a: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b808: 7110 c30d 0700                         |003c: invoke-static {v7}, Landroid/graphics/Color;.red:(I)I // method@0dc3
+14b80e: 0a06                                   |003f: move-result v6
+14b810: 8d66                                   |0040: int-to-byte v6, v6
+14b812: 6e20 8c30 6500                         |0041: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b818: 5445 1019                              |0044: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b81c: 7110 c20d 0700                         |0046: invoke-static {v7}, Landroid/graphics/Color;.green:(I)I // method@0dc2
+14b822: 0a06                                   |0049: move-result v6
+14b824: 8d66                                   |004a: int-to-byte v6, v6
+14b826: 6e20 8c30 6500                         |004b: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b82c: 5445 1019                              |004e: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b830: 7110 c10d 0700                         |0050: invoke-static {v7}, Landroid/graphics/Color;.blue:(I)I // method@0dc1
+14b836: 0a06                                   |0053: move-result v6
+14b838: 8d66                                   |0054: int-to-byte v6, v6
+14b83a: 6e20 8c30 6500                         |0055: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b840: 5445 1019                              |0058: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b844: 7110 bf0d 0700                         |005a: invoke-static {v7}, Landroid/graphics/Color;.alpha:(I)I // method@0dbf
+14b84a: 0a06                                   |005d: move-result v6
+14b84c: 8d66                                   |005e: int-to-byte v6, v6
+14b84e: 6e20 8c30 6500                         |005f: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b854: 5445 1019                              |0062: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b858: 7110 c30d 0a00                         |0064: invoke-static {v10}, Landroid/graphics/Color;.red:(I)I // method@0dc3
+14b85e: 0a06                                   |0067: move-result v6
+14b860: 8d66                                   |0068: int-to-byte v6, v6
+14b862: 6e20 8c30 6500                         |0069: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b868: 5445 1019                              |006c: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b86c: 7110 c20d 0a00                         |006e: invoke-static {v10}, Landroid/graphics/Color;.green:(I)I // method@0dc2
+14b872: 0a06                                   |0071: move-result v6
+14b874: 8d66                                   |0072: int-to-byte v6, v6
+14b876: 6e20 8c30 6500                         |0073: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b87c: 5445 1019                              |0076: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b880: 7110 c10d 0a00                         |0078: invoke-static {v10}, Landroid/graphics/Color;.blue:(I)I // method@0dc1
+14b886: 0a06                                   |007b: move-result v6
+14b888: 8d66                                   |007c: int-to-byte v6, v6
+14b88a: 6e20 8c30 6500                         |007d: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b890: 5445 1019                              |0080: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b894: 7110 bf0d 0a00                         |0082: invoke-static {v10}, Landroid/graphics/Color;.alpha:(I)I // method@0dbf
+14b89a: 0a06                                   |0085: move-result v6
+14b89c: 8d66                                   |0086: int-to-byte v6, v6
+14b89e: 6e20 8c30 6500                         |0087: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b8a4: 5445 1019                              |008a: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b8a8: 7110 c30d 0d00                         |008c: invoke-static {v13}, Landroid/graphics/Color;.red:(I)I // method@0dc3
+14b8ae: 0a06                                   |008f: move-result v6
+14b8b0: 8d66                                   |0090: int-to-byte v6, v6
+14b8b2: 6e20 8c30 6500                         |0091: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b8b8: 5445 1019                              |0094: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b8bc: 7110 c20d 0d00                         |0096: invoke-static {v13}, Landroid/graphics/Color;.green:(I)I // method@0dc2
+14b8c2: 0a06                                   |0099: move-result v6
+14b8c4: 8d66                                   |009a: int-to-byte v6, v6
+14b8c6: 6e20 8c30 6500                         |009b: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b8cc: 5445 1019                              |009e: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b8d0: 7110 c10d 0d00                         |00a0: invoke-static {v13}, Landroid/graphics/Color;.blue:(I)I // method@0dc1
+14b8d6: 0a06                                   |00a3: move-result v6
+14b8d8: 8d66                                   |00a4: int-to-byte v6, v6
+14b8da: 6e20 8c30 6500                         |00a5: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b8e0: 5445 1019                              |00a8: iget-object v5, v4, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b8e4: 7110 bf0d 0d00                         |00aa: invoke-static {v13}, Landroid/graphics/Color;.alpha:(I)I // method@0dbf
+14b8ea: 0a06                                   |00ad: move-result v6
+14b8ec: 8d66                                   |00ae: int-to-byte v6, v6
+14b8ee: 6e20 8c30 6500                         |00af: invoke-virtual {v5, v6}, Ljava/nio/ByteBuffer;.put:(B)Ljava/nio/ByteBuffer; // method@308c
+14b8f4: 5245 0e19                              |00b2: iget v5, v4, Lk2/a;.d:I // field@190e
+14b8f8: b035                                   |00b4: add-int/2addr v5, v3
+14b8fa: 5945 0e19                              |00b5: iput v5, v4, Lk2/a;.d:I // field@190e
+14b8fe: 0e00                                   |00b7: return-void
+14b900: 7100 2039 0000                         |00b8: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b906: 2702                                   |00bb: throw v2
+14b908: 7100 2039 0000                         |00bc: invoke-static {}, Ln1/a;.m:()V // method@3920
+14b90e: 2702                                   |00bf: throw v2
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #4              : (in Lk2/a;)
+      name          : 'f'
+      type          : '(I)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 5
+      ins           : 2
+      outs          : 2
+      insns size    : 69 16-bit code units
+14b910:                                        |[14b910] k2.a.f:(I)V
+14b920: 5230 0d19                              |0000: iget v0, v3, Lk2/a;.c:I // field@190d
+14b924: 3540 4200                              |0002: if-ge v0, v4, 0044 // +0042
+14b928: 5230 0e19                              |0004: iget v0, v3, Lk2/a;.d:I // field@190e
+14b92c: 3d00 1300                              |0006: if-lez v0, 0019 // +0013
+14b930: 2200 8709                              |0008: new-instance v0, Lk2/a; // type@0987
+14b934: 5231 0b19                              |000a: iget v1, v3, Lk2/a;.a:I // field@190b
+14b938: 7020 3e33 1000                         |000c: invoke-direct {v0, v1}, Lk2/a;.<init>:(I)V // method@333e
+14b93e: 6e20 4333 4000                         |000f: invoke-virtual {v0, v4}, Lk2/a;.f:(I)V // method@3343
+14b944: 7120 4433 3000                         |0012: invoke-static {v0, v3}, Lk2/a;.g:(Lk2/a;Lk2/a;)V // method@3344
+14b94a: 7120 4433 0300                         |0015: invoke-static {v3, v0}, Lk2/a;.g:(Lk2/a;Lk2/a;)V // method@3344
+14b950: 282a                                   |0018: goto 0042 // +002a
+14b952: 5230 0c19                              |0019: iget v0, v3, Lk2/a;.b:I // field@190c
+14b956: b240                                   |001b: mul-int/2addr v0, v4
+14b958: da01 0040                              |001c: mul-int/lit8 v1, v0, #int 64 // #40
+14b95c: db01 0108                              |001e: div-int/lit8 v1, v1, #int 8 // #08
+14b960: 7110 8430 0100                         |0020: invoke-static {v1}, Ljava/nio/ByteBuffer;.allocateDirect:(I)Ljava/nio/ByteBuffer; // method@3084
+14b966: 0c01                                   |0023: move-result-object v1
+14b968: 7100 9230 0000                         |0024: invoke-static {}, Ljava/nio/ByteOrder;.nativeOrder:()Ljava/nio/ByteOrder; // method@3092
+14b96e: 0c02                                   |0027: move-result-object v2
+14b970: 6e20 8b30 2100                         |0028: invoke-virtual {v1, v2}, Ljava/nio/ByteBuffer;.order:(Ljava/nio/ByteOrder;)Ljava/nio/ByteBuffer; // method@308b
+14b976: 6e10 8630 0100                         |002b: invoke-virtual {v1}, Ljava/nio/ByteBuffer;.asFloatBuffer:()Ljava/nio/FloatBuffer; // method@3086
+14b97c: 0c01                                   |002e: move-result-object v1
+14b97e: 5b31 0f19                              |002f: iput-object v1, v3, Lk2/a;.e:Ljava/nio/FloatBuffer; // field@190f
+14b982: da00 0020                              |0031: mul-int/lit8 v0, v0, #int 32 // #20
+14b986: db00 0008                              |0033: div-int/lit8 v0, v0, #int 8 // #08
+14b98a: 7110 8430 0000                         |0035: invoke-static {v0}, Ljava/nio/ByteBuffer;.allocateDirect:(I)Ljava/nio/ByteBuffer; // method@3084
+14b990: 0c00                                   |0038: move-result-object v0
+14b992: 5b30 1019                              |0039: iput-object v0, v3, Lk2/a;.f:Ljava/nio/ByteBuffer; // field@1910
+14b996: 7100 9230 0000                         |003b: invoke-static {}, Ljava/nio/ByteOrder;.nativeOrder:()Ljava/nio/ByteOrder; // method@3092
+14b99c: 0c01                                   |003e: move-result-object v1
+14b99e: 6e20 8b30 1000                         |003f: invoke-virtual {v0, v1}, Ljava/nio/ByteBuffer;.order:(Ljava/nio/ByteOrder;)Ljava/nio/ByteBuffer; // method@308b
+14b9a4: 5934 0d19                              |0042: iput v4, v3, Lk2/a;.c:I // field@190d
+14b9a8: 0e00                                   |0044: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+  source_file_idx   : 5734 (SourceFile)
+
+Class #1700            -

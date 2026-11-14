@@ -1,0 +1,14 @@
+{
+  "antigravity.ai.provider": "openai-compatible",
+  "antigravity.openai-compatible.endpoint": "http://localhost:1234/v1",
+  "antigravity.openai-compatible.apiKey": "lm-studio",
+  "antigravity.ai.model": "qwen2.5-coder-7b-instruct",
+
+  "antigravity.agent.enabled": true,
+  "antigravity.agent.provider": "openai-compatible",
+  "antigravity.agent.openai-compatible.endpoint": "http://localhost:1234/v1",
+  "antigravity.agent.openai-compatible.apiKey": "lm-studio",
+  "antigravity.agent.model": "qwen2.5-coder-7b-instruct",
+
+  "antigravity.fallback.enabled": false
+}

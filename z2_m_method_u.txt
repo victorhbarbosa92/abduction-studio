@@ -1,0 +1,24 @@
+      name          : 'u'
+      type          : '(I)Z'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 2
+      ins           : 2
+      outs          : 0
+      insns size    : 11 16-bit code units
+1a44ec:                                        |[1a44ec] z2.m.u:(I)Z
+1a44fc: 5400 2522                              |0000: iget-object v0, v0, Lz2/m;.V:[I // field@2225
+1a4500: 4400 0001                              |0002: aget v0, v0, v1
+1a4504: 1221                                   |0004: const/4 v1, #int 2 // #2
+1a4506: 3310 0400                              |0005: if-ne v0, v1, 0009 // +0004
+1a450a: 1210                                   |0007: const/4 v0, #int 1 // #1
+1a450c: 0f00                                   |0008: return v0
+1a450e: 1200                                   |0009: const/4 v0, #int 0 // #0
+1a4510: 0f00                                   |000a: return v0
+      catches       : (none)
+      positions     :
+      locals        :
+
+  source_file_idx   : 5734 (SourceFile)
+
+Class #1416            -

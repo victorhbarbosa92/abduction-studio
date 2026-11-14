@@ -1,0 +1,58 @@
+================================================================================
+           ABDUCTION STUDIO V2 - GUIA DE INSTALACAO E EXECUCAO
+================================================================================
+
+Seja bem-vindo ao Abduction Studio V2!
+Este pacote contem a versao portatil e completa com todos os modulos de audio,
+inteligencia artificial (ONNX Runtime), sintetizadores e bibliotecas de som.
+
+--------------------------------------------------------------------------------
+COMO INICIAR A DAW
+--------------------------------------------------------------------------------
+1. Extraia TODO o conteudo do arquivo .zip para uma pasta de sua escolha 
+   (Exemplo: C:\AbductionStudioV2 ou Desktop).
+   * IMPORTANTE: Nao execute direto de dentro do arquivo ZIP sem extrair!
+
+2. Dê um duplo clique no arquivo:
+   👉 Iniciar_DAW.bat
+
+O script fara o desbloqueio automatico dos executaveis e abrira o Abduction Studio.
+
+--------------------------------------------------------------------------------
+SE A DAW NAO ABRIR OU FECHAR IMEDIATAMENTE (RESOLUCAO DE PROBLEMAS)
+--------------------------------------------------------------------------------
+Caso o Windows impeca a execucao em seu computador, execute a ferramenta:
+   👉 Diagnostico_e_Reparo.bat
+
+Ela verifica e resolve automaticamente as 4 causas mais comuns:
+
+1. FALTA DO VISUAL C++ REDISTRIBUTABLE (MSVC):
+   - O projeto requer o Microsoft Visual C++ 2015-2022 (x64).
+   - O instalador oficial ja esta incluso nesta pasta:
+     👉 vc_redist.x64.exe
+   - Execute o 'vc_redist.x64.exe', clique em 'Instalar' e tente abrir novamente.
+
+2. BLOQUEIO DO WINDOWS DEFENDER / SMARTSCREEN:
+   - Ao baixar arquivos zip da internet, o Windows marca os executaveis com
+     bloqueio de seguranca (Mark of the Web).
+   - Para desbloquear tudo de uma vez com privilégios de administrador:
+     👉 Clique com o botao direito em 'liberar_acesso.bat' e escolha 
+        'Executar como administrador'.
+   - Se aparecer a tela azul "O Windows protegeu o seu computador":
+     Clique em "Mais informacoes" e depois em "Executar assim mesmo".
+
+3. DRIVER DE VIDEO E OPENGL 3.3:
+   - A interface da DAW renderiza via OpenGL 3.3 Core Profile.
+   - Certifique-se de que os drivers da sua placa de video (NVIDIA, AMD ou Intel)
+     estao instalados e atualizados (nao use o driver basico padrao do Windows).
+
+4. DISPOSITIVO DE AUDIO:
+   - Conecte uma caixa de som ou fone de ouvido para que o motor de audio
+     WASAPI de baixa latencia possa inicializar a saida de som estéreo.
+
+--------------------------------------------------------------------------------
+SUPORTE E LOGS DE ERRO
+--------------------------------------------------------------------------------
+Se ocorrer qualquer erro, consulte o arquivo 'startup_debug.log' gerado
+nesta mesma pasta. Ele contem o relatorio detalhado de inicializacao.
+================================================================================

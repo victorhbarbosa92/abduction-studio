@@ -1,0 +1,6 @@
+      name          : 'k'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #11              : (in Lz2/m;)

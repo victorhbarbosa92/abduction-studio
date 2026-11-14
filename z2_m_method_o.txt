@@ -1,0 +1,6 @@
+      name          : 'o'
+      type          : '(II[I)V'
+      access        : 0x0401 (PUBLIC ABSTRACT)
+      code          : (none)
+
+    #15              : (in Lz2/m;)

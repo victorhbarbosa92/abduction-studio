@@ -1,0 +1,36 @@
+      name          : 's'
+      type          : '(I)I'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 3
+      ins           : 2
+      outs          : 0
+      insns size    : 39 16-bit code units
+1a467c:                                        |[1a467c] z2.m.s:(I)I
+1a468c: 5410 2f22                              |0000: iget-object v0, v1, Lz2/m;.i0:[Z // field@222f
+1a4690: 4700 0002                              |0002: aget-boolean v0, v0, v2
+1a4694: 3800 0500                              |0004: if-eqz v0, 0009 // +0005
+1a4698: 5211 1a22                              |0006: iget v1, v1, Lz2/m;.K:I // field@221a
+1a469c: 0f01                                   |0008: return v1
+1a469e: 5410 2e22                              |0009: iget-object v0, v1, Lz2/m;.h0:[Z // field@222e
+1a46a2: 4700 0002                              |000b: aget-boolean v0, v0, v2
+1a46a6: 3800 0500                              |000d: if-eqz v0, 0012 // +0005
+1a46aa: 5211 1922                              |000f: iget v1, v1, Lz2/m;.J:I // field@2219
+1a46ae: 0f01                                   |0011: return v1
+1a46b0: 5410 2d22                              |0012: iget-object v0, v1, Lz2/m;.g0:[Z // field@222d
+1a46b4: 4700 0002                              |0014: aget-boolean v0, v0, v2
+1a46b8: 3800 0500                              |0016: if-eqz v0, 001b // +0005
+1a46bc: 5211 1822                              |0018: iget v1, v1, Lz2/m;.I:I // field@2218
+1a46c0: 0f01                                   |001a: return v1
+1a46c2: 5410 2c22                              |001b: iget-object v0, v1, Lz2/m;.f0:[Z // field@222c
+1a46c6: 4702 0002                              |001d: aget-boolean v2, v0, v2
+1a46ca: 3802 0500                              |001f: if-eqz v2, 0024 // +0005
+1a46ce: 5211 1722                              |0021: iget v1, v1, Lz2/m;.H:I // field@2217
+1a46d2: 0f01                                   |0023: return v1
+1a46d4: 5211 1622                              |0024: iget v1, v1, Lz2/m;.G:I // field@2216
+1a46d8: 0f01                                   |0026: return v1
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #19              : (in Lz2/m;)

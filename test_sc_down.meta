@@ -1,0 +1,26 @@
+{
+  "bpm": 157.89,
+  "key": "10A / Bm",
+  "first_beat_sec": 0.02793,
+  "first_beat_offset_ms": 27.93,
+  "first_beat_frame": 1340,
+  "cue_points_ms": [
+    27.93,
+    24348.7,
+    48669.4,
+    208027.6,
+    97310.8,
+    367413.7,
+    391734.4,
+    415055.2
+  ],
+  "lufs": -12.48,
+  "gain_offset_db": 3.48,
+  "title": "Dite the Bust",
+  "artist": "Render & GiGi",
+  "album": "Lunatic Paradise",
+  "genre": "Electronic",
+  "bit_depth": 24,
+  "sample_rate": 48000,
+  "analyzer_version": "rekordbox_ml_v3"
+}

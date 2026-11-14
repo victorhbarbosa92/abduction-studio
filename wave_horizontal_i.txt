@@ -1,0 +1,120 @@
+      name          : 'i'
+      type          : '(I[I)V'
+      access        : 0x0011 (PUBLIC FINAL)
+      code          -
+      registers     : 18
+      ins           : 3
+      outs          : 8
+      insns size    : 180 16-bit code units
+1246ac:                                        |[1246ac] com.pioneerdj.WeDJ.gui.deck.view.WaveHorizontalView.i:(I[I)V
+1246bc: 54f0 2f22                              |0000: iget-object v0, v15, Lz2/m;.i0:[Z // field@222f
+1246c0: 4700 0010                              |0002: aget-boolean v0, v0, v16
+1246c4: 3800 0400                              |0004: if-eqz v0, 0008 // +0004
+1246c8: 2900 ad00                              |0006: goto/16 00b3 // +00ad
+1246cc: 6e10 6c13 0f00                         |0008: invoke-virtual {v15}, Landroid/view/View;.getWidth:()I // method@136c
+1246d2: 0a00                                   |000b: move-result v0
+1246d4: 6e10 2c13 0f00                         |000c: invoke-virtual {v15}, Landroid/view/View;.getHeight:()I // method@132c
+1246da: 0a01                                   |000f: move-result v1
+1246dc: db01 0102                              |0010: div-int/lit8 v1, v1, #int 2 // #02
+1246e0: 9202 1001                              |0012: mul-int v2, v16, v1
+1246e4: b021                                   |0014: add-int/2addr v1, v2
+1246e6: 54f3 2322                              |0015: iget-object v3, v15, Lz2/m;.T:[Z // field@2223
+1246ea: 4703 0310                              |0017: aget-boolean v3, v3, v16
+1246ee: 1204                                   |0019: const/4 v4, #int 0 // #0
+1246f0: 3803 0400                              |001a: if-eqz v3, 001e // +0004
+1246f4: 0143                                   |001c: move v3, v4
+1246f6: 2805                                   |001d: goto 0022 // +0005
+1246f8: 6e10 c33f 0f00                         |001e: invoke-virtual {v15}, Lz2/m;.getWaveOffset:()I // method@3fc3
+1246fe: 0a03                                   |0021: move-result v3
+124700: 8222                                   |0022: int-to-float v2, v2
+124702: 52f5 3322                              |0023: iget v5, v15, Lz2/m;.l:F // field@2233
+124706: a609 0205                              |0025: add-float v9, v2, v5
+12470a: 8211                                   |0027: int-to-float v1, v1
+12470c: a70c 0105                              |0028: sub-float v12, v1, v5
+124710: 54f1 3122                              |002a: iget-object v1, v15, Lz2/m;.k:[F // field@2231
+124714: 1212                                   |002c: const/4 v2, #int 1 // #1
+124716: 4401 0102                              |002d: aget v1, v1, v2
+12471a: 1505 803f                              |002f: const/high16 v5, #int 1065353216 // #3f80
+12471e: 2e06 0105                              |0031: cmpg-float v6, v1, v5
+124722: 3b06 0300                              |0033: if-gez v6, 0036 // +0003
+124726: 2802                                   |0035: goto 0037 // +0002
+124728: 0151                                   |0036: move v1, v5
+12472a: 54f5 3222                              |0037: iget-object v5, v15, Lz2/m;.k0:[Z // field@2232
+12472e: 4705 0510                              |0039: aget-boolean v5, v5, v16
+124732: 3805 5d00                              |003b: if-eqz v5, 0098 // +005d
+124736: 0135                                   |003d: move v5, v3
+124738: 9006 0003                              |003e: add-int v6, v0, v3
+12473c: 3565 7300                              |0040: if-ge v5, v6, 00b3 // +0073
+124740: 3504 7100                              |0042: if-ge v4, v0, 00b3 // +0071
+124744: 4406 1105                              |0044: aget v6, v17, v5
+124748: 3226 2b00                              |0046: if-eq v6, v2, 0071 // +002b
+12474c: 12f7                                   |0048: const/4 v7, #int -1 // #ff
+12474e: 3376 0300                              |0049: if-ne v6, v7, 004c // +0003
+124752: 2826                                   |004b: goto 0071 // +0026
+124754: 3806 4700                              |004c: if-eqz v6, 0093 // +0047
+124758: 52f7 1d22                              |004e: iget v7, v15, Lz2/m;.N:I // field@221d
+12475c: 824e                                   |0050: int-to-float v14, v4
+12475e: a708 0e01                              |0051: sub-float v8, v14, v1
+124762: 52fa 3d22                              |0053: iget v10, v15, Lz2/m;.u:I // field@223d
+124766: 018b                                   |0055: move v11, v8
+124768: 01ad                                   |0056: move v13, v10
+12476a: 07f6                                   |0057: move-object v6, v15
+12476c: 7408 4f33 0600                         |0058: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+124772: 52f7 1d22                              |005b: iget v7, v15, Lz2/m;.N:I // field@221d
+124776: a608 0e01                              |005d: add-float v8, v14, v1
+12477a: 52fa 3d22                              |005f: iget v10, v15, Lz2/m;.u:I // field@223d
+12477e: 018b                                   |0061: move v11, v8
+124780: 01ad                                   |0062: move v13, v10
+124782: 7408 4f33 0600                         |0063: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+124788: 52f7 1d22                              |0066: iget v7, v15, Lz2/m;.N:I // field@221d
+12478c: 52fa 3c22                              |0068: iget v10, v15, Lz2/m;.t:I // field@223c
+124790: 01eb                                   |006a: move v11, v14
+124792: 01ad                                   |006b: move v13, v10
+124794: 01e8                                   |006c: move v8, v14
+124796: 7408 4f33 0600                         |006d: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+12479c: 2823                                   |0070: goto 0093 // +0023
+12479e: 52f7 1d22                              |0071: iget v7, v15, Lz2/m;.N:I // field@221d
+1247a2: 824e                                   |0073: int-to-float v14, v4
+1247a4: a708 0e01                              |0074: sub-float v8, v14, v1
+1247a8: 52fa 3d22                              |0076: iget v10, v15, Lz2/m;.u:I // field@223d
+1247ac: 018b                                   |0078: move v11, v8
+1247ae: 01ad                                   |0079: move v13, v10
+1247b0: 07f6                                   |007a: move-object v6, v15
+1247b2: 7408 4f33 0600                         |007b: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+1247b8: 52f7 1d22                              |007e: iget v7, v15, Lz2/m;.N:I // field@221d
+1247bc: a608 0e01                              |0080: add-float v8, v14, v1
+1247c0: 52fa 3d22                              |0082: iget v10, v15, Lz2/m;.u:I // field@223d
+1247c4: 018b                                   |0084: move v11, v8
+1247c6: 01ad                                   |0085: move v13, v10
+1247c8: 7408 4f33 0600                         |0086: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+1247ce: 52f7 1d22                              |0089: iget v7, v15, Lz2/m;.N:I // field@221d
+1247d2: 52fa 3b22                              |008b: iget v10, v15, Lz2/m;.s:I // field@223b
+1247d6: 01eb                                   |008d: move v11, v14
+1247d8: 01ad                                   |008e: move v13, v10
+1247da: 01e8                                   |008f: move v8, v14
+1247dc: 7408 4f33 0600                         |0090: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+1247e2: d805 0501                              |0093: add-int/lit8 v5, v5, #int 1 // #01
+1247e6: d804 0401                              |0095: add-int/lit8 v4, v4, #int 1 // #01
+1247ea: 28a7                                   |0097: goto 003e // -0059
+1247ec: 0131                                   |0098: move v1, v3
+1247ee: 9002 0003                              |0099: add-int v2, v0, v3
+1247f2: 3521 1800                              |009b: if-ge v1, v2, 00b3 // +0018
+1247f6: 3504 1600                              |009d: if-ge v4, v0, 00b3 // +0016
+1247fa: 4402 1101                              |009f: aget v2, v17, v1
+1247fe: 3802 0d00                              |00a1: if-eqz v2, 00ae // +000d
+124802: 52f7 1d22                              |00a3: iget v7, v15, Lz2/m;.N:I // field@221d
+124806: 8248                                   |00a5: int-to-float v8, v4
+124808: 52fa 3a22                              |00a6: iget v10, v15, Lz2/m;.r:I // field@223a
+12480c: 018b                                   |00a8: move v11, v8
+12480e: 01ad                                   |00a9: move v13, v10
+124810: 07f6                                   |00aa: move-object v6, v15
+124812: 7408 4f33 0600                         |00ab: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Lk2/c;.d:(IFFIFFI)V // method@334f
+124818: d801 0101                              |00ae: add-int/lit8 v1, v1, #int 1 // #01
+12481c: d804 0401                              |00b0: add-int/lit8 v4, v4, #int 1 // #01
+124820: 28e7                                   |00b2: goto 0099 // -0019
+124822: 0e00                                   |00b3: return-void
+      catches       : (none)
+      positions     :
+      locals        :
+
+    #6              : (in Lcom/pioneerdj/WeDJ/gui/deck/view/WaveHorizontalView;)
